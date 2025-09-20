@@ -27,29 +27,39 @@ export const fetchCommunityGroups = async (userId?: string): Promise<CommunityGr
   try {
     console.log('Fetching community groups for user:', userId);
     
-    // Test basic connectivity first
-    const { data: healthCheck } = await supabase
-      .from('profiles')
-      .select('count', { count: 'exact', head: true })
-      .limit(1);
+    // First, try a simple query to check if the table exists and is accessible
+    let groups, error;
     
-    console.log('Health check passed, proceeding with groups query');
-    
-    // Simple query without joins to avoid complex query issues
-    const { data: groups, error } = await supabase
-      .from('community_groups')
-      .select('*')
-      .order('created_at', { ascending: false });
+    try {
+      const result = await supabase
+        .from('community_groups')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      groups = result.data;
+      error = result.error;
+    } catch (queryError) {
+      console.error('Database query failed:', queryError);
+      // If there's a fundamental issue with the database connection, return empty array
+      console.warn('Database not accessible, returning empty array for community groups');
+      return [];
+    }
     
     console.log('Groups query result:', { groups, error });
 
     if (error) {
       console.error('Groups query error details:', error);
-      throw new CommunityGroupErrorClass({
-        message: 'Failed to fetch community groups',
-        code: 'FETCH_GROUPS_ERROR',
-        details: error
-      });
+      
+      // If the table doesn't exist or there's a permission issue, return empty array
+      // This allows the app to function even if the community feature isn't fully set up
+      if (error.code === '42P01' || error.code === 'PGRST116' || error.message?.includes('relation') || error.message?.includes('does not exist')) {
+        console.warn('Community groups table not found or not accessible, returning empty array');
+        return [];
+      }
+      
+      // For other errors, also return empty array to prevent app crash
+      console.warn('Community groups query failed, returning empty array:', error);
+      return [];
     }
 
     if (!groups || groups.length === 0) {
@@ -57,25 +67,62 @@ export const fetchCommunityGroups = async (userId?: string): Promise<CommunityGr
       return [];
     }
 
-    // For now, return basic group data without complex membership calculations
-    // This will help us identify if the issue is with the basic query or the joins
-    const basicGroups: CommunityGroup[] = groups.map(group => ({
-      ...group,
-      member_count: 0, // Will be calculated separately if needed
-      is_member: false, // Will be calculated separately if needed
-      is_owner: userId ? group.owner_id === userId : false
-    }));
+    // Calculate membership information for each group if user is provided
+    const groupsWithMembership: CommunityGroup[] = [];
+    
+    for (const group of groups) {
+      let memberCount = 0;
+      let isMember = false;
+      
+      // Get member count - skip if database not available
+      try {
+        const result = await supabase
+          .from('group_memberships')
+          .select('*', { count: 'exact', head: true })
+          .eq('group_id', group.id);
+        
+        memberCount = result.count || 0;
+      } catch (membershipError) {
+        console.warn('Failed to get member count for group', group.id, membershipError);
+        memberCount = 0;
+      }
+      
+      // Check if current user is a member - skip if database not available
+      if (userId) {
+        try {
+          const result = await supabase
+            .from('group_memberships')
+            .select('id')
+            .match({ group_id: group.id, user_id: userId })
+            .single();
+          
+          isMember = !!result.data;
+        } catch (membershipError) {
+          console.warn('Failed to check membership for group', group.id, membershipError);
+          isMember = false;
+        }
+      }
+      
+      groupsWithMembership.push({
+        ...group,
+        member_count: memberCount,
+        is_member: isMember,
+        is_owner: userId ? group.owner_id === userId : false
+      });
+    }
 
-    console.log('Returning basic groups:', basicGroups);
-    return basicGroups;
+    console.log('Returning groups with membership info:', groupsWithMembership);
+    return groupsWithMembership;
   } catch (error) {
+    console.error('Error in fetchCommunityGroups:', error);
+    
     if (error instanceof CommunityGroupErrorClass) {
       throw error;
     }
-    throw new CommunityGroupErrorClass({
-      message: 'An unexpected error occurred while fetching groups',
-      details: error
-    });
+    
+    // For any unexpected errors, return empty array to prevent app crash
+    console.warn('Unexpected error fetching community groups, returning empty array:', error);
+    return [];
   }
 };
 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Home, Users, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Home, Users, MessageCircle, Code2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
   Breadcrumb,
@@ -10,11 +10,14 @@ import {
   BreadcrumbSeparator,
   BreadcrumbPage,
 } from '@/components/ui/breadcrumb';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import CommunityGroupList from '@/components/CommunityGroupList';
 import CreateGroupModal from '@/components/CreateGroupModal';
 import GroupChat from '@/components/GroupChat';
+import CollaborativeEditor from '@/components/collaboration/CollaborativeEditor';
+import CollaborationRoomManager from '@/components/collaboration/CollaborationRoomManager';
 import CommunityErrorBoundary from '@/components/CommunityErrorBoundary';
-import TestGroupCreation from '@/components/TestGroupCreation';
+
 import { useCommunityGroup } from '@/hooks/useCommunityGroups';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -24,6 +27,7 @@ const Community = () => {
   const { user } = useAuth();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'chat' | 'collaborate' | 'rooms'>('chat');
 
   // Fetch selected group data for breadcrumb
   const { data: selectedGroup } = useCommunityGroup(selectedGroupId || '');
@@ -43,9 +47,13 @@ const Community = () => {
 
   const handleBackToGroups = () => {
     setSelectedGroupId(null);
+    setActiveTab('chat');
   };
 
-  // If a group is selected, show the chat interface
+  // Check if user has collaboration permissions
+  const hasCollaborationAccess = selectedGroup?.is_member || false;
+
+  // If a group is selected, show the group interface with tabs
   if (selectedGroupId) {
     return (
       <CommunityErrorBoundary feature="chat">
@@ -95,20 +103,104 @@ const Community = () => {
                   <BreadcrumbSeparator />
                   <BreadcrumbItem>
                     <BreadcrumbPage className="flex items-center gap-1">
-                      <MessageCircle className="h-4 w-4" />
-                      {selectedGroup?.name || 'Chat'}
+                      {activeTab === 'chat' ? (
+                        <MessageCircle className="h-4 w-4" />
+                      ) : activeTab === 'rooms' ? (
+                        <Users className="h-4 w-4" />
+                      ) : (
+                        <Code2 className="h-4 w-4" />
+                      )}
+                      {selectedGroup?.name || 'Group'} - {
+                        activeTab === 'chat' ? 'Chat' : 
+                        activeTab === 'rooms' ? 'Rooms' : 
+                        'Editor'
+                      }
                     </BreadcrumbPage>
                   </BreadcrumbItem>
                 </BreadcrumbList>
               </Breadcrumb>
             </nav>
 
-            {/* Chat Interface */}
+            {/* Group Interface with Tabs */}
             <div className="flex-1">
-              <GroupChat 
-                groupId={selectedGroupId} 
-                onBack={handleBackToGroups}
-              />
+              <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'chat' | 'collaborate' | 'rooms')} className="h-full">
+                <div className="flex items-center justify-between mb-4">
+                  <TabsList className="grid w-auto grid-cols-3">
+                    <TabsTrigger value="chat" className="flex items-center gap-2">
+                      <MessageCircle className="h-4 w-4" />
+                      Chat
+                    </TabsTrigger>
+                    <TabsTrigger value="rooms" className="flex items-center gap-2">
+                      <Users className="h-4 w-4" />
+                      Rooms
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="collaborate" 
+                      className="flex items-center gap-2"
+                      disabled={!hasCollaborationAccess}
+                    >
+                      <Code2 className="h-4 w-4" />
+                      Editor
+                      {!hasCollaborationAccess && (
+                        <span className="text-xs text-muted-foreground ml-1">(Members Only)</span>
+                      )}
+                    </TabsTrigger>
+                  </TabsList>
+                  
+                  <Button 
+                    variant="outline" 
+                    onClick={handleBackToGroups}
+                    className="flex items-center gap-2"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    Back to Groups
+                  </Button>
+                </div>
+
+                <TabsContent value="chat" className="h-[calc(100%-4rem)] mt-0">
+                  <GroupChat 
+                    groupId={selectedGroupId} 
+                    onBack={handleBackToGroups}
+                  />
+                </TabsContent>
+
+                <TabsContent value="rooms" className="h-[calc(100%-4rem)] mt-0">
+                  <CollaborationRoomManager 
+                    groupId={selectedGroupId}
+                    onStartCollaboration={() => setActiveTab('collaborate')}
+                    className="h-full"
+                  />
+                </TabsContent>
+
+                <TabsContent value="collaborate" className="h-[calc(100%-4rem)] mt-0">
+                  <CommunityErrorBoundary feature="collaboration">
+                    {hasCollaborationAccess ? (
+                      <CollaborativeEditor 
+                        groupId={selectedGroupId}
+                        className="h-full"
+                      />
+                    ) : (
+                      <div className="h-full flex items-center justify-center">
+                        <div className="text-center space-y-4 max-w-md">
+                          <Code2 className="h-12 w-12 mx-auto text-muted-foreground" />
+                          <div className="space-y-2">
+                            <h3 className="text-lg font-semibold">Collaboration Access Required</h3>
+                            <p className="text-muted-foreground">
+                              You need to be a member of this group to access the collaborative editor.
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              Join the group from the community page to start collaborating on code with other members.
+                            </p>
+                          </div>
+                          <Button onClick={handleBackToGroups} variant="outline">
+                            Back to Groups
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </CommunityErrorBoundary>
+                </TabsContent>
+              </Tabs>
             </div>
           </div>
         </div>
@@ -177,11 +269,6 @@ const Community = () => {
             onCreateGroup={handleCreateGroup}
             onGroupSelect={handleGroupSelect}
           />
-          
-          {/* Temporary test component for debugging */}
-          <div className="mt-8">
-            <TestGroupCreation />
-          </div>
           
           <CreateGroupModal 
             open={showCreateModal} 

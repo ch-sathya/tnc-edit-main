@@ -37,6 +37,10 @@ export const useCommunityGroups = () => {
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
     retry: (failureCount, error: any) => {
+      // Don't retry if it's a table/permission issue
+      if (error?.code === '42P01' || error?.code === 'PGRST116' || error?.message?.includes('relation') || error?.message?.includes('does not exist')) {
+        return false;
+      }
       // Retry on network errors and server errors
       if (error?.message?.includes('network') || error?.message?.includes('fetch') || error?.status >= 500) {
         return failureCount < 3;
@@ -44,6 +48,8 @@ export const useCommunityGroups = () => {
       return false;
     },
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    // Provide a fallback to prevent the error boundary from showing
+    throwOnError: false,
   });
 };
 

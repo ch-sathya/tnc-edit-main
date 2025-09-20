@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { CollaborationUser } from '@/types/collaboration';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Users, Circle } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Users, Circle, Eye, MessageCircle, MoreHorizontal, UserCheck, FileText } from 'lucide-react';
 
 interface ActiveUsersListProps {
   users: CollaborationUser[];
@@ -11,6 +13,12 @@ interface ActiveUsersListProps {
   className?: string;
   showUserCount?: boolean;
   maxDisplayUsers?: number;
+  onFollowUser?: (userId: string) => void;
+  onUnfollowUser?: (userId: string) => void;
+  onMessageUser?: (userId: string) => void;
+  onViewUserFile?: (userId: string, fileId: string) => void;
+  followedUsers?: string[];
+  compact?: boolean;
 }
 
 const getStatusColor = (status: CollaborationUser['status']) => {
@@ -59,8 +67,15 @@ export const ActiveUsersList: React.FC<ActiveUsersListProps> = ({
   currentUserId,
   className = '',
   showUserCount = true,
-  maxDisplayUsers = 8
+  maxDisplayUsers = 8,
+  onFollowUser,
+  onUnfollowUser,
+  onMessageUser,
+  onViewUserFile,
+  followedUsers = [],
+  compact = false
 }) => {
+  const [expandedView, setExpandedView] = useState(false);
   const sortedUsers = [...users].sort((a, b) => {
     // Current user first
     if (a.id === currentUserId) return -1;
@@ -79,100 +94,225 @@ export const ActiveUsersList: React.FC<ActiveUsersListProps> = ({
   const remainingCount = Math.max(0, users.length - maxDisplayUsers);
   const onlineCount = users.filter(u => u.status === 'online').length;
 
+  const renderUserActions = (user: CollaborationUser) => {
+    if (user.id === currentUserId) return null;
+    
+    const isFollowed = followedUsers.includes(user.id);
+    
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+            <MoreHorizontal className="h-3 w-3" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-48">
+          {user.currentFile && onViewUserFile && (
+            <DropdownMenuItem onClick={() => onViewUserFile(user.id, user.currentFile!)}>
+              <FileText className="h-4 w-4 mr-2" />
+              View their file
+            </DropdownMenuItem>
+          )}
+          
+          {isFollowed ? (
+            <DropdownMenuItem onClick={() => onUnfollowUser?.(user.id)}>
+              <UserCheck className="h-4 w-4 mr-2" />
+              Unfollow user
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem onClick={() => onFollowUser?.(user.id)}>
+              <Eye className="h-4 w-4 mr-2" />
+              Follow user
+            </DropdownMenuItem>
+          )}
+          
+          {onMessageUser && (
+            <DropdownMenuItem onClick={() => onMessageUser(user.id)}>
+              <MessageCircle className="h-4 w-4 mr-2" />
+              Send message
+            </DropdownMenuItem>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  };
+
+  if (compact) {
+    return (
+      <div className={`flex items-center space-x-2 ${className}`}>
+        {showUserCount && (
+          <div className="flex items-center space-x-1 text-sm text-muted-foreground">
+            <Users className="h-4 w-4" />
+            <span>{onlineCount}</span>
+          </div>
+        )}
+        
+        <div className="flex items-center -space-x-2">
+          <TooltipProvider>
+            {displayUsers.slice(0, 4).map((user) => (
+              <Tooltip key={user.id}>
+                <TooltipTrigger asChild>
+                  <div className="relative">
+                    <Avatar className="h-6 w-6 border-2 border-background hover:z-10 transition-transform hover:scale-110">
+                      <AvatarImage src={user.avatar} alt={user.name} />
+                      <AvatarFallback 
+                        className="text-xs font-medium"
+                        style={{ backgroundColor: user.cursorColor + '20', color: user.cursorColor }}
+                      >
+                        {user.name[0]}
+                      </AvatarFallback>
+                    </Avatar>
+                    
+                    <div className="absolute -bottom-0.5 -right-0.5">
+                      <Circle 
+                        className={`h-2 w-2 ${getStatusColor(user.status)} rounded-full border border-background`}
+                        fill="currentColor"
+                      />
+                    </div>
+                  </div>
+                </TooltipTrigger>
+                
+                <TooltipContent side="bottom">
+                  <span className="text-sm">{user.name}</span>
+                </TooltipContent>
+              </Tooltip>
+            ))}
+            
+            {users.length > 4 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0 text-xs"
+                onClick={() => setExpandedView(true)}
+              >
+                +{users.length - 4}
+              </Button>
+            )}
+          </TooltipProvider>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className={`flex items-center space-x-2 ${className}`}>
+    <div className={`space-y-3 ${className}`}>
       {showUserCount && (
-        <div className="flex items-center space-x-1 text-sm text-muted-foreground">
-          <Users className="h-4 w-4" />
-          <span>{onlineCount} online</span>
-          {users.length > onlineCount && (
-            <span className="text-xs">({users.length} total)</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+            <Users className="h-4 w-4" />
+            <span>{onlineCount} online</span>
+            {users.length > onlineCount && (
+              <span className="text-xs">({users.length} total)</span>
+            )}
+          </div>
+          
+          {users.length > maxDisplayUsers && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setExpandedView(!expandedView)}
+              className="text-xs"
+            >
+              {expandedView ? 'Show less' : 'Show all'}
+            </Button>
           )}
         </div>
       )}
       
-      <div className="flex items-center -space-x-2">
+      <div className="space-y-2">
         <TooltipProvider>
-          {displayUsers.map((user) => (
-            <Tooltip key={user.id}>
-              <TooltipTrigger asChild>
-                <div className="relative">
-                  <Avatar className="h-8 w-8 border-2 border-background hover:z-10 transition-transform hover:scale-110">
-                    <AvatarImage src={user.avatar} alt={user.name} />
-                    <AvatarFallback 
-                      className="text-xs font-medium"
-                      style={{ backgroundColor: user.cursorColor + '20', color: user.cursorColor }}
-                    >
-                      {user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
-                    </AvatarFallback>
-                  </Avatar>
-                  
-                  {/* Status indicator */}
-                  <div className="absolute -bottom-0.5 -right-0.5">
-                    <Circle 
-                      className={`h-3 w-3 ${getStatusColor(user.status)} rounded-full border-2 border-background`}
-                      fill="currentColor"
-                    />
-                  </div>
-                  
-                  {/* Current user indicator */}
-                  {user.id === currentUserId && (
-                    <div className="absolute -top-1 -right-1">
-                      <Badge variant="secondary" className="text-xs px-1 py-0 h-4">
-                        You
-                      </Badge>
-                    </div>
-                  )}
+          {(expandedView ? sortedUsers : displayUsers).map((user) => (
+            <div key={user.id} className="flex items-center space-x-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
+              <div className="relative">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={user.avatar} alt={user.name} />
+                  <AvatarFallback 
+                    className="text-xs font-medium"
+                    style={{ backgroundColor: user.cursorColor + '20', color: user.cursorColor }}
+                  >
+                    {user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                  </AvatarFallback>
+                </Avatar>
+                
+                {/* Status indicator */}
+                <div className="absolute -bottom-0.5 -right-0.5">
+                  <Circle 
+                    className={`h-3 w-3 ${getStatusColor(user.status)} rounded-full border-2 border-background`}
+                    fill="currentColor"
+                  />
                 </div>
-              </TooltipTrigger>
+                
+                {/* Following indicator */}
+                {followedUsers.includes(user.id) && (
+                  <div className="absolute -top-1 -right-1">
+                    <Eye className="h-3 w-3 text-blue-500" />
+                  </div>
+                )}
+              </div>
               
-              <TooltipContent side="bottom" className="max-w-xs">
-                <div className="space-y-1">
-                  <div className="flex items-center space-x-2">
-                    <span className="font-medium">{user.name}</span>
-                    <Badge 
-                      variant={user.status === 'online' ? 'default' : 'secondary'}
-                      className="text-xs"
-                    >
-                      {getStatusText(user.status)}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center space-x-2">
+                  <span className="font-medium text-sm truncate">{user.name}</span>
+                  {user.id === currentUserId && (
+                    <Badge variant="secondary" className="text-xs px-1 py-0 h-4">
+                      You
                     </Badge>
-                  </div>
-                  
-                  {user.email && (
-                    <div className="text-xs text-muted-foreground">
-                      {user.email}
-                    </div>
                   )}
-                  
-                  {user.currentFile && (
-                    <div className="text-xs text-muted-foreground">
-                      Working on: <span className="font-mono">{user.currentFile}</span>
-                    </div>
-                  )}
-                  
-                  <div className="text-xs text-muted-foreground">
-                    Last active: {formatLastActivity(user.lastActivity)}
-                  </div>
+                  <Badge 
+                    variant={user.status === 'online' ? 'default' : 'secondary'}
+                    className="text-xs"
+                  >
+                    {getStatusText(user.status)}
+                  </Badge>
                 </div>
-              </TooltipContent>
-            </Tooltip>
+                
+                {user.currentFile && (
+                  <div className="text-xs text-muted-foreground truncate">
+                    <FileText className="h-3 w-3 inline mr-1" />
+                    {user.currentFile}
+                  </div>
+                )}
+                
+                <div className="text-xs text-muted-foreground">
+                  {formatLastActivity(user.lastActivity)}
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-1">
+                {user.currentFile && onViewUserFile && user.id !== currentUserId && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0"
+                        onClick={() => onViewUserFile(user.id, user.currentFile!)}
+                      >
+                        <FileText className="h-3 w-3" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <span>View their file</span>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+                
+                {renderUserActions(user)}
+              </div>
+            </div>
           ))}
-          
-          {remainingCount > 0 && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="flex items-center justify-center h-8 w-8 rounded-full bg-muted border-2 border-background text-xs font-medium text-muted-foreground hover:bg-muted/80 transition-colors">
-                  +{remainingCount}
-                </div>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">
-                <div className="text-sm">
-                  {remainingCount} more user{remainingCount > 1 ? 's' : ''}
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          )}
         </TooltipProvider>
+        
+        {!expandedView && remainingCount > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setExpandedView(true)}
+            className="w-full text-xs text-muted-foreground"
+          >
+            Show {remainingCount} more user{remainingCount > 1 ? 's' : ''}
+          </Button>
+        )}
       </div>
     </div>
   );
