@@ -176,7 +176,7 @@ export const useNewsByCategory = (category: string, options: Omit<NewsQueryOptio
  * Hook to get loading and error states for news
  */
 export const useNewsStatus = (options: NewsQueryOptions = {}) => {
-  const { data, isLoading, error, isError, isFetching } = useNews(options);
+  const { data, isLoading, error, isError, isFetching, refetch } = useNews(options);
   
   return {
     articles: data?.articles || [],
@@ -186,7 +186,8 @@ export const useNewsStatus = (options: NewsQueryOptions = {}) => {
     isFetching,
     error,
     isError,
-    isEmpty: !isLoading && (!data?.articles || data.articles.length === 0)
+    isEmpty: !isLoading && (!data?.articles || data.articles.length === 0),
+    refetch
   };
 };
 
