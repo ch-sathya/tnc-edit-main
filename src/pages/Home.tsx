@@ -1,57 +1,54 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { User, GitBranch, Search, Globe, ArrowRight, Users } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Code2, Users, Search, Globe, ArrowRight, Star, User, GitBranch } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
-import Footer from '@/components/Footer';
-
-interface Stats {
-  repositories: number;
-  portfolios: number;
-  users: number;
-  projects: number;
+interface HomeProps {
+  onNavigate: (page: string) => void;
 }
 
-const Home: React.FC = () => {
+interface SearchResult {
+  username: string;
+  display_name: string;
+  bio: string;
+  avatar_url: string;
+}
+const Home: React.FC<HomeProps> = ({
+  onNavigate
+}) => {
   const navigate = useNavigate();
-  const [stats, setStats] = useState<Stats>({
-    repositories: 0,
-    portfolios: 0,
-    users: 0,
-    projects: 0
-  });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const { count: repoCount } = await supabase
-          .from('repositories' as any)
-          .select('*', { count: 'exact', head: true });
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
 
-        const { count: profileCount } = await supabase
-          .from('profiles')
-          .select('*', { count: 'exact', head: true })
-          .not('username', 'is', null);
+    setIsSearching(true);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('username, display_name, bio, avatar_url')
+        .ilike('display_name', `%${searchQuery}%`)
+        .or(`username.ilike.%${searchQuery}%,display_name.ilike.%${searchQuery}%`)
+        .not('username', 'is', null)
+        .limit(10);
 
-        const { count: projectCount } = await supabase
-          .from('projects' as any)
-          .select('*', { count: 'exact', head: true });
+      if (error) throw error;
+      setSearchResults(data || []);
+    } catch (error) {
+      console.error('Search error:', error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
 
-        setStats({
-          repositories: repoCount || 0,
-          portfolios: profileCount || 0,
-          users: profileCount || 0,
-          projects: projectCount || 0
-        });
-      } catch (error) {
-        console.error('Error fetching stats:', error);
-      }
-    };
-
-    fetchStats();
-  }, []);
+  const handleUserClick = (username: string) => {
+    navigate(`/@${username}`);
+  };
   const features = [{
     icon: <User className="h-6 w-6" />,
     title: "Developer Portfolios",
@@ -69,18 +66,18 @@ const Home: React.FC = () => {
     title: "Global Community",
     description: "Connect with developers worldwide and showcase your work publicly."
   }];
-  const displayStats = [{
+  const stats = [{
     label: "Public Repositories",
-    value: stats.repositories.toLocaleString()
+    value: "8,200+"
   }, {
     label: "Developer Portfolios",
-    value: stats.portfolios.toLocaleString()
+    value: "15,000+"
   }, {
-    label: "Active Projects",
-    value: stats.projects.toLocaleString()
+    label: "Lines of Code",
+    value: "4.2M+"
   }, {
-    label: "Community Members",
-    value: stats.users.toLocaleString()
+    label: "Countries",
+    value: "85+"
   }];
   return <div className="min-h-screen bg-background">
     {/* Hero Section */}
@@ -97,12 +94,12 @@ const Home: React.FC = () => {
         <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">Create stunning portfolio pages, host your repositories, and connect with developers worldwide. Share your projects and discover amazing work from the community.</p>
 
         <div className="flex gap-4 justify-center">
-          <Button size="lg" onClick={() => navigate('/projects')}>
+          <Button size="lg" onClick={() => onNavigate('projects')}>
             View Projects
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
-          <Button size="lg" variant="outline" onClick={() => navigate('/portfolio')}>
-            View Portfolios
+          <Button size="lg" variant="outline" onClick={() => onNavigate('repository')}>
+            Search Repositories
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </div>
@@ -125,7 +122,7 @@ const Home: React.FC = () => {
     <section className="py-16 px-4 bg-secondary/50">
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-          {displayStats.map((stat, index) => <div key={index} className="text-center">
+          {stats.map((stat, index) => <div key={index} className="text-center">
             <div className="text-3xl md:text-4xl font-bold text-foreground mb-2">
               {stat.value}
             </div>
@@ -174,10 +171,10 @@ const Home: React.FC = () => {
           Join thousands of developers who are already building amazing portfolios.
         </p>
         <div className="flex gap-4 justify-center">
-          <Button size="lg" variant="secondary" onClick={() => navigate('/portfolio')}>
-            View Portfolios
+          <Button size="lg" variant="secondary" onClick={() => onNavigate('portfolio')}>
+            Create Portfolio
           </Button>
-          <Button size="lg" variant="secondary" onClick={() => navigate('/projects')}>
+          <Button size="lg" variant="secondary" onClick={() => onNavigate('projects')}>
             Explore Projects
           </Button>
           <Button size="lg" variant="secondary" onClick={() => navigate('/community')}>
@@ -189,7 +186,6 @@ const Home: React.FC = () => {
         </div>
       </div>
     </section>
-    <Footer />
   </div>;
 };
 export default Home;
