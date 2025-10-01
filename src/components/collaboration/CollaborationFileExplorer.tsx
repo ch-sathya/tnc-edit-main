@@ -794,6 +794,7 @@ export const CollaborationFileExplorer: React.FC<CollaborationFileExplorerProps>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+          </div>
         </div>
       </CardHeader>
       

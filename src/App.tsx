@@ -13,6 +13,7 @@ import Collaborate from "./pages/Collaborate";
 import Community from "./pages/Community";
 import News from "./pages/News";
 import NewsArticle from "./components/NewsArticle";
+import Pricing from "./pages/Pricing";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,6 +32,7 @@ const App = () => (
           <Route path="/community" element={<Community />} />
           <Route path="/news" element={<News />} />
           <Route path="/news/:articleId" element={<NewsArticle />} />
+          <Route path="/pricing" element={<Pricing />} />
           <Route path="/setup-username" element={<UsernameSetup />} />
           <Route path="/@:username" element={<Profile />} />
           <Route path="/@:username/:repositoryName" element={<Repository />} />

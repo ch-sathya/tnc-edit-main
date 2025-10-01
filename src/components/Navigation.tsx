@@ -48,6 +48,10 @@ const Navigation: React.FC<NavigationProps> = ({
     id: 'news',
     label: 'News',
     icon: Newspaper
+  }, {
+    id: 'pricing',
+    label: 'Pricing',
+    icon: Home
   }];
   return <nav className="bg-card border-b border-border">
       <div className="flex items-center justify-between h-16 w-full">

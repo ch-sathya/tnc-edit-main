@@ -9,7 +9,6 @@ import { Github, Linkedin, Mail, MapPin, Calendar, Star, GitBranch, Award, Code,
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { PhotoUpload } from '@/components/PhotoUpload';
-import { FriendSystem } from '@/components/FriendSystem';
 
 const Portfolio: React.FC = () => {
   const { user } = useAuth();
@@ -88,6 +87,15 @@ const Portfolio: React.FC = () => {
     contributionCount: 0
   });
   const [userActivities, setUserActivities] = useState([]);
+
+  // Skills data
+  const skills = [
+    { name: 'React', level: 90 },
+    { name: 'TypeScript', level: 85 },
+    { name: 'Node.js', level: 80 },
+    { name: 'PostgreSQL', level: 75 },
+    { name: 'Docker', level: 70 }
+  ];
 
   // Fetch user's actual data
   useEffect(() => {
@@ -518,8 +526,6 @@ const Portfolio: React.FC = () => {
                 </CardContent>
 
               </Card>
-
-              <FriendSystem showFull={true} />
             </div>
           </TabsContent>
         </Tabs>

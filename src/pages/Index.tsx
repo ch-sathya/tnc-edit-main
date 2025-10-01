@@ -6,7 +6,9 @@ import Portfolio from '@/pages/Portfolio';
 import Collaborate from '@/pages/Collaborate';
 import Community from '@/pages/Community';
 import News from '@/pages/News';
+import Pricing from '@/pages/Pricing';
 import Auth from '@/pages/Auth';
+import Footer from '@/components/Footer';
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2 } from 'lucide-react';
 
@@ -51,6 +53,8 @@ const Index = () => {
           return <Community />;
         case 'news':
           return <News />;
+        case 'pricing':
+          return <Pricing />;
         default:
           return <Home onNavigate={setCurrentPage} />;
       }
@@ -64,9 +68,12 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Navigation currentPage={currentPage} onPageChange={setCurrentPage} />
-      {renderCurrentPage()}
+      <div className="flex-1">
+        {renderCurrentPage()}
+      </div>
+      <Footer />
     </div>
   );
 };
