@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Home, Users, MessageCircle, Code2 } from 'lucide-react';
+import { ArrowLeft, Home, Users, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
   Breadcrumb,
@@ -14,8 +14,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import CommunityGroupList from '@/components/CommunityGroupList';
 import CreateGroupModal from '@/components/CreateGroupModal';
 import GroupChat from '@/components/GroupChat';
-import CollaborativeEditor from '@/components/collaboration/CollaborativeEditor';
-import CollaborationRoomManager from '@/components/collaboration/CollaborationRoomManager';
 import CommunityErrorBoundary from '@/components/CommunityErrorBoundary';
 
 import { useCommunityGroup } from '@/hooks/useCommunityGroups';
@@ -103,104 +101,32 @@ const Community = () => {
                   <BreadcrumbSeparator />
                   <BreadcrumbItem>
                     <BreadcrumbPage className="flex items-center gap-1">
-                      {activeTab === 'chat' ? (
-                        <MessageCircle className="h-4 w-4" />
-                      ) : activeTab === 'rooms' ? (
-                        <Users className="h-4 w-4" />
-                      ) : (
-                        <Code2 className="h-4 w-4" />
-                      )}
-                      {selectedGroup?.name || 'Group'} - {
-                        activeTab === 'chat' ? 'Chat' : 
-                        activeTab === 'rooms' ? 'Rooms' : 
-                        'Editor'
-                      }
+                      <MessageCircle className="h-4 w-4" />
+                      {selectedGroup?.name || 'Group'} - Chat
                     </BreadcrumbPage>
                   </BreadcrumbItem>
                 </BreadcrumbList>
               </Breadcrumb>
             </nav>
 
-            {/* Group Interface with Tabs */}
+            {/* Group Interface - Chat Only */}
             <div className="flex-1">
-              <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'chat' | 'collaborate' | 'rooms')} className="h-full">
-                <div className="flex items-center justify-between mb-4">
-                  <TabsList className="grid w-auto grid-cols-3">
-                    <TabsTrigger value="chat" className="flex items-center gap-2">
-                      <MessageCircle className="h-4 w-4" />
-                      Chat
-                    </TabsTrigger>
-                    <TabsTrigger value="rooms" className="flex items-center gap-2">
-                      <Users className="h-4 w-4" />
-                      Rooms
-                    </TabsTrigger>
-                    <TabsTrigger 
-                      value="collaborate" 
-                      className="flex items-center gap-2"
-                      disabled={!hasCollaborationAccess}
-                    >
-                      <Code2 className="h-4 w-4" />
-                      Editor
-                      {!hasCollaborationAccess && (
-                        <span className="text-xs text-muted-foreground ml-1">(Members Only)</span>
-                      )}
-                    </TabsTrigger>
-                  </TabsList>
-                  
-                  <Button 
-                    variant="outline" 
-                    onClick={handleBackToGroups}
-                    className="flex items-center gap-2"
-                  >
-                    <ArrowLeft className="h-4 w-4" />
-                    Back to Groups
-                  </Button>
-                </div>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold">Group Chat</h2>
+                <Button 
+                  variant="outline" 
+                  onClick={handleBackToGroups}
+                  className="flex items-center gap-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Back to Groups
+                </Button>
+              </div>
 
-                <TabsContent value="chat" className="h-[calc(100%-4rem)] mt-0">
-                  <GroupChat 
-                    groupId={selectedGroupId} 
-                    onBack={handleBackToGroups}
-                  />
-                </TabsContent>
-
-                <TabsContent value="rooms" className="h-[calc(100%-4rem)] mt-0">
-                  <CollaborationRoomManager 
-                    groupId={selectedGroupId}
-                    onStartCollaboration={() => setActiveTab('collaborate')}
-                    className="h-full"
-                  />
-                </TabsContent>
-
-                <TabsContent value="collaborate" className="h-[calc(100%-4rem)] mt-0">
-                  <CommunityErrorBoundary feature="collaboration">
-                    {hasCollaborationAccess ? (
-                      <CollaborativeEditor 
-                        groupId={selectedGroupId}
-                        className="h-full"
-                      />
-                    ) : (
-                      <div className="h-full flex items-center justify-center">
-                        <div className="text-center space-y-4 max-w-md">
-                          <Code2 className="h-12 w-12 mx-auto text-muted-foreground" />
-                          <div className="space-y-2">
-                            <h3 className="text-lg font-semibold">Collaboration Access Required</h3>
-                            <p className="text-muted-foreground">
-                              You need to be a member of this group to access the collaborative editor.
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              Join the group from the community page to start collaborating on code with other members.
-                            </p>
-                          </div>
-                          <Button onClick={handleBackToGroups} variant="outline">
-                            Back to Groups
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </CommunityErrorBoundary>
-                </TabsContent>
-              </Tabs>
+              <GroupChat 
+                groupId={selectedGroupId} 
+                onBack={handleBackToGroups}
+              />
             </div>
           </div>
         </div>

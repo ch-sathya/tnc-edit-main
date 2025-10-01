@@ -1,9 +1,6 @@
 import React, { useState } from 'react';
 import Navigation from '@/components/Navigation';
 import Home from '@/pages/Home';
-import Projects from '@/pages/Projects';
-import Portfolio from '@/pages/Portfolio';
-import Collaborate from '@/pages/Collaborate';
 import Community from '@/pages/Community';
 import News from '@/pages/News';
 import Pricing from '@/pages/Pricing';
@@ -43,12 +40,6 @@ const Index = () => {
       switch (currentPage) {
         case 'home':
           return <Home onNavigate={setCurrentPage} />;
-        case 'projects':
-          return <Projects onNavigate={setCurrentPage} />;
-        case 'portfolio':
-          return <Portfolio />;
-        case 'collab':
-          return <Collaborate />;
         case 'community':
           return <Community />;
         case 'news':

@@ -91,7 +91,8 @@ describe('NewsFeed', () => {
       isFetching: true,
       error: null,
       isError: false,
-      isEmpty: false
+      isEmpty: false,
+      refetch: vi.fn()
     });
 
     render(<NewsFeed />, { wrapper: createWrapper() });
@@ -110,7 +111,8 @@ describe('NewsFeed', () => {
       isFetching: false,
       error: null,
       isError: false,
-      isEmpty: false
+      isEmpty: false,
+      refetch: vi.fn()
     });
 
     render(<NewsFeed />, { wrapper: createWrapper() });
@@ -149,7 +151,8 @@ describe('NewsFeed', () => {
       isFetching: false,
       error: null,
       isError: false,
-      isEmpty: true
+      isEmpty: true,
+      refetch: vi.fn()
     });
 
     render(<NewsFeed />, { wrapper: createWrapper() });
@@ -167,7 +170,8 @@ describe('NewsFeed', () => {
       isFetching: false,
       error: new Error('Failed to fetch'),
       isError: true,
-      isEmpty: false
+      isEmpty: false,
+      refetch: vi.fn()
     });
 
     render(<NewsFeed />, { wrapper: createWrapper() });
@@ -185,7 +189,8 @@ describe('NewsFeed', () => {
       isFetching: false,
       error: null,
       isError: false,
-      isEmpty: false
+      isEmpty: false,
+      refetch: vi.fn()
     });
 
     render(<NewsFeed />, { wrapper: createWrapper() });
@@ -209,7 +214,8 @@ describe('NewsFeed', () => {
       isFetching: false,
       error: null,
       isError: false,
-      isEmpty: false
+      isEmpty: false,
+      refetch: vi.fn()
     });
 
     render(<NewsFeed onArticleClick={mockOnArticleClick} />, { wrapper: createWrapper() });
@@ -232,7 +238,8 @@ describe('NewsFeed', () => {
       isFetching: false,
       error: null,
       isError: false,
-      isEmpty: false
+      isEmpty: false,
+      refetch: vi.fn()
     });
 
     render(<NewsFeed category="software" />, { wrapper: createWrapper() });
@@ -251,7 +258,8 @@ describe('NewsFeed', () => {
       isFetching: false,
       error: null,
       isError: false,
-      isEmpty: false
+      isEmpty: false,
+      refetch: vi.fn()
     });
 
     render(<NewsFeed showRefreshButton={false} />, { wrapper: createWrapper() });
@@ -274,7 +282,8 @@ describe('NewsFeed', () => {
       isFetching: false,
       error: null,
       isError: false,
-      isEmpty: false
+      isEmpty: false,
+      refetch: vi.fn()
     });
 
     render(<NewsFeed limit={6} />, { wrapper: createWrapper() });

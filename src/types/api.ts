@@ -3,10 +3,7 @@
 import type { 
   CommunityGroup, 
   GroupMessage, 
-  NewsArticle, 
-  CommunityGroupWithDetails,
-  GroupMessageWithUser,
-  NewsArticleWithAuthor 
+  NewsArticle
 } from './community';
 
 // ============================================================================
@@ -149,7 +146,7 @@ export interface SendMessageFormErrors {
 // ============================================================================
 
 export interface GroupListProps {
-  groups: CommunityGroupWithDetails[];
+  groups: CommunityGroup[];
   loading?: boolean;
   onJoinGroup: (groupId: string) => void;
   onLeaveGroup: (groupId: string) => void;
@@ -160,7 +157,7 @@ export interface GroupListProps {
 
 export interface GroupChatProps {
   groupId: string;
-  messages: GroupMessageWithUser[];
+  messages: GroupMessage[];
   loading?: boolean;
   onSendMessage: (content: string) => void;
   onLoadMore?: () => void;
@@ -169,7 +166,7 @@ export interface GroupChatProps {
 }
 
 export interface NewsFeedProps {
-  articles: NewsArticleWithAuthor[];
+  articles: NewsArticle[];
   loading?: boolean;
   onSelectArticle: (articleId: string) => void;
   onLoadMore?: () => void;
