@@ -88,15 +88,6 @@ const Portfolio: React.FC = () => {
   });
   const [userActivities, setUserActivities] = useState([]);
 
-  // Skills data
-  const skills = [
-    { name: 'React', level: 90 },
-    { name: 'TypeScript', level: 85 },
-    { name: 'Node.js', level: 80 },
-    { name: 'PostgreSQL', level: 75 },
-    { name: 'Docker', level: 70 }
-  ];
-
   // Fetch user's actual data
   useEffect(() => {
     if (user) {
