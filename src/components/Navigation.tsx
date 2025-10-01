@@ -1,21 +1,18 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Home, FolderOpen, User, Users, LogOut, MessageSquare, Newspaper } from 'lucide-react';
+import { Home, FolderOpen, User, Users, LogOut, MessageSquare, Newspaper, DollarSign } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useToast } from '@/hooks/use-toast';
-interface NavigationProps {
-  currentPage: string;
-  onPageChange: (page: string) => void;
-}
-const Navigation: React.FC<NavigationProps> = ({
-  currentPage,
-  onPageChange
-}) => {
-  const { user, signOut } = useAuth();
+import { useNavigate, useLocation } from 'react-router-dom';
+
+const Navigation: React.FC = () => {
+  const { signOut } = useAuth();
   const { profile } = useProfile();
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const handleSignOut = async () => {
     await signOut();
@@ -25,33 +22,29 @@ const Navigation: React.FC<NavigationProps> = ({
     });
   };
   const navItems = [{
-    id: 'home',
+    path: '/',
     label: 'Home',
     icon: Home
   }, {
-    id: 'projects',
+    path: '/projects',
     label: 'Projects',
     icon: FolderOpen
   }, {
-    id: 'portfolio',
+    path: '/portfolio',
     label: 'Portfolio',
     icon: User
   }, {
-    id: 'collab',
-    label: 'Collaborate',
-    icon: Users
-  }, {
-    id: 'community',
+    path: '/community',
     label: 'Community',
     icon: MessageSquare
   }, {
-    id: 'news',
+    path: '/news',
     label: 'News',
     icon: Newspaper
   }, {
-    id: 'pricing',
+    path: '/pricing',
     label: 'Pricing',
-    icon: Home
+    icon: DollarSign
   }];
   return <nav className="bg-card border-b border-border">
       <div className="flex items-center justify-between h-16 w-full">
@@ -67,10 +60,8 @@ const Navigation: React.FC<NavigationProps> = ({
             <div className="flex items-baseline space-x-4">
               {navItems.map(item => {
               const Icon = item.icon;
-              return <Button key={item.id} variant={currentPage === item.id ? "default" : "ghost"} onClick={() => {
-                  console.log('Navigation button clicked:', item.id);
-                  onPageChange(item.id);
-                }} className="flex items-center gap-2">
+              const isActive = location.pathname === item.path;
+              return <Button key={item.path} variant={isActive ? "default" : "ghost"} onClick={() => navigate(item.path)} className="flex items-center gap-2">
                     <Icon className="h-4 w-4" />
                     {item.label}
                   </Button>;

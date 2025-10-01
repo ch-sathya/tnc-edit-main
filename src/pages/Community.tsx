@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Navigation from '@/components/Navigation';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Home, Users, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -55,6 +56,7 @@ const Community = () => {
   if (selectedGroupId) {
     return (
       <CommunityErrorBoundary feature="chat">
+        <Navigation />
         <div className="min-h-screen bg-background p-3 sm:p-6">
           <div className="max-w-7xl mx-auto h-[calc(100vh-1.5rem)] sm:h-[calc(100vh-3rem)] flex flex-col">
             {/* Breadcrumb Navigation */}
@@ -136,6 +138,7 @@ const Community = () => {
 
   return (
     <CommunityErrorBoundary feature="groups">
+      <Navigation />
       <main className="min-h-screen bg-background p-3 sm:p-6" role="main">
         <div className="max-w-7xl mx-auto">
           {/* Breadcrumb Navigation */}

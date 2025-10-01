@@ -1,4 +1,5 @@
 import React from 'react';
+import Navigation from '@/components/Navigation';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -10,6 +11,7 @@ const News = () => {
 
   return (
     <NewsErrorBoundary feature="feed">
+      <Navigation />
       <main className="min-h-screen bg-background p-3 sm:p-6" role="main">
         <div className="max-w-7xl mx-auto">
           <nav className="flex items-center gap-4 mb-6" role="navigation" aria-label="Page navigation">

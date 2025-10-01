@@ -1,54 +1,57 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Code2, Users, Search, Globe, ArrowRight, Star, User, GitBranch } from 'lucide-react';
+import { User, GitBranch, Search, Globe, ArrowRight, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
-interface HomeProps {
-  onNavigate: (page: string) => void;
+import Footer from '@/components/Footer';
+
+interface Stats {
+  repositories: number;
+  portfolios: number;
+  users: number;
+  projects: number;
 }
 
-interface SearchResult {
-  username: string;
-  display_name: string;
-  bio: string;
-  avatar_url: string;
-}
-const Home: React.FC<HomeProps> = ({
-  onNavigate
-}) => {
+const Home: React.FC = () => {
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
+  const [stats, setStats] = useState<Stats>({
+    repositories: 0,
+    portfolios: 0,
+    users: 0,
+    projects: 0
+  });
 
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const { count: repoCount } = await supabase
+          .from('repositories' as any)
+          .select('*', { count: 'exact', head: true });
 
-    setIsSearching(true);
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('username, display_name, bio, avatar_url')
-        .ilike('display_name', `%${searchQuery}%`)
-        .or(`username.ilike.%${searchQuery}%,display_name.ilike.%${searchQuery}%`)
-        .not('username', 'is', null)
-        .limit(10);
+        const { count: profileCount } = await supabase
+          .from('profiles')
+          .select('*', { count: 'exact', head: true })
+          .not('username', 'is', null);
 
-      if (error) throw error;
-      setSearchResults(data || []);
-    } catch (error) {
-      console.error('Search error:', error);
-    } finally {
-      setIsSearching(false);
-    }
-  };
+        const { count: projectCount } = await supabase
+          .from('projects' as any)
+          .select('*', { count: 'exact', head: true });
 
-  const handleUserClick = (username: string) => {
-    navigate(`/@${username}`);
-  };
+        setStats({
+          repositories: repoCount || 0,
+          portfolios: profileCount || 0,
+          users: profileCount || 0,
+          projects: projectCount || 0
+        });
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      }
+    };
+
+    fetchStats();
+  }, []);
   const features = [{
     icon: <User className="h-6 w-6" />,
     title: "Developer Portfolios",
@@ -66,18 +69,18 @@ const Home: React.FC<HomeProps> = ({
     title: "Global Community",
     description: "Connect with developers worldwide and showcase your work publicly."
   }];
-  const stats = [{
+  const displayStats = [{
     label: "Public Repositories",
-    value: "8,200+"
+    value: stats.repositories.toLocaleString()
   }, {
     label: "Developer Portfolios",
-    value: "15,000+"
+    value: stats.portfolios.toLocaleString()
   }, {
-    label: "Lines of Code",
-    value: "4.2M+"
+    label: "Active Projects",
+    value: stats.projects.toLocaleString()
   }, {
-    label: "Countries",
-    value: "85+"
+    label: "Community Members",
+    value: stats.users.toLocaleString()
   }];
   return <div className="min-h-screen bg-background">
     {/* Hero Section */}
@@ -94,12 +97,12 @@ const Home: React.FC<HomeProps> = ({
         <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">Create stunning portfolio pages, host your repositories, and connect with developers worldwide. Share your projects and discover amazing work from the community.</p>
 
         <div className="flex gap-4 justify-center">
-          <Button size="lg" onClick={() => onNavigate('projects')}>
+          <Button size="lg" onClick={() => navigate('/projects')}>
             View Projects
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
-          <Button size="lg" variant="outline" onClick={() => onNavigate('repository')}>
-            Search Repositories
+          <Button size="lg" variant="outline" onClick={() => navigate('/portfolio')}>
+            View Portfolios
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </div>
@@ -122,7 +125,7 @@ const Home: React.FC<HomeProps> = ({
     <section className="py-16 px-4 bg-secondary/50">
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-          {stats.map((stat, index) => <div key={index} className="text-center">
+          {displayStats.map((stat, index) => <div key={index} className="text-center">
             <div className="text-3xl md:text-4xl font-bold text-foreground mb-2">
               {stat.value}
             </div>
@@ -171,10 +174,10 @@ const Home: React.FC<HomeProps> = ({
           Join thousands of developers who are already building amazing portfolios.
         </p>
         <div className="flex gap-4 justify-center">
-          <Button size="lg" variant="secondary" onClick={() => onNavigate('portfolio')}>
-            Create Portfolio
+          <Button size="lg" variant="secondary" onClick={() => navigate('/portfolio')}>
+            View Portfolios
           </Button>
-          <Button size="lg" variant="secondary" onClick={() => onNavigate('projects')}>
+          <Button size="lg" variant="secondary" onClick={() => navigate('/projects')}>
             Explore Projects
           </Button>
           <Button size="lg" variant="secondary" onClick={() => navigate('/community')}>
@@ -186,6 +189,7 @@ const Home: React.FC<HomeProps> = ({
         </div>
       </div>
     </section>
+    <Footer />
   </div>;
 };
 export default Home;
