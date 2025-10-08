@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Navigation from '@/components/Navigation';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Home, Users, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -54,8 +55,10 @@ const Community = () => {
   // If a group is selected, show the group interface with tabs
   if (selectedGroupId) {
     return (
-      <CommunityErrorBoundary feature="chat">
-        <div className="min-h-screen bg-background p-3 sm:p-6">
+      <>
+        <Navigation />
+        <CommunityErrorBoundary feature="chat">
+          <div className="min-h-screen bg-background p-3 sm:p-6">
           <div className="max-w-7xl mx-auto h-[calc(100vh-1.5rem)] sm:h-[calc(100vh-3rem)] flex flex-col">
             {/* Breadcrumb Navigation */}
             <nav className="mb-4" role="navigation" aria-label="Breadcrumb navigation">
@@ -130,13 +133,16 @@ const Community = () => {
             </div>
           </div>
         </div>
-      </CommunityErrorBoundary>
+        </CommunityErrorBoundary>
+      </>
     );
   }
 
   return (
-    <CommunityErrorBoundary feature="groups">
-      <main className="min-h-screen bg-background p-3 sm:p-6" role="main">
+    <>
+      <Navigation />
+      <CommunityErrorBoundary feature="groups">
+        <main className="min-h-screen bg-background p-3 sm:p-6" role="main">
         <div className="max-w-7xl mx-auto">
           {/* Breadcrumb Navigation */}
           <nav className="mb-6" role="navigation" aria-label="Breadcrumb navigation">
@@ -202,7 +208,8 @@ const Community = () => {
           />
         </div>
       </main>
-    </CommunityErrorBoundary>
+      </CommunityErrorBoundary>
+    </>
   );
 };
 

@@ -2,53 +2,12 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Code2, Users, Search, Globe, ArrowRight, Star, User, GitBranch } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { Users, Search, Globe, ArrowRight, User, GitBranch } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-interface HomeProps {
-  onNavigate: (page: string) => void;
-}
 
-interface SearchResult {
-  username: string;
-  display_name: string;
-  bio: string;
-  avatar_url: string;
-}
-const Home: React.FC<HomeProps> = ({
-  onNavigate
-}) => {
+const Home: React.FC = () => {
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
-
-    setIsSearching(true);
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('username, display_name, bio, avatar_url')
-        .ilike('display_name', `%${searchQuery}%`)
-        .or(`username.ilike.%${searchQuery}%,display_name.ilike.%${searchQuery}%`)
-        .not('username', 'is', null)
-        .limit(10);
-
-      if (error) throw error;
-      setSearchResults(data || []);
-    } catch (error) {
-      console.error('Search error:', error);
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  const handleUserClick = (username: string) => {
-    navigate(`/@${username}`);
-  };
+  
   const features = [{
     icon: <User className="h-6 w-6" />,
     title: "Developer Portfolios",
@@ -94,23 +53,11 @@ const Home: React.FC<HomeProps> = ({
         <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">Create stunning portfolio pages, host your repositories, and connect with developers worldwide. Share your projects and discover amazing work from the community.</p>
 
         <div className="flex gap-4 justify-center">
-          <Button size="lg" onClick={() => onNavigate('projects')}>
-            View Projects
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-          <Button size="lg" variant="outline" onClick={() => onNavigate('repository')}>
-            Search Repositories
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-        </div>
-
-        {/* Community and News Navigation */}
-        <div className="flex gap-4 justify-center mt-6">
-          <Button size="lg" variant="secondary" onClick={() => navigate('/community')}>
+          <Button size="lg" onClick={() => navigate('/community')}>
             Join Community
             <Users className="ml-2 h-4 w-4" />
           </Button>
-          <Button size="lg" variant="secondary" onClick={() => navigate('/news')}>
+          <Button size="lg" variant="outline" onClick={() => navigate('/news')}>
             Read News
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
@@ -171,17 +118,14 @@ const Home: React.FC<HomeProps> = ({
           Join thousands of developers who are already building amazing portfolios.
         </p>
         <div className="flex gap-4 justify-center">
-          <Button size="lg" variant="secondary" onClick={() => onNavigate('portfolio')}>
-            Create Portfolio
-          </Button>
-          <Button size="lg" variant="secondary" onClick={() => onNavigate('projects')}>
-            Explore Projects
-          </Button>
           <Button size="lg" variant="secondary" onClick={() => navigate('/community')}>
             Join Community
           </Button>
           <Button size="lg" variant="secondary" onClick={() => navigate('/news')}>
             Latest News
+          </Button>
+          <Button size="lg" variant="secondary" onClick={() => navigate('/pricing')}>
+            View Pricing
           </Button>
         </div>
       </div>

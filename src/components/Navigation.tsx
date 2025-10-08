@@ -5,14 +5,11 @@ import { Home, FolderOpen, User, Users, LogOut, MessageSquare, Newspaper } from 
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useToast } from '@/hooks/use-toast';
-interface NavigationProps {
-  currentPage: string;
-  onPageChange: (page: string) => void;
-}
-const Navigation: React.FC<NavigationProps> = ({
-  currentPage,
-  onPageChange
-}) => {
+import { useNavigate, useLocation } from 'react-router-dom';
+
+const Navigation: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { user, signOut } = useAuth();
   const { profile } = useProfile();
   const { toast } = useToast();
@@ -25,31 +22,19 @@ const Navigation: React.FC<NavigationProps> = ({
     });
   };
   const navItems = [{
-    id: 'home',
+    path: '/',
     label: 'Home',
     icon: Home
   }, {
-    id: 'projects',
-    label: 'Projects',
-    icon: FolderOpen
-  }, {
-    id: 'portfolio',
-    label: 'Portfolio',
-    icon: User
-  }, {
-    id: 'collab',
-    label: 'Collaborate',
-    icon: Users
-  }, {
-    id: 'community',
+    path: '/community',
     label: 'Community',
     icon: MessageSquare
   }, {
-    id: 'news',
+    path: '/news',
     label: 'News',
     icon: Newspaper
   }, {
-    id: 'pricing',
+    path: '/pricing',
     label: 'Pricing',
     icon: Home
   }];
@@ -67,13 +52,16 @@ const Navigation: React.FC<NavigationProps> = ({
             <div className="flex items-baseline space-x-4">
               {navItems.map(item => {
               const Icon = item.icon;
-              return <Button key={item.id} variant={currentPage === item.id ? "default" : "ghost"} onClick={() => {
-                  console.log('Navigation button clicked:', item.id);
-                  onPageChange(item.id);
-                }} className="flex items-center gap-2">
-                    <Icon className="h-4 w-4" />
-                    {item.label}
-                  </Button>;
+              const isActive = location.pathname === item.path;
+              return <Button 
+                key={item.path} 
+                variant={isActive ? "default" : "ghost"} 
+                onClick={() => navigate(item.path)}
+                className="flex items-center gap-2"
+              >
+                <Icon className="h-4 w-4" />
+                {item.label}
+              </Button>;
             })}
             </div>
           </div>
