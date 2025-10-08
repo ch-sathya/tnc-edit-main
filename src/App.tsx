@@ -10,6 +10,9 @@ import Community from "./pages/Community";
 import News from "./pages/News";
 import NewsArticle from "./components/NewsArticle";
 import Pricing from "./pages/Pricing";
+import Portfolio from "./pages/Portfolio";
+import Projects from "./pages/Projects";
+import Collaborate from "./pages/Collaborate";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,6 +30,9 @@ const App = () => (
           <Route path="/news" element={<News />} />
           <Route path="/news/:articleId" element={<NewsArticle />} />
           <Route path="/pricing" element={<Pricing />} />
+          <Route path="/portfolio" element={<Portfolio />} />
+          <Route path="/projects" element={<Projects />} />
+          <Route path="/collaborate" element={<Collaborate />} />
           <Route path="/setup-username" element={<UsernameSetup />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

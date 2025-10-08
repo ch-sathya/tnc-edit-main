@@ -53,13 +53,13 @@ const Home: React.FC = () => {
         <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">Create stunning portfolio pages, host your repositories, and connect with developers worldwide. Share your projects and discover amazing work from the community.</p>
 
         <div className="flex gap-4 justify-center">
-          <Button size="lg" onClick={() => navigate('/community')}>
-            Join Community
-            <Users className="ml-2 h-4 w-4" />
-          </Button>
-          <Button size="lg" variant="outline" onClick={() => navigate('/news')}>
-            Read News
+          <Button size="lg" onClick={() => navigate('/projects')}>
+            View Projects
             <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+          <Button size="lg" variant="outline" onClick={() => navigate('/portfolio')}>
+            Your Portfolio
+            <User className="ml-2 h-4 w-4" />
           </Button>
         </div>
       </div>
@@ -117,15 +117,18 @@ const Home: React.FC = () => {
         <p className="text-xl mb-8 opacity-90">
           Join thousands of developers who are already building amazing portfolios.
         </p>
-        <div className="flex gap-4 justify-center">
+        <div className="flex gap-4 justify-center flex-wrap">
+          <Button size="lg" variant="secondary" onClick={() => navigate('/portfolio')}>
+            Your Portfolio
+          </Button>
+          <Button size="lg" variant="secondary" onClick={() => navigate('/projects')}>
+            Explore Projects
+          </Button>
+          <Button size="lg" variant="secondary" onClick={() => navigate('/collaborate')}>
+            Collaborate
+          </Button>
           <Button size="lg" variant="secondary" onClick={() => navigate('/community')}>
             Join Community
-          </Button>
-          <Button size="lg" variant="secondary" onClick={() => navigate('/news')}>
-            Latest News
-          </Button>
-          <Button size="lg" variant="secondary" onClick={() => navigate('/pricing')}>
-            View Pricing
           </Button>
         </div>
       </div>

@@ -26,6 +26,18 @@ const Navigation: React.FC = () => {
     label: 'Home',
     icon: Home
   }, {
+    path: '/portfolio',
+    label: 'Portfolio',
+    icon: User
+  }, {
+    path: '/projects',
+    label: 'Projects',
+    icon: FolderOpen
+  }, {
+    path: '/collaborate',
+    label: 'Collaborate',
+    icon: Users
+  }, {
     path: '/community',
     label: 'Community',
     icon: MessageSquare
@@ -33,10 +45,6 @@ const Navigation: React.FC = () => {
     path: '/news',
     label: 'News',
     icon: Newspaper
-  }, {
-    path: '/pricing',
-    label: 'Pricing',
-    icon: Home
   }];
   return <nav className="bg-card border-b border-border">
       <div className="flex items-center justify-between h-16 w-full">
