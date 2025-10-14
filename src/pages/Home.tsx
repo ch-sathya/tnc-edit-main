@@ -1,12 +1,48 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Users, Search, Globe, ArrowRight, User, GitBranch } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import Footer from '@/components/Footer';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
+  const [stats, setStats] = useState({
+    repositories: 0,
+    portfolios: 0,
+    projects: 0,
+    rooms: 0
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const [repoCount, profileCount, projectCount, roomCount] = await Promise.all([
+          supabase.from('repositories' as any).select('*', { count: 'exact', head: true }),
+          supabase.from('profiles').select('*', { count: 'exact', head: true }),
+          supabase.from('projects' as any).select('*', { count: 'exact', head: true }).eq('status', 'published'),
+          supabase.from('collaboration_rooms').select('*', { count: 'exact', head: true })
+        ]);
+
+        setStats({
+          repositories: repoCount.count || 0,
+          portfolios: profileCount.count || 0,
+          projects: projectCount.count || 0,
+          rooms: roomCount.count || 0
+        });
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
   
   const features = [{
     icon: <User className="h-6 w-6" />,
@@ -25,18 +61,18 @@ const Home: React.FC = () => {
     title: "Global Community",
     description: "Connect with developers worldwide and showcase your work publicly."
   }];
-  const stats = [{
+  const displayStats = [{
     label: "Public Repositories",
-    value: "8,200+"
+    value: loading ? "..." : stats.repositories.toLocaleString()
   }, {
     label: "Developer Portfolios",
-    value: "15,000+"
+    value: loading ? "..." : stats.portfolios.toLocaleString()
   }, {
-    label: "Lines of Code",
-    value: "4.2M+"
+    label: "Published Projects",
+    value: loading ? "..." : stats.projects.toLocaleString()
   }, {
-    label: "Countries",
-    value: "85+"
+    label: "Collaboration Rooms",
+    value: loading ? "..." : stats.rooms.toLocaleString()
   }];
   return <div className="min-h-screen bg-background">
     {/* Hero Section */}
@@ -69,12 +105,23 @@ const Home: React.FC = () => {
     <section className="py-16 px-4 bg-secondary/50">
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-          {stats.map((stat, index) => <div key={index} className="text-center">
-            <div className="text-3xl md:text-4xl font-bold text-foreground mb-2">
-              {stat.value}
+          {displayStats.map((stat, index) => (
+            <div key={index} className="text-center">
+              {loading ? (
+                <>
+                  <Skeleton className="h-10 w-24 mx-auto mb-2" />
+                  <Skeleton className="h-4 w-32 mx-auto" />
+                </>
+              ) : (
+                <>
+                  <div className="text-3xl md:text-4xl font-bold text-foreground mb-2">
+                    {stat.value}
+                  </div>
+                  <div className="text-muted-foreground">{stat.label}</div>
+                </>
+              )}
             </div>
-            <div className="text-muted-foreground">{stat.label}</div>
-          </div>)}
+          ))}
         </div>
       </div>
     </section>
@@ -133,6 +180,9 @@ const Home: React.FC = () => {
         </div>
       </div>
     </section>
+
+    {/* Footer */}
+    <Footer />
   </div>;
 };
 export default Home;

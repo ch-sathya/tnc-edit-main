@@ -4,11 +4,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
 import { Github, Linkedin, Twitter, Globe, MapPin, Mail, User, FolderOpen, Star } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -33,9 +35,10 @@ interface Repository {
 }
 
 const Portfolio = () => {
-  const { user } = useAuth();
-  const { profile } = useProfile();
+  const { user, loading: authLoading } = useAuth();
+  const { profile, loading: profileLoading } = useProfile();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [projects, setProjects] = useState<Project[]>([]);
   const [repositories, setRepositories] = useState<Repository[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,6 +84,62 @@ const Portfolio = () => {
       setLoading(false);
     }
   };
+
+  if (authLoading || profileLoading || (user && loading)) {
+    return (
+      <>
+        <Navigation />
+        <div className="min-h-screen bg-background">
+          <div className="container mx-auto py-8 px-4 max-w-7xl">
+            <Card className="mb-8">
+              <CardContent className="pt-6">
+                <div className="flex flex-col md:flex-row gap-6">
+                  <Skeleton className="h-32 w-32 rounded-full" />
+                  <div className="flex-1 space-y-4">
+                    <Skeleton className="h-8 w-48" />
+                    <Skeleton className="h-4 w-64" />
+                    <Skeleton className="h-20 w-full" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+              {[1, 2, 3].map(i => (
+                <Card key={i}>
+                  <CardContent className="pt-6">
+                    <Skeleton className="h-12 w-full" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  if (!user) {
+    return (
+      <>
+        <Navigation />
+        <div className="min-h-screen bg-background">
+          <div className="container mx-auto py-8 px-4 max-w-7xl">
+            <Card>
+              <CardHeader>
+                <CardTitle>Sign in Required</CardTitle>
+                <CardDescription>
+                  Please sign in to view your portfolio
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button onClick={() => navigate('/auth')}>Go to Sign In</Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
