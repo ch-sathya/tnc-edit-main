@@ -11,8 +11,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
-import { Github, Linkedin, Twitter, Globe, MapPin, Mail, User, FolderOpen, Star } from 'lucide-react';
+import { Github, Linkedin, Twitter, Globe, MapPin, Mail, User, FolderOpen, Star, Edit, Plus, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { ProfileEditModal } from '@/components/ProfileEditModal';
+import { ProjectFormModal } from '@/components/ProjectFormModal';
 
 interface Project {
   id: string;
@@ -42,12 +44,48 @@ const Portfolio = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [repositories, setRepositories] = useState<Repository[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
+  const [projectModalOpen, setProjectModalOpen] = useState(false);
+  const [editingProject, setEditingProject] = useState<Project | undefined>(undefined);
 
   useEffect(() => {
     if (user) {
       fetchUserData();
     }
   }, [user]);
+
+  const handleCreateProject = () => {
+    setEditingProject(undefined);
+    setProjectModalOpen(true);
+  };
+
+  const handleEditProject = (project: Project) => {
+    setEditingProject(project);
+    setProjectModalOpen(true);
+  };
+
+  const handleDeleteProject = async (projectId: string) => {
+    if (!confirm('Are you sure you want to delete this project?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .delete()
+        .eq('id', projectId);
+
+      if (error) throw error;
+
+      toast({ title: 'Success', description: 'Project deleted successfully' });
+      fetchUserData();
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete project',
+        variant: 'destructive',
+      });
+    }
+  };
 
   const fetchUserData = async () => {
     try {
@@ -184,7 +222,7 @@ const Portfolio = () => {
                     )}
                   </div>
 
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 mb-4">
                     {(profile as any)?.github_url && (
                       <Button variant="outline" size="sm" asChild>
                         <a href={(profile as any).github_url} target="_blank" rel="noopener noreferrer">
@@ -218,6 +256,11 @@ const Portfolio = () => {
                       </Button>
                     )}
                   </div>
+
+                  <Button onClick={() => setEditProfileOpen(true)} className="gap-2">
+                    <Edit className="h-4 w-4" />
+                    Edit Profile
+                  </Button>
 
                   {(profile as any)?.skills && (profile as any).skills.length > 0 && (
                     <div className="mt-4">
@@ -275,6 +318,14 @@ const Portfolio = () => {
             </TabsList>
 
             <TabsContent value="projects" className="mt-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold">My Projects</h2>
+                <Button onClick={handleCreateProject} className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Create Project
+                </Button>
+              </div>
+
               {loading ? (
                 <div className="text-center py-12">Loading projects...</div>
               ) : projects.length === 0 ? (
@@ -282,7 +333,8 @@ const Portfolio = () => {
                   <CardContent className="py-12 text-center">
                     <FolderOpen className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                     <h3 className="text-lg font-semibold mb-2">No projects yet</h3>
-                    <p className="text-muted-foreground">Start building and showcasing your work!</p>
+                    <p className="text-muted-foreground mb-4">Start building and showcasing your work!</p>
+                    <Button onClick={handleCreateProject}>Create Your First Project</Button>
                   </CardContent>
                 </Card>
               ) : (
@@ -315,7 +367,7 @@ const Portfolio = () => {
                             ))}
                           </div>
                         )}
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 flex-wrap">
                           {project.github_url && (
                             <Button variant="outline" size="sm" asChild>
                               <a href={project.github_url} target="_blank" rel="noopener noreferrer">
@@ -327,11 +379,26 @@ const Portfolio = () => {
                           {project.live_url && (
                             <Button variant="outline" size="sm" asChild>
                               <a href={project.live_url} target="_blank" rel="noopener noreferrer">
-                                <Globe className="h-4 w-4 mr-2" />
+                                <ExternalLink className="h-4 w-4 mr-2" />
                                 Live Demo
                               </a>
                             </Button>
                           )}
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => handleEditProject(project)}
+                          >
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit
+                          </Button>
+                          <Button 
+                            variant="destructive" 
+                            size="sm" 
+                            onClick={() => handleDeleteProject(project.id)}
+                          >
+                            Delete
+                          </Button>
                         </div>
                       </CardContent>
                     </Card>
@@ -387,6 +454,25 @@ const Portfolio = () => {
           </Tabs>
         </div>
       </div>
+
+      {/* Modals */}
+      {profile && (
+        <ProfileEditModal
+          open={editProfileOpen}
+          onOpenChange={setEditProfileOpen}
+          profile={profile}
+          userId={user!.id}
+          onSuccess={fetchUserData}
+        />
+      )}
+
+      <ProjectFormModal
+        open={projectModalOpen}
+        onOpenChange={setProjectModalOpen}
+        userId={user!.id}
+        project={editingProject}
+        onSuccess={fetchUserData}
+      />
     </>
   );
 };
