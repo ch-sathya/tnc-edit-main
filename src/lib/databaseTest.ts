@@ -62,7 +62,7 @@ export const testDatabaseConnection = async () => {
           .insert({
             name: testGroupName,
             description: 'Test group for database connectivity',
-            owner_id: user.id
+            created_by: user.id
           })
           .select()
           .single();

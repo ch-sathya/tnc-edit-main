@@ -88,7 +88,7 @@ export const FilePermissionsManager: React.FC<FilePermissionsManagerProps> = ({
       // Get group owner
       const { data: group, error: groupError } = await supabase
         .from('community_groups')
-        .select('owner_id')
+        .select('created_by')
         .eq('id', file.groupId)
         .single();
 
@@ -102,7 +102,7 @@ export const FilePermissionsManager: React.FC<FilePermissionsManagerProps> = ({
         displayName: membership.profiles?.display_name || 'Unknown User',
         username: membership.profiles?.username || 'unknown',
         avatarUrl: membership.profiles?.avatar_url,
-        isOwner: membership.user_id === group.owner_id
+        isOwner: membership.user_id === group?.created_by
       }));
 
       setGroupMembers(members);

@@ -2,13 +2,26 @@ import { OperationalTransform, OperationConflict } from './operational-transform
 import { EditorChange } from '@/types/collaboration';
 import { supabase } from '@/integrations/supabase/client';
 
+// Define the row type manually since the table was just created
+interface FileChangeRow {
+  id: string;
+  file_id: string;
+  user_id: string;
+  operation_type: string;
+  position_start: number;
+  position_end: number | null;
+  content: string | null;
+  version: number;
+  timestamp: string;
+  applied: boolean;
+}
+
 /**
  * Service for handling conflict resolution in collaborative editing
  */
 export class ConflictResolutionService {
   private pendingChanges: Map<string, EditorChange[]> = new Map();
   private conflictQueue: OperationConflict[] = [];
-  private isProcessing = false;
 
   /**
    * Process an incoming editor change and resolve conflicts
@@ -158,7 +171,7 @@ export class ConflictResolutionService {
   }> {
     // Get server changes since our last sync
     const { data: serverChanges, error } = await supabase
-      .from('file_changes')
+      .from('file_changes' as any)
       .select('*')
       .eq('file_id', fileId)
       .gt('version', serverVersion)
@@ -175,7 +188,7 @@ export class ConflictResolutionService {
     for (const localChange of localChanges) {
       let transformedChange = localChange;
       
-      for (const serverChange of serverChanges || []) {
+      for (const serverChange of (serverChanges as unknown as FileChangeRow[] || [])) {
         const serverEditorChange: EditorChange = {
           range: {
             startLineNumber: 1, // Simplified - would need proper conversion

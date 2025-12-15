@@ -46,10 +46,7 @@ export const fetchGroupMessages = async (
     const limit = options.limit || 50;
     let query = supabase
       .from('group_messages')
-      .select(`
-        *,
-        user_profile:profiles!group_messages_user_id_fkey(username, display_name, avatar_url)
-      `)
+      .select('*')
       .eq('group_id', groupId)
       .order('created_at', { ascending: false })
       .limit(limit);
@@ -81,8 +78,27 @@ export const fetchGroupMessages = async (
       };
     }
 
+    // Fetch user profiles separately
+    const userIds = [...new Set(messages.map(m => m.user_id))];
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('user_id, username, display_name, avatar_url')
+      .in('user_id', userIds);
+
+    const profileMap = new Map((profiles || []).map(p => [p.user_id, p]));
+
+    // Map messages with user profiles
+    const messagesWithProfiles: GroupMessage[] = messages.map(m => ({
+      ...m,
+      user_profile: profileMap.get(m.user_id) || {
+        username: null,
+        display_name: null,
+        avatar_url: null
+      }
+    }));
+
     // Reverse to show oldest first in the UI
-    const reversedMessages = messages.reverse();
+    const reversedMessages = messagesWithProfiles.reverse();
     
     // Check if there are more messages
     const hasMore = messages.length === limit;
@@ -155,10 +171,7 @@ export const sendGroupMessage = async (
     const { data: message, error } = await supabase
       .from('group_messages')
       .insert(messageInsert)
-      .select(`
-        *,
-        user_profile:profiles!group_messages_user_id_fkey(username, display_name, avatar_url)
-      `)
+      .select('*')
       .single();
 
     if (error) {
@@ -176,7 +189,21 @@ export const sendGroupMessage = async (
       });
     }
 
-    return message;
+    // Fetch user profile
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('user_id, username, display_name, avatar_url')
+      .eq('user_id', userId)
+      .single();
+
+    return {
+      ...message,
+      user_profile: profile || {
+        username: null,
+        display_name: null,
+        avatar_url: null
+      }
+    } as GroupMessage;
   } catch (error) {
     if (error instanceof GroupMessageErrorClass) {
       throw error;
@@ -267,10 +294,7 @@ export const subscribeToGroupMessages = (
           // Fetch the complete message with user profile
           const { data: message, error } = await supabase
             .from('group_messages')
-            .select(`
-              *,
-              user_profile:profiles!group_messages_user_id_fkey(username, display_name, avatar_url)
-            `)
+            .select('*')
             .eq('id', payload.new.id)
             .single();
 
@@ -281,7 +305,22 @@ export const subscribeToGroupMessages = (
           }
 
           if (message) {
-            onMessage(message);
+            // Fetch user profile
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('user_id, username, display_name, avatar_url')
+              .eq('user_id', message.user_id)
+              .single();
+
+            const messageWithProfile: GroupMessage = {
+              ...message,
+              user_profile: profile || {
+                username: null,
+                display_name: null,
+                avatar_url: null
+              }
+            };
+            onMessage(messageWithProfile);
           }
         } catch (error) {
           console.error('Error processing new message:', error);
