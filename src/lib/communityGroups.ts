@@ -107,7 +107,7 @@ export const fetchCommunityGroups = async (userId?: string): Promise<CommunityGr
         ...group,
         member_count: memberCount,
         is_member: isMember,
-        is_owner: userId ? group.owner_id === userId : false
+        is_owner: userId ? group.created_by === userId : false
       });
     }
 
@@ -135,8 +135,7 @@ export const fetchCommunityGroup = async (groupId: string, userId?: string): Pro
       .from('community_groups')
       .select(`
         *,
-        group_memberships(count),
-        owner_profile:profiles!community_groups_owner_id_fkey(username, display_name, avatar_url)
+        group_memberships(count)
       `)
       .eq('id', groupId)
       .single();
@@ -170,7 +169,7 @@ export const fetchCommunityGroup = async (groupId: string, userId?: string): Pro
       ...group,
       member_count: Array.isArray(group.group_memberships) ? group.group_memberships.length : 0,
       is_member: isMember,
-      is_owner: userId ? group.owner_id === userId : false
+      is_owner: userId ? group.created_by === userId : false
     };
   } catch (error) {
     if (error instanceof CommunityGroupErrorClass) {
@@ -200,7 +199,7 @@ export const createCommunityGroup = async (
       .insert({
         name: groupData.name.trim(),
         description: groupData.description.trim(),
-        owner_id: userId
+        created_by: userId
       })
       .select()
       .single();
@@ -273,7 +272,7 @@ export const updateCommunityGroup = async (
     // First verify the user owns the group
     const { data: existingGroup, error: fetchError } = await supabase
       .from('community_groups')
-      .select('owner_id')
+      .select('created_by')
       .eq('id', groupId)
       .single();
 
@@ -285,7 +284,7 @@ export const updateCommunityGroup = async (
       });
     }
 
-    if (!existingGroup || existingGroup.owner_id !== userId) {
+    if (!existingGroup || existingGroup.created_by !== userId) {
       throw new CommunityGroupErrorClass({
         message: 'You do not have permission to update this group',
         code: 'UNAUTHORIZED_UPDATE'
@@ -353,7 +352,7 @@ export const deleteCommunityGroup = async (groupId: string, userId: string): Pro
     // First verify the user owns the group
     const { data: existingGroup, error: fetchError } = await supabase
       .from('community_groups')
-      .select('owner_id')
+      .select('created_by')
       .eq('id', groupId)
       .single();
 
@@ -365,7 +364,7 @@ export const deleteCommunityGroup = async (groupId: string, userId: string): Pro
       });
     }
 
-    if (!existingGroup || existingGroup.owner_id !== userId) {
+    if (!existingGroup || existingGroup.created_by !== userId) {
       throw new CommunityGroupErrorClass({
         message: 'You do not have permission to delete this group',
         code: 'UNAUTHORIZED_DELETE'
@@ -453,7 +452,7 @@ export const leaveCommunityGroup = async (groupId: string, userId: string): Prom
       .from('community_groups')
       .select(`
         id,
-        owner_id,
+        created_by,
         name,
         group_memberships(count)
       `)
@@ -489,7 +488,7 @@ export const leaveCommunityGroup = async (groupId: string, userId: string): Prom
       });
     }
 
-    const isOwner = groupInfo.owner_id === userId;
+    const isOwner = groupInfo.created_by === userId;
     const memberCount = Array.isArray(groupInfo.group_memberships) ? groupInfo.group_memberships.length : 0;
 
     // If owner is leaving and there are other members, delete the entire group

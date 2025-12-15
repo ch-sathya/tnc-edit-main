@@ -1,10 +1,19 @@
 import { supabase } from '@/integrations/supabase/client';
 import { CollaborationFile, CreateFileRequest, UpdateFileRequest } from '@/types/collaboration';
-import { Tables, TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
 
-type CollaborationFileRow = Tables<'collaboration_files'>;
-type CollaborationFileInsert = TablesInsert<'collaboration_files'>;
-type CollaborationFileUpdate = TablesUpdate<'collaboration_files'>;
+// Define the row type manually since the table was just created
+interface CollaborationFileRow {
+  id: string;
+  group_id: string;
+  name: string;
+  path: string;
+  content: string;
+  language: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  version: number;
+}
 
 export class CollaborationFileService {
   /**
@@ -12,7 +21,7 @@ export class CollaborationFileService {
    */
   async getFiles(groupId: string): Promise<CollaborationFile[]> {
     const { data, error } = await supabase
-      .from('collaboration_files')
+      .from('collaboration_files' as any)
       .select('*')
       .eq('group_id', groupId)
       .order('path');
@@ -21,7 +30,7 @@ export class CollaborationFileService {
       throw new Error(`Failed to fetch files: ${error.message}`);
     }
 
-    return (data || []).map(this.mapRowToFile);
+    return ((data || []) as unknown as CollaborationFileRow[]).map(this.mapRowToFile);
   }
 
   /**
@@ -29,7 +38,7 @@ export class CollaborationFileService {
    */
   async getFile(fileId: string): Promise<CollaborationFile | null> {
     const { data, error } = await supabase
-      .from('collaboration_files')
+      .from('collaboration_files' as any)
       .select('*')
       .eq('id', fileId)
       .single();
@@ -41,7 +50,7 @@ export class CollaborationFileService {
       throw new Error(`Failed to fetch file: ${error.message}`);
     }
 
-    return this.mapRowToFile(data);
+    return this.mapRowToFile(data as unknown as CollaborationFileRow);
   }
 
   /**
@@ -56,7 +65,7 @@ export class CollaborationFileService {
       throw new Error('User must be authenticated to create files');
     }
 
-    const fileData: CollaborationFileInsert = {
+    const fileData = {
       group_id: request.groupId,
       name: request.name,
       path: request.path,
@@ -67,7 +76,7 @@ export class CollaborationFileService {
     };
 
     const { data, error } = await supabase
-      .from('collaboration_files')
+      .from('collaboration_files' as any)
       .insert([fileData])
       .select()
       .single();
@@ -76,14 +85,14 @@ export class CollaborationFileService {
       throw new Error(`Failed to create file: ${error.message}`);
     }
 
-    return this.mapRowToFile(data);
+    return this.mapRowToFile(data as unknown as CollaborationFileRow);
   }
 
   /**
    * Update file content
    */
   async updateFile(fileId: string, request: UpdateFileRequest): Promise<CollaborationFile> {
-    const updateData: CollaborationFileUpdate = {
+    const updateData: Record<string, any> = {
       ...(request.content !== undefined && { content: request.content }),
       ...(request.language !== undefined && { language: request.language }),
       version: request.version + 1,
@@ -91,7 +100,7 @@ export class CollaborationFileService {
     };
 
     const { data, error } = await supabase
-      .from('collaboration_files')
+      .from('collaboration_files' as any)
       .update(updateData)
       .eq('id', fileId)
       .select()
@@ -101,7 +110,7 @@ export class CollaborationFileService {
       throw new Error(`Failed to update file: ${error.message}`);
     }
 
-    return this.mapRowToFile(data);
+    return this.mapRowToFile(data as unknown as CollaborationFileRow);
   }
 
   /**
@@ -109,7 +118,7 @@ export class CollaborationFileService {
    */
   async deleteFile(fileId: string): Promise<void> {
     const { error } = await supabase
-      .from('collaboration_files')
+      .from('collaboration_files' as any)
       .delete()
       .eq('id', fileId);
 
@@ -123,7 +132,7 @@ export class CollaborationFileService {
    */
   async renameFile(fileId: string, newName: string, newPath: string): Promise<CollaborationFile> {
     const { data, error } = await supabase
-      .from('collaboration_files')
+      .from('collaboration_files' as any)
       .update({
         name: newName,
         path: newPath,
@@ -137,7 +146,7 @@ export class CollaborationFileService {
       throw new Error(`Failed to rename file: ${error.message}`);
     }
 
-    return this.mapRowToFile(data);
+    return this.mapRowToFile(data as unknown as CollaborationFileRow);
   }
 
   /**
@@ -145,7 +154,7 @@ export class CollaborationFileService {
    */
   async pathExists(groupId: string, path: string, excludeFileId?: string): Promise<boolean> {
     let query = supabase
-      .from('collaboration_files')
+      .from('collaboration_files' as any)
       .select('id')
       .eq('group_id', groupId)
       .eq('path', path);
@@ -160,7 +169,7 @@ export class CollaborationFileService {
       throw new Error(`Failed to check path existence: ${error.message}`);
     }
 
-    return (data || []).length > 0;
+    return ((data || []) as any[]).length > 0;
   }
 
   /**

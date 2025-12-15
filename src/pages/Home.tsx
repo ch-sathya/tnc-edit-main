@@ -6,7 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Users, Search, Globe, ArrowRight, User, GitBranch } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import Footer from '@/components/Footer';
+
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -181,8 +181,6 @@ const Home: React.FC = () => {
       </div>
     </section>
 
-    {/* Footer */}
-    <Footer />
   </div>;
 };
 export default Home;

@@ -684,6 +684,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_pending_changes: {
+        Args: { file_uuid: string }
+        Returns: {
+          change_content: string
+          change_id: string
+          change_operation_type: string
+          change_position_end: number
+          change_position_start: number
+          change_timestamp: string
+          change_user_id: string
+          change_version: number
+        }[]
+      }
       is_room_participant_safe: {
         Args: { check_room_id: string; check_user_id: string }
         Returns: boolean
