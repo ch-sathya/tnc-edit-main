@@ -13,6 +13,7 @@ import Pricing from "./pages/Pricing";
 import Portfolio from "./pages/Portfolio";
 import Projects from "./pages/Projects";
 import Collaborate from "./pages/Collaborate";
+import CollaborationRoom from "./pages/CollaborationRoom";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ const App = () => (
           <Route path="/portfolio" element={<Portfolio />} />
           <Route path="/projects" element={<Projects />} />
           <Route path="/collaborate" element={<Collaborate />} />
+          <Route path="/collaborate/:roomId" element={<CollaborationRoom />} />
           <Route path="/setup-username" element={<UsernameSetup />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

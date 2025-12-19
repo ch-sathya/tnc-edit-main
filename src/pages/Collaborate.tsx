@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,9 +10,26 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Users, Lock, Globe, Plus, Search } from 'lucide-react';
+import { Users, Lock, Globe, Plus, Search, MoreVertical, Trash2, LogIn, Code } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface CollaborationRoom {
@@ -32,10 +50,13 @@ interface CollaborationRoom {
 const Collaborate = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [rooms, setRooms] = useState<CollaborationRoom[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [roomToDelete, setRoomToDelete] = useState<CollaborationRoom | null>(null);
   const [newRoom, setNewRoom] = useState({
     name: '',
     description: '',
@@ -141,7 +162,9 @@ const Collaborate = () => {
         is_private: false,
         max_participants: 10
       });
-      fetchRooms();
+
+      // Navigate to the new room
+      navigate(`/collaborate/${data.id}`);
     } catch (error) {
       console.error('Error creating room:', error);
       toast({
@@ -152,46 +175,89 @@ const Collaborate = () => {
     }
   };
 
-  const joinRoom = async (roomId: string) => {
+  const deleteRoom = async () => {
+    if (!roomToDelete) return;
+
+    try {
+      // First delete participants
+      await supabase
+        .from('room_participants' as any)
+        .delete()
+        .eq('room_id', roomToDelete.id);
+
+      // Then delete the room code
+      await supabase
+        .from('collaboration_code' as any)
+        .delete()
+        .eq('room_id', roomToDelete.id);
+
+      // Finally delete the room
+      const { error } = await supabase
+        .from('collaboration_rooms')
+        .delete()
+        .eq('id', roomToDelete.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Room deleted successfully"
+      });
+
+      setDeleteDialogOpen(false);
+      setRoomToDelete(null);
+      fetchRooms();
+    } catch (error) {
+      console.error('Error deleting room:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete room",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const enterRoom = async (roomId: string) => {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "Please log in to enter a room",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       // Check if already a participant
       const { data: existing } = await supabase
         .from('room_participants' as any)
         .select('id')
         .eq('room_id', roomId)
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .maybeSingle();
 
-      if (existing) {
-        toast({
-          title: "Info",
-          description: "You are already in this room"
-        });
-        return;
+      if (!existing) {
+        // Join the room first
+        const { error } = await supabase
+          .from('room_participants' as any)
+          .insert([
+            {
+              room_id: roomId,
+              user_id: user.id,
+              role: 'member'
+            }
+          ]);
+
+        if (error) throw error;
       }
 
-      const { error } = await supabase
-        .from('room_participants' as any)
-        .insert([
-          {
-            room_id: roomId,
-            user_id: user?.id,
-            role: 'member'
-          }
-        ]);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Joined collaboration room successfully"
-      });
-      fetchRooms();
+      // Navigate to the room
+      navigate(`/collaborate/${roomId}`);
     } catch (error) {
-      console.error('Error joining room:', error);
+      console.error('Error entering room:', error);
       toast({
         title: "Error",
-        description: "Failed to join collaboration room",
+        description: "Failed to enter room",
         variant: "destructive"
       });
     }
@@ -201,6 +267,8 @@ const Collaborate = () => {
     room.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     room.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const isRoomOwner = (room: CollaborationRoom) => room.created_by === user?.id;
 
   return (
     <>
@@ -273,7 +341,7 @@ const Collaborate = () => {
                   <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>
                     Cancel
                   </Button>
-                  <Button onClick={createRoom}>Create Room</Button>
+                  <Button onClick={createRoom}>Create & Enter Room</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -332,17 +400,42 @@ const Collaborate = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredRooms.map((room) => (
-                <Card key={room.id} className="hover:shadow-lg transition-shadow">
+                <Card key={room.id} className="hover:shadow-lg transition-shadow group">
                   <CardHeader>
                     <div className="flex items-start justify-between gap-2">
                       <CardTitle className="line-clamp-1 flex items-center gap-2">
                         {room.is_private ? (
-                          <Lock className="h-4 w-4 text-muted-foreground" />
+                          <Lock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                         ) : (
-                          <Globe className="h-4 w-4 text-muted-foreground" />
+                          <Globe className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                         )}
                         {room.name}
                       </CardTitle>
+                      {isRoomOwner(room) && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem 
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => {
+                                setRoomToDelete(room);
+                                setDeleteDialogOpen(true);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete Room
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                     </div>
                     <CardDescription className="line-clamp-2">
                       {room.description || 'No description provided'}
@@ -364,10 +457,17 @@ const Collaborate = () => {
                       </div>
                       <Button 
                         className="w-full" 
-                        onClick={() => joinRoom(room.id)}
-                        disabled={room.participant_count >= room.max_participants}
+                        onClick={() => enterRoom(room.id)}
+                        disabled={room.participant_count >= room.max_participants && !isRoomOwner(room)}
                       >
-                        {room.participant_count >= room.max_participants ? 'Room Full' : 'Join Room'}
+                        {room.participant_count >= room.max_participants && !isRoomOwner(room) ? (
+                          'Room Full'
+                        ) : (
+                          <>
+                            <Code className="h-4 w-4 mr-2" />
+                            Enter Room
+                          </>
+                        )}
                       </Button>
                     </div>
                   </CardContent>
@@ -377,6 +477,27 @@ const Collaborate = () => {
           )}
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Collaboration Room</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{roomToDelete?.name}"? This will permanently remove the room and all its content. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={deleteRoom}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete Room
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };
