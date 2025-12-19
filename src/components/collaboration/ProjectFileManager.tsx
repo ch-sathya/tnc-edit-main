@@ -98,8 +98,8 @@ export const ProjectFileManager: React.FC<ProjectFileManagerProps> = ({
           const category = projectFileManagementService.categorizeFile(file);
           return {
             ...file,
-            category: category.id,
-            tags: projectFileManagementService['generateTags'](file),
+            category: category,
+            tags: file.tags || [],
             isBookmarked: false // Will be updated below
           };
         })

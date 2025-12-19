@@ -137,7 +137,7 @@ export const EnhancedFileSearch: React.FC<EnhancedFileSearchProps> = ({
     if (filters.category !== 'all') {
       result = result.filter(file => {
         const category = projectFileManagementService.categorizeFile(file);
-        return category.id === filters.category;
+        return category === filters.category;
       });
     }
 
@@ -206,11 +206,7 @@ export const EnhancedFileSearch: React.FC<EnhancedFileSearchProps> = ({
           {
             category: filters.category !== 'all' ? filters.category : undefined,
             language: filters.language !== 'all' ? filters.language : undefined,
-            tags: filters.tags.length > 0 ? filters.tags : undefined,
-            dateRange: filters.dateRange.start && filters.dateRange.end ? {
-              start: filters.dateRange.start,
-              end: filters.dateRange.end
-            } : undefined
+            tags: filters.tags.length > 0 ? filters.tags : undefined
           }
         );
         
