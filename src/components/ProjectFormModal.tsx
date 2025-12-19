@@ -17,13 +17,13 @@ interface ProjectFormModalProps {
   project?: {
     id: string;
     title: string;
-    description: string;
-    content: string;
-    technologies: string[];
-    github_url: string;
-    live_url: string;
-    image_url: string;
-    status: string;
+    description?: string | null;
+    content?: string | null;
+    technologies?: string[] | null;
+    github_url?: string | null;
+    live_url?: string | null;
+    image_url?: string | null;
+    status?: string | null;
   };
   onSuccess: () => void;
 }

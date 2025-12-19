@@ -12,16 +12,16 @@ interface ProfileEditModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   profile: {
-    username: string | null;
-    display_name: string | null;
-    bio: string | null;
-    avatar_url: string | null;
-    location: string | null;
-    website: string | null;
-    github_url: string | null;
-    linkedin_url: string | null;
-    twitter_url: string | null;
-    skills: string[] | null;
+    username?: string | null;
+    display_name?: string | null;
+    bio?: string | null;
+    avatar_url?: string | null;
+    location?: string | null;
+    website?: string | null;
+    github_url?: string | null;
+    linkedin_url?: string | null;
+    twitter_url?: string | null;
+    skills?: string[] | null;
   };
   userId: string;
   onSuccess: () => void;

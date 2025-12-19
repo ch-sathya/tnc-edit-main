@@ -10,9 +10,11 @@ export type GroupMembershipInsert = TablesInsert<'group_memberships'>;
 export type GroupMessageInsert = TablesInsert<'group_messages'>;
 export type GroupMessageUpdate = TablesUpdate<'group_messages'>;
 
-// Enhanced types with computed fields
-export interface CommunityGroup extends CommunityGroupRow {
-  member_count?: number;
+// Enhanced types with computed fields - use Omit to override member_count
+export interface CommunityGroup extends Omit<CommunityGroupRow, 'member_count' | 'description' | 'is_private'> {
+  member_count?: number | null;
+  description?: string | null;
+  is_private?: boolean | null;
   is_member?: boolean;
   is_owner?: boolean;
 }
@@ -65,7 +67,7 @@ export interface SendMessageRequest {
 export interface MessagePaginationOptions {
   limit?: number;
   cursor?: string;
-  before?: string; // For loading older messages
+  before?: string;
 }
 
 // News types
@@ -80,7 +82,7 @@ export interface NewsArticle {
   category: 'tech' | 'software' | 'development' | 'industry';
   tags?: string[];
   image_url?: string;
-  read_time?: number; // estimated read time in minutes
+  read_time?: number;
 }
 
 export interface NewsArticleWithAuthor extends NewsArticle {
@@ -112,11 +114,11 @@ export interface NewsQueryOptions {
 export interface CommunityGroupError {
   message: string;
   code?: string;
-  details?: any;
+  details?: unknown;
 }
 
 export interface NewsError {
   message: string;
   code?: string;
-  details?: any;
+  details?: unknown;
 }
