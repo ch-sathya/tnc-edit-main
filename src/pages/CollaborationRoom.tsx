@@ -1,8 +1,9 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { useRealtimeCursors } from '@/hooks/useRealtimeCursors';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -37,8 +38,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import Editor from '@monaco-editor/react';
-import { 
+import Editor, { OnMount } from '@monaco-editor/react';
+import type * as Monaco from 'monaco-editor';
+import {
   FolderOpen, 
   FileCode, 
   FilePlus, 
@@ -177,6 +179,65 @@ const CollaborationRoom = () => {
   const [terminalOutput, setTerminalOutput] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
+
+  // Editor refs
+  const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
+  const monacoRef = useRef<typeof Monaco | null>(null);
+
+  // Get user display name
+  const userName = user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'Anonymous';
+
+  // Real-time cursor synchronization
+  const { collaborators, broadcastCursor, renderCursors } = useRealtimeCursors(
+    roomId,
+    user?.id,
+    userName,
+    activeFile?.id
+  );
+
+  // Handle editor mount
+  const handleEditorMount: OnMount = useCallback((editor, monaco) => {
+    editorRef.current = editor;
+    monacoRef.current = monaco;
+
+    // Listen to cursor position changes
+    editor.onDidChangeCursorPosition((e) => {
+      const selection = editor.getSelection();
+      broadcastCursor(
+        { lineNumber: e.position.lineNumber, column: e.position.column },
+        selection && !selection.isEmpty() ? {
+          startLineNumber: selection.startLineNumber,
+          startColumn: selection.startColumn,
+          endLineNumber: selection.endLineNumber,
+          endColumn: selection.endColumn
+        } : undefined
+      );
+    });
+
+    // Listen to selection changes
+    editor.onDidChangeCursorSelection((e) => {
+      const selection = e.selection;
+      const position = editor.getPosition();
+      if (position) {
+        broadcastCursor(
+          { lineNumber: position.lineNumber, column: position.column },
+          !selection.isEmpty() ? {
+            startLineNumber: selection.startLineNumber,
+            startColumn: selection.startColumn,
+            endLineNumber: selection.endLineNumber,
+            endColumn: selection.endColumn
+          } : undefined
+        );
+      }
+    });
+  }, [broadcastCursor]);
+
+  // Render collaborator cursors when they change
+  useEffect(() => {
+    if (editorRef.current && monacoRef.current) {
+      renderCursors(editorRef.current, monacoRef.current);
+    }
+  }, [collaborators, renderCursors]);
 
   // Fetch room data
   useEffect(() => {
@@ -720,6 +781,7 @@ const CollaborationRoom = () => {
                         language={activeFile.language}
                         value={activeFile.content}
                         onChange={handleCodeChange}
+                        onMount={handleEditorMount}
                         theme="vs-dark"
                         options={{
                           fontSize: 14,
@@ -820,6 +882,28 @@ const CollaborationRoom = () => {
           )}
         </div>
         <div className="flex items-center gap-4">
+          {collaborators.length > 0 && (
+            <div className="flex items-center gap-2">
+              <span>Editing:</span>
+              <div className="flex -space-x-1">
+                {collaborators.slice(0, 4).map((c) => (
+                  <div
+                    key={c.id}
+                    className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold border border-white/50"
+                    style={{ backgroundColor: c.color }}
+                    title={c.name}
+                  >
+                    {c.name[0].toUpperCase()}
+                  </div>
+                ))}
+                {collaborators.length > 4 && (
+                  <div className="w-4 h-4 rounded-full bg-white/30 flex items-center justify-center text-[8px]">
+                    +{collaborators.length - 4}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
           <span>{participants.length} collaborator{participants.length !== 1 ? 's' : ''} online</span>
           <span>Spaces: 2</span>
         </div>
