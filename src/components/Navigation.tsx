@@ -6,6 +6,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { MobileNav } from '@/components/MobileNav';
+import { NotificationBell } from '@/components/NotificationBell';
 
 const Navigation: React.FC = () => {
   const navigate = useNavigate();
@@ -48,13 +50,14 @@ const Navigation: React.FC = () => {
   }];
   return <nav className="bg-card border-b border-border">
       <div className="flex items-center justify-between h-16 w-full">
-        {/* Left side - Title (Sharp Left) */}
-        <div className="flex-shrink-0 pl-2">
-          <h1 className="text-2xl font-bold text-foreground">The Night Club</h1>
+        {/* Left side - Title and Mobile Nav */}
+        <div className="flex items-center gap-2 pl-2">
+          <MobileNav />
+          <h1 className="text-xl md:text-2xl font-bold text-foreground">The Night Club</h1>
         </div>
         
         {/* Right side - Navigation and User (Sharp Right) */}
-        <div className="flex items-center space-x-4 pr-2">
+        <div className="flex items-center space-x-2 md:space-x-4 pr-2">
           {/* Navigation Items */}
           <div className="hidden md:block">
             <div className="flex items-baseline space-x-4">
@@ -74,7 +77,10 @@ const Navigation: React.FC = () => {
             </div>
           </div>
           
-          {/* User Profile (Second to Last) */}
+          {/* Notifications */}
+          <NotificationBell />
+          
+          {/* User Profile */}
           <div className="flex items-center space-x-2">
             <Avatar className="h-8 w-8">
               <AvatarImage src={profile?.avatar_url} alt={profile?.display_name || profile?.username} />
