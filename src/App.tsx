@@ -14,6 +14,7 @@ import Portfolio from "./pages/Portfolio";
 import Projects from "./pages/Projects";
 import Collaborate from "./pages/Collaborate";
 import CollaborationRoom from "./pages/CollaborationRoom";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,6 +37,7 @@ const App = () => (
           <Route path="/collaborate" element={<Collaborate />} />
           <Route path="/collaborate/:roomId" element={<CollaborationRoom />} />
           <Route path="/setup-username" element={<UsernameSetup />} />
+          <Route path="/settings" element={<Settings />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
