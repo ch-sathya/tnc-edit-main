@@ -118,7 +118,15 @@ export type Database = {
           updated_at?: string
           updated_by?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "collaboration_code_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "collaboration_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       collaboration_files: {
         Row: {
@@ -661,6 +669,47 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      room_invitations: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          expires_at: string | null
+          id: string
+          invite_code: string
+          max_uses: number | null
+          room_id: string
+          used_count: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          expires_at?: string | null
+          id?: string
+          invite_code: string
+          max_uses?: number | null
+          room_id: string
+          used_count?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          expires_at?: string | null
+          id?: string
+          invite_code?: string
+          max_uses?: number | null
+          room_id?: string
+          used_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_invitations_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "collaboration_rooms"
+            referencedColumns: ["id"]
           },
         ]
       }

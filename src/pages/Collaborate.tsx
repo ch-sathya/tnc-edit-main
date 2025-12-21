@@ -29,7 +29,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Users, Lock, Globe, Plus, Search, MoreVertical, Trash2, LogIn, Code } from 'lucide-react';
+import { Users, Lock, Globe, Plus, Search, MoreVertical, Trash2, Code, Share2, Copy, Check, KeyRound } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface CollaborationRoom {
@@ -57,6 +57,13 @@ const Collaborate = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [roomToDelete, setRoomToDelete] = useState<CollaborationRoom | null>(null);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [shareRoom, setShareRoom] = useState<CollaborationRoom | null>(null);
+  const [inviteCode, setInviteCode] = useState('');
+  const [generatingCode, setGeneratingCode] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
+  const [joinCodeDialogOpen, setJoinCodeDialogOpen] = useState(false);
+  const [joinCode, setJoinCode] = useState('');
   const [newRoom, setNewRoom] = useState({
     name: '',
     description: '',
@@ -217,6 +224,70 @@ const Collaborate = () => {
     }
   };
 
+  const generateInviteCode = async (room: CollaborationRoom) => {
+    setGeneratingCode(true);
+    try {
+      // Generate random 8-character code
+      const code = Array.from({ length: 8 }, () => 
+        'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'[Math.floor(Math.random() * 36)]
+      ).join('');
+
+      // Check if invitation already exists
+      const { data: existing } = await supabase
+        .from('room_invitations')
+        .select('invite_code')
+        .eq('room_id', room.id)
+        .maybeSingle();
+
+      if (existing) {
+        setInviteCode(existing.invite_code);
+      } else {
+        // Create new invitation
+        const { data, error } = await supabase
+          .from('room_invitations')
+          .insert([{
+            room_id: room.id,
+            invite_code: code,
+            created_by: user?.id
+          }])
+          .select()
+          .single();
+
+        if (error) throw error;
+        setInviteCode(data.invite_code);
+      }
+
+      setShareRoom(room);
+      setShareDialogOpen(true);
+    } catch (error) {
+      console.error('Error generating invite code:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate invite code",
+        variant: "destructive"
+      });
+    } finally {
+      setGeneratingCode(false);
+    }
+  };
+
+  const copyInviteCode = () => {
+    const link = `${window.location.origin}/collaborate/join?code=${inviteCode}`;
+    navigator.clipboard.writeText(link);
+    setCopiedCode(true);
+    setTimeout(() => setCopiedCode(false), 2000);
+    toast({
+      title: "Copied!",
+      description: "Invite link copied to clipboard"
+    });
+  };
+
+  const handleJoinByCode = () => {
+    if (joinCode.length === 8) {
+      navigate(`/collaborate/join?code=${joinCode.toUpperCase()}`);
+    }
+  };
+
   const enterRoom = async (roomId: string) => {
     if (!user) {
       toast({
@@ -230,7 +301,7 @@ const Collaborate = () => {
     try {
       // Check if already a participant
       const { data: existing } = await supabase
-        .from('room_participants' as any)
+        .from('room_participants')
         .select('id')
         .eq('room_id', roomId)
         .eq('user_id', user.id)
@@ -239,7 +310,7 @@ const Collaborate = () => {
       if (!existing) {
         // Join the room first
         const { error } = await supabase
-          .from('room_participants' as any)
+          .from('room_participants')
           .insert([
             {
               room_id: roomId,
@@ -283,13 +354,18 @@ const Collaborate = () => {
                 Work together in real-time with other developers
               </p>
             </div>
-            <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-              <DialogTrigger asChild>
-                <Button size="lg">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Room
-                </Button>
-              </DialogTrigger>
+            <div className="flex gap-2">
+              <Button variant="outline" size="lg" onClick={() => setJoinCodeDialogOpen(true)}>
+                <KeyRound className="h-4 w-4 mr-2" />
+                Join by Code
+              </Button>
+              <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+                <DialogTrigger asChild>
+                  <Button size="lg">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Room
+                  </Button>
+                </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Create Collaboration Room</DialogTitle>
@@ -346,6 +422,7 @@ const Collaborate = () => {
               </DialogContent>
             </Dialog>
           </div>
+        </div>
 
           {/* Search */}
           <Card className="mb-8">
@@ -498,6 +575,65 @@ const Collaborate = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Share Invite Dialog */}
+      <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Share Room</DialogTitle>
+            <DialogDescription>
+              Share this invite code to let others join "{shareRoom?.name}"
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Input 
+                value={inviteCode} 
+                readOnly 
+                className="font-mono text-lg tracking-widest text-center"
+              />
+              <Button onClick={copyInviteCode} variant="outline">
+                {copiedCode ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              </Button>
+            </div>
+            <p className="text-sm text-muted-foreground text-center">
+              Or share this link: {window.location.origin}/collaborate/join?code={inviteCode}
+            </p>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setShareDialogOpen(false)}>Done</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Join by Code Dialog */}
+      <Dialog open={joinCodeDialogOpen} onOpenChange={setJoinCodeDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Join by Invite Code</DialogTitle>
+            <DialogDescription>
+              Enter the 8-character invite code to join a room
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Input 
+              value={joinCode}
+              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+              placeholder="Enter code"
+              maxLength={8}
+              className="font-mono text-lg tracking-widest text-center uppercase"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setJoinCodeDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleJoinByCode} disabled={joinCode.length !== 8}>
+              Join Room
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

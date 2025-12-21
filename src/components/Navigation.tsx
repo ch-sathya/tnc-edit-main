@@ -1,28 +1,17 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Home, FolderOpen, User, Users, LogOut, MessageSquare, Newspaper } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import { useProfile } from '@/hooks/useProfile';
-import { useToast } from '@/hooks/use-toast';
+import { Home, FolderOpen, User, Users, MessageSquare, Newspaper } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { MobileNav } from '@/components/MobileNav';
 import { NotificationBell } from '@/components/NotificationBell';
+import ProfileDropdown from '@/components/ProfileDropdown';
+import { useAuth } from '@/hooks/useAuth';
 
 const Navigation: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, signOut } = useAuth();
-  const { profile } = useProfile();
-  const { toast } = useToast();
+  const { user } = useAuth();
 
-  const handleSignOut = async () => {
-    await signOut();
-    toast({
-      title: "Signed out",
-      description: "You have been successfully signed out.",
-    });
-  };
   const navItems = [{
     path: '/',
     label: 'Home',
@@ -48,60 +37,54 @@ const Navigation: React.FC = () => {
     label: 'News',
     icon: Newspaper
   }];
-  return <nav className="bg-card border-b border-border">
+
+  return (
+    <nav className="bg-card border-b border-border">
       <div className="flex items-center justify-between h-16 w-full">
         {/* Left side - Title and Mobile Nav */}
         <div className="flex items-center gap-2 pl-2">
           <MobileNav />
-          <h1 className="text-xl md:text-2xl font-bold text-foreground">The Night Club</h1>
+          <h1 
+            className="text-xl md:text-2xl font-bold text-foreground cursor-pointer"
+            onClick={() => navigate('/')}
+          >
+            The Night Club
+          </h1>
         </div>
         
-        {/* Right side - Navigation and User (Sharp Right) */}
+        {/* Right side - Navigation and User */}
         <div className="flex items-center space-x-2 md:space-x-4 pr-2">
           {/* Navigation Items */}
           <div className="hidden md:block">
-            <div className="flex items-baseline space-x-4">
+            <div className="flex items-baseline space-x-2">
               {navItems.map(item => {
-              const Icon = item.icon;
-              const isActive = location.pathname === item.path;
-              return <Button 
-                key={item.path} 
-                variant={isActive ? "default" : "ghost"} 
-                onClick={() => navigate(item.path)}
-                className="flex items-center gap-2"
-              >
-                <Icon className="h-4 w-4" />
-                {item.label}
-              </Button>;
-            })}
+                const Icon = item.icon;
+                const isActive = location.pathname === item.path;
+                return (
+                  <Button 
+                    key={item.path} 
+                    variant={isActive ? "default" : "ghost"} 
+                    size="sm"
+                    onClick={() => navigate(item.path)}
+                    className="flex items-center gap-2"
+                  >
+                    <Icon className="h-4 w-4" />
+                    {item.label}
+                  </Button>
+                );
+              })}
             </div>
           </div>
           
-          {/* Notifications */}
-          <NotificationBell />
+          {/* Notifications - Only show if logged in */}
+          {user && <NotificationBell />}
           
-          {/* User Profile */}
-          <div className="flex items-center space-x-2">
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={profile?.avatar_url} alt={profile?.display_name || profile?.username} />
-              <AvatarFallback className="text-xs">
-                {profile?.display_name?.charAt(0) || profile?.username?.charAt(0) || 'U'}
-              </AvatarFallback>
-            </Avatar>
-            {profile?.username && (
-              <span className="text-sm text-muted-foreground hidden md:block">
-                @{profile.username}
-              </span>
-            )}
-          </div>
-          
-          {/* Sign Out Button (Last) */}
-          <Button variant="ghost" size="sm" onClick={handleSignOut} className="flex items-center gap-2">
-            <LogOut className="h-4 w-4" />
-            <span className="hidden md:inline">Sign Out</span>
-          </Button>
+          {/* Profile Dropdown */}
+          <ProfileDropdown />
         </div>
       </div>
-    </nav>;
+    </nav>
+  );
 };
+
 export default Navigation;
