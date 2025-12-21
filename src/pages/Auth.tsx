@@ -6,16 +6,19 @@ import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
+type AuthMode = 'login' | 'signup' | 'forgot-password';
+
 export default function Auth() {
-  const [isLogin, setIsLogin] = useState(true);
+  const [mode, setMode] = useState<AuthMode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
@@ -48,12 +51,40 @@ export default function Auth() {
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const redirectUrl = `${window.location.origin}/reset-password`;
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: redirectUrl
+      });
+
+      if (error) throw error;
+
+      setResetSent(true);
+      toast({
+        title: "Check your email",
+        description: "We've sent you a password reset link.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      if (isLogin) {
+      if (mode === 'login') {
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
@@ -65,9 +96,7 @@ export default function Auth() {
           title: "Welcome back!",
           description: "Successfully signed in.",
         });
-
-        // Navigation will be handled by useEffect when user state updates
-      } else {
+      } else if (mode === 'signup') {
         if (password !== confirmPassword) {
           throw new Error("Passwords don't match");
         }
@@ -99,15 +128,85 @@ export default function Auth() {
     }
   };
 
+  // Forgot Password View
+  if (mode === 'forgot-password') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl font-bold">Reset Password</CardTitle>
+            <CardDescription>
+              {resetSent 
+                ? "Check your email for the reset link."
+                : "Enter your email to receive a password reset link."
+              }
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {!resetSent ? (
+              <form onSubmit={handleForgotPassword} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Enter your email"
+                    required
+                  />
+                </div>
+                
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Send Reset Link
+                </Button>
+              </form>
+            ) : (
+              <div className="text-center space-y-4">
+                <p className="text-muted-foreground">
+                  If an account exists for {email}, you'll receive an email shortly.
+                </p>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setResetSent(false);
+                    setMode('login');
+                  }}
+                  className="w-full"
+                >
+                  Back to Sign In
+                </Button>
+              </div>
+            )}
+            
+            {!resetSent && (
+              <div className="mt-4 text-center">
+                <Button
+                  variant="link"
+                  onClick={() => setMode('login')}
+                  className="text-sm"
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Sign In
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">
-            {isLogin ? 'Sign In' : 'Create Account'}
+            {mode === 'login' ? 'Sign In' : 'Create Account'}
           </CardTitle>
           <CardDescription>
-            {isLogin 
+            {mode === 'login' 
               ? 'Welcome back! Please sign in to your account.' 
               : 'Join our collaborative coding platform.'
             }
@@ -150,7 +249,7 @@ export default function Auth() {
               </div>
             </div>
             
-            {!isLogin && (
+            {mode === 'signup' && (
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirm Password</Label>
                 <Input
@@ -163,20 +262,33 @@ export default function Auth() {
                 />
               </div>
             )}
+
+            {mode === 'login' && (
+              <div className="text-right">
+                <Button
+                  type="button"
+                  variant="link"
+                  className="text-sm p-0 h-auto"
+                  onClick={() => setMode('forgot-password')}
+                >
+                  Forgot password?
+                </Button>
+              </div>
+            )}
             
             <Button type="submit" className="w-full" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isLogin ? 'Sign In' : 'Create Account'}
+              {mode === 'login' ? 'Sign In' : 'Create Account'}
             </Button>
           </form>
           
           <div className="mt-4 text-center">
             <Button
               variant="link"
-              onClick={() => setIsLogin(!isLogin)}
+              onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
               className="text-sm"
             >
-              {isLogin 
+              {mode === 'login' 
                 ? "Don't have an account? Sign up" 
                 : "Already have an account? Sign in"
               }
