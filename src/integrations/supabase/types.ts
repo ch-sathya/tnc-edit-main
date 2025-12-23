@@ -845,6 +845,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_file_changes: {
+        Args: { change_user_id: string; file_uuid: string; new_content: string }
+        Returns: number
+      }
+      create_system_notification: {
+        Args: {
+          notif_data?: Json
+          notif_message?: string
+          notif_title: string
+          notif_type: string
+          target_user_id: string
+        }
+        Returns: string
+      }
+      get_file_latest_version: { Args: { file_uuid: string }; Returns: number }
       get_pending_changes: {
         Args: { file_uuid: string }
         Returns: {
@@ -861,6 +876,15 @@ export type Database = {
       is_room_participant_safe: {
         Args: { check_room_id: string; check_user_id: string }
         Returns: boolean
+      }
+      update_session_activity: {
+        Args: {
+          cursor_pos?: Json
+          file_uuid?: string
+          group_uuid: string
+          session_user_id: string
+        }
+        Returns: undefined
       }
     }
     Enums: {

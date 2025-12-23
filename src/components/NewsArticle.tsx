@@ -1,5 +1,6 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import DOMPurify from 'dompurify';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -257,7 +258,13 @@ export const NewsArticle: React.FC = () => {
                     fontSize: window.innerWidth < 640 ? '1rem' : '1.1rem'
                   }}
                   dangerouslySetInnerHTML={{ 
-                    __html: article.content.replace(/\n/g, '<br />') 
+                    __html: DOMPurify.sanitize(
+                      article.content.replace(/\n/g, '<br />'),
+                      {
+                        ALLOWED_TAGS: ['br', 'b', 'i', 'strong', 'em', 'p', 'a', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'code', 'pre'],
+                        ALLOWED_ATTR: ['href', 'target', 'rel', 'class']
+                      }
+                    )
                   }}
                 />
               </div>
