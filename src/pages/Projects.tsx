@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,10 +8,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
-import { Github, Globe, Search, Filter, Plus, Star, Sparkles } from 'lucide-react';
+import { Github, Globe, Search, Filter, Plus, Star, Sparkles, Edit, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { ProjectFormModal } from '@/components/ProjectFormModal';
+import ConfirmationDialog from '@/components/ConfirmationDialog';
 
 interface Project {
   id: string;
@@ -30,6 +32,7 @@ interface Project {
 const Projects = () => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [projects, setProjects] = useState<Project[]>([]);
   const [featuredProjects, setFeaturedProjects] = useState<Project[]>([]);
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
@@ -37,6 +40,9 @@ const Projects = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [deletingProject, setDeletingProject] = useState<Project | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
     fetchProjects();
@@ -50,7 +56,6 @@ const Projects = () => {
     try {
       setLoading(true);
       
-      // Fetch all published projects
       const { data, error } = await supabase
         .from('projects')
         .select('*')
@@ -59,7 +64,6 @@ const Projects = () => {
 
       if (error) throw error;
 
-      // Fetch creator profiles for each project
       const projectsWithCreators = await Promise.all(
         (data || []).map(async (project: any) => {
           const { data: creatorProfile } = await supabase
@@ -76,7 +80,6 @@ const Projects = () => {
         })
       );
 
-      // Separate featured and regular projects
       const featured = projectsWithCreators.filter((p: Project) => p.featured);
       const regular = projectsWithCreators.filter((p: Project) => !p.featured);
 
@@ -97,7 +100,6 @@ const Projects = () => {
   const filterProjectsData = () => {
     let filtered = [...projects];
 
-    // Search filter
     if (searchQuery.trim()) {
       filtered = filtered.filter(project =>
         project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -108,7 +110,6 @@ const Projects = () => {
       );
     }
 
-    // Status filter
     if (filterStatus !== 'all') {
       filtered = filtered.filter(project => project.status === filterStatus);
     }
@@ -116,83 +117,161 @@ const Projects = () => {
     setFilteredProjects(filtered);
   };
 
-  const ProjectCard = ({ project, featured = false }: { project: Project; featured?: boolean }) => (
-    <Card className={`overflow-hidden hover:shadow-lg transition-shadow ${featured ? 'border-primary/50 bg-gradient-to-br from-primary/5 to-transparent' : ''}`}>
-      {project.image_url && (
-        <div className="aspect-video w-full overflow-hidden relative">
-          <img 
-            src={project.image_url} 
-            alt={project.title}
-            className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-          />
-          {featured && (
-            <div className="absolute top-2 left-2">
-              <Badge className="bg-primary text-primary-foreground gap-1">
-                <Star className="h-3 w-3 fill-current" />
-                Featured
-              </Badge>
+  const handleDeleteProject = async () => {
+    if (!deletingProject) return;
+
+    try {
+      setDeleteLoading(true);
+      const { error } = await supabase
+        .from('projects')
+        .delete()
+        .eq('id', deletingProject.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Project deleted successfully"
+      });
+      fetchProjects();
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete project",
+        variant: "destructive"
+      });
+    } finally {
+      setDeleteLoading(false);
+      setDeletingProject(null);
+    }
+  };
+
+  const ProjectCard = ({ project, featured = false }: { project: Project; featured?: boolean }) => {
+    const isOwner = user?.id === project.user_id;
+
+    return (
+      <Card 
+        className={`overflow-hidden hover:shadow-lg transition-shadow cursor-pointer ${featured ? 'border-primary/50 bg-gradient-to-br from-primary/5 to-transparent' : ''}`}
+        onClick={() => navigate(`/projects/${project.id}`)}
+      >
+        {project.image_url && (
+          <div className="aspect-video w-full overflow-hidden relative">
+            <img 
+              src={project.image_url} 
+              alt={project.title}
+              className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+            />
+            {featured && (
+              <div className="absolute top-2 left-2">
+                <Badge className="bg-primary text-primary-foreground gap-1">
+                  <Star className="h-3 w-3 fill-current" />
+                  Featured
+                </Badge>
+              </div>
+            )}
+          </div>
+        )}
+        <CardHeader>
+          <div className="flex items-start justify-between gap-2">
+            <CardTitle className="line-clamp-1">{project.title}</CardTitle>
+            <Badge variant="secondary">{project.status}</Badge>
+          </div>
+          <CardDescription className="line-clamp-2">
+            {project.description}
+          </CardDescription>
+          {project.creator_name && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
+              {project.creator_avatar && (
+                <img 
+                  src={project.creator_avatar} 
+                  alt={project.creator_name}
+                  className="h-5 w-5 rounded-full object-cover"
+                />
+              )}
+              <span>by</span>
+              <span className="font-medium">{project.creator_name}</span>
             </div>
           )}
-        </div>
-      )}
-      <CardHeader>
-        <div className="flex items-start justify-between gap-2">
-          <CardTitle className="line-clamp-1">{project.title}</CardTitle>
-          <Badge variant="secondary">{project.status}</Badge>
-        </div>
-        <CardDescription className="line-clamp-2">
-          {project.description}
-        </CardDescription>
-        {project.creator_name && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
-            {project.creator_avatar && (
-              <img 
-                src={project.creator_avatar} 
-                alt={project.creator_name}
-                className="h-5 w-5 rounded-full object-cover"
-              />
-            )}
-            <span>by</span>
-            <span className="font-medium">{project.creator_name}</span>
-          </div>
-        )}
-      </CardHeader>
-      <CardContent>
-        {project.technologies && project.technologies.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-4">
-            {project.technologies.slice(0, 3).map((tech, index) => (
-              <Badge key={index} variant="outline" className="text-xs">
-                {tech}
-              </Badge>
-            ))}
-            {project.technologies.length > 3 && (
-              <Badge variant="outline" className="text-xs">
-                +{project.technologies.length - 3}
-              </Badge>
-            )}
-          </div>
-        )}
-        <div className="flex gap-2">
-          {project.github_url && (
-            <Button variant="outline" size="sm" asChild className="flex-1">
-              <a href={project.github_url} target="_blank" rel="noopener noreferrer">
+        </CardHeader>
+        <CardContent>
+          {project.technologies && project.technologies.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-4">
+              {project.technologies.slice(0, 3).map((tech, index) => (
+                <Badge key={index} variant="outline" className="text-xs">
+                  {tech}
+                </Badge>
+              ))}
+              {project.technologies.length > 3 && (
+                <Badge variant="outline" className="text-xs">
+                  +{project.technologies.length - 3}
+                </Badge>
+              )}
+            </div>
+          )}
+          <div className="flex gap-2">
+            {project.github_url && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex-1"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(project.github_url, '_blank');
+                }}
+              >
                 <Github className="h-4 w-4 mr-2" />
                 Code
-              </a>
-            </Button>
-          )}
-          {project.live_url && (
-            <Button variant="outline" size="sm" asChild className="flex-1">
-              <a href={project.live_url} target="_blank" rel="noopener noreferrer">
+              </Button>
+            )}
+            {project.live_url && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex-1"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(project.live_url, '_blank');
+                }}
+              >
                 <Globe className="h-4 w-4 mr-2" />
                 Demo
-              </a>
-            </Button>
+              </Button>
+            )}
+          </div>
+          
+          {isOwner && (
+            <div className="flex gap-2 mt-3 pt-3 border-t">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="flex-1"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setEditingProject(project);
+                }}
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="flex-1 text-destructive hover:text-destructive"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDeletingProject(project);
+                }}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
+              </Button>
+            </div>
           )}
-        </div>
-      </CardContent>
-    </Card>
-  );
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
     <>
@@ -341,6 +420,32 @@ const Projects = () => {
           onSuccess={fetchProjects}
         />
       )}
+
+      {/* Edit Project Modal */}
+      {user && editingProject && (
+        <ProjectFormModal
+          open={!!editingProject}
+          onOpenChange={(open) => !open && setEditingProject(null)}
+          userId={user.id}
+          project={editingProject}
+          onSuccess={() => {
+            setEditingProject(null);
+            fetchProjects();
+          }}
+        />
+      )}
+
+      {/* Delete Confirmation */}
+      <ConfirmationDialog
+        open={!!deletingProject}
+        onOpenChange={(open) => !open && setDeletingProject(null)}
+        title="Delete Project"
+        description={`Are you sure you want to delete "${deletingProject?.title}"? This action cannot be undone.`}
+        confirmText="Delete"
+        onConfirm={handleDeleteProject}
+        loading={deleteLoading}
+        variant="destructive"
+      />
     </>
   );
 };
