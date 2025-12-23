@@ -13,6 +13,7 @@ import Editor from "./pages/Editor";
 import Collaborate from "./pages/Collaborate";
 import CollaborationRoom from "./pages/CollaborationRoom";
 import Community from "./pages/Community";
+import Connections from "./pages/Connections";
 import News from "./pages/News";
 import NewsArticle from "./components/NewsArticle";
 import Auth from "./pages/Auth";
@@ -54,6 +55,7 @@ const AnimatedRoutes = () => {
         <Route path="/collaborate/join" element={<JoinRoom />} />
         <Route path="/collaborate/:roomId" element={<CollaborationRoom />} />
         <Route path="/community" element={<Community />} />
+        <Route path="/connections" element={<Connections />} />
         <Route path="/news" element={<News />} />
         <Route path="/news/:id" element={<NewsArticle />} />
         <Route path="/auth" element={<Auth />} />
