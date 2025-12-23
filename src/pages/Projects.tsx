@@ -7,8 +7,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
-import { Github, Globe, Search, Filter } from 'lucide-react';
+import { Github, Globe, Search, Filter, Plus, Star, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
+import { ProjectFormModal } from '@/components/ProjectFormModal';
 
 interface Project {
   id: string;
@@ -20,17 +22,21 @@ interface Project {
   image_url: string;
   status: string;
   user_id: string;
+  featured: boolean;
   creator_name?: string;
   creator_avatar?: string;
 }
 
 const Projects = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
+  const [featuredProjects, setFeaturedProjects] = useState<Project[]>([]);
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   useEffect(() => {
     fetchProjects();
@@ -44,7 +50,7 @@ const Projects = () => {
     try {
       setLoading(true);
       
-      // Fetch projects without the broken foreign key join
+      // Fetch all published projects
       const { data, error } = await supabase
         .from('projects')
         .select('*')
@@ -70,7 +76,12 @@ const Projects = () => {
         })
       );
 
-      setProjects(projectsWithCreators as Project[]);
+      // Separate featured and regular projects
+      const featured = projectsWithCreators.filter((p: Project) => p.featured);
+      const regular = projectsWithCreators.filter((p: Project) => !p.featured);
+
+      setFeaturedProjects(featured as Project[]);
+      setProjects(regular as Project[]);
     } catch (error) {
       console.error('Error fetching projects:', error);
       toast({
@@ -105,18 +116,137 @@ const Projects = () => {
     setFilteredProjects(filtered);
   };
 
+  const ProjectCard = ({ project, featured = false }: { project: Project; featured?: boolean }) => (
+    <Card className={`overflow-hidden hover:shadow-lg transition-shadow ${featured ? 'border-primary/50 bg-gradient-to-br from-primary/5 to-transparent' : ''}`}>
+      {project.image_url && (
+        <div className="aspect-video w-full overflow-hidden relative">
+          <img 
+            src={project.image_url} 
+            alt={project.title}
+            className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+          />
+          {featured && (
+            <div className="absolute top-2 left-2">
+              <Badge className="bg-primary text-primary-foreground gap-1">
+                <Star className="h-3 w-3 fill-current" />
+                Featured
+              </Badge>
+            </div>
+          )}
+        </div>
+      )}
+      <CardHeader>
+        <div className="flex items-start justify-between gap-2">
+          <CardTitle className="line-clamp-1">{project.title}</CardTitle>
+          <Badge variant="secondary">{project.status}</Badge>
+        </div>
+        <CardDescription className="line-clamp-2">
+          {project.description}
+        </CardDescription>
+        {project.creator_name && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
+            {project.creator_avatar && (
+              <img 
+                src={project.creator_avatar} 
+                alt={project.creator_name}
+                className="h-5 w-5 rounded-full object-cover"
+              />
+            )}
+            <span>by</span>
+            <span className="font-medium">{project.creator_name}</span>
+          </div>
+        )}
+      </CardHeader>
+      <CardContent>
+        {project.technologies && project.technologies.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-4">
+            {project.technologies.slice(0, 3).map((tech, index) => (
+              <Badge key={index} variant="outline" className="text-xs">
+                {tech}
+              </Badge>
+            ))}
+            {project.technologies.length > 3 && (
+              <Badge variant="outline" className="text-xs">
+                +{project.technologies.length - 3}
+              </Badge>
+            )}
+          </div>
+        )}
+        <div className="flex gap-2">
+          {project.github_url && (
+            <Button variant="outline" size="sm" asChild className="flex-1">
+              <a href={project.github_url} target="_blank" rel="noopener noreferrer">
+                <Github className="h-4 w-4 mr-2" />
+                Code
+              </a>
+            </Button>
+          )}
+          {project.live_url && (
+            <Button variant="outline" size="sm" asChild className="flex-1">
+              <a href={project.live_url} target="_blank" rel="noopener noreferrer">
+                <Globe className="h-4 w-4 mr-2" />
+                Demo
+              </a>
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+
   return (
     <>
       <Navigation />
       <div className="min-h-screen bg-background">
         <div className="container mx-auto py-8 px-4 max-w-7xl">
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold text-foreground mb-2">Explore Projects</h1>
-            <p className="text-muted-foreground">
-              Discover amazing projects from developers around the world
-            </p>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+            <div>
+              <h1 className="text-4xl font-bold text-foreground mb-2">Explore Projects</h1>
+              <p className="text-muted-foreground">
+                Discover amazing projects from developers around the world
+              </p>
+            </div>
+            {user && (
+              <Button onClick={() => setShowCreateModal(true)} className="gap-2">
+                <Plus className="h-4 w-4" />
+                Create Project
+              </Button>
+            )}
           </div>
+
+          {/* Featured Projects Section */}
+          {loading ? (
+            <div className="mb-10">
+              <div className="flex items-center gap-2 mb-4">
+                <Sparkles className="h-5 w-5 text-primary" />
+                <h2 className="text-2xl font-bold">Featured Projects</h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[1, 2, 3].map(i => (
+                  <Card key={i}>
+                    <Skeleton className="aspect-video w-full" />
+                    <CardHeader>
+                      <Skeleton className="h-6 w-3/4 mb-2" />
+                      <Skeleton className="h-4 w-full" />
+                    </CardHeader>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          ) : featuredProjects.length > 0 && (
+            <div className="mb-10">
+              <div className="flex items-center gap-2 mb-4">
+                <Sparkles className="h-5 w-5 text-primary" />
+                <h2 className="text-2xl font-bold">Featured Projects</h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {featuredProjects.map((project) => (
+                  <ProjectCard key={project.id} project={project} featured />
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Filters */}
           <Card className="mb-8">
@@ -146,6 +276,14 @@ const Projects = () => {
             </CardContent>
           </Card>
 
+          {/* All Projects Section Header */}
+          <div className="mb-4">
+            <h2 className="text-2xl font-bold mb-1">All Projects</h2>
+            <p className="text-sm text-muted-foreground">
+              Showing {filteredProjects.length} of {projects.length} projects
+            </p>
+          </div>
+
           {/* Projects Grid */}
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -173,86 +311,36 @@ const Projects = () => {
             <Card>
               <CardContent className="py-12 text-center">
                 <h3 className="text-lg font-semibold mb-2">No projects found</h3>
-                <p className="text-muted-foreground">
+                <p className="text-muted-foreground mb-4">
                   {searchQuery ? 'Try adjusting your search or filters' : 'Be the first to create a project!'}
                 </p>
+                {user && (
+                  <Button onClick={() => setShowCreateModal(true)} variant="outline">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Your First Project
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ) : (
-            <>
-              <div className="mb-4 text-sm text-muted-foreground">
-                Showing {filteredProjects.length} of {projects.length} projects
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredProjects.map((project) => (
-                  <Card key={project.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                    {project.image_url && (
-                      <div className="aspect-video w-full overflow-hidden">
-                        <img 
-                          src={project.image_url} 
-                          alt={project.title}
-                          className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                        />
-                      </div>
-                    )}
-                    <CardHeader>
-                      <div className="flex items-start justify-between gap-2">
-                        <CardTitle className="line-clamp-1">{project.title}</CardTitle>
-                        <Badge variant="secondary">{project.status}</Badge>
-                      </div>
-                      <CardDescription className="line-clamp-2">
-                        {project.description}
-                      </CardDescription>
-                      {project.creator_name && (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
-                          <span>by</span>
-                          <span className="font-medium">
-                            {project.creator_name}
-                          </span>
-                        </div>
-                      )}
-                    </CardHeader>
-                    <CardContent>
-                      {project.technologies && project.technologies.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mb-4">
-                          {project.technologies.slice(0, 3).map((tech, index) => (
-                            <Badge key={index} variant="outline" className="text-xs">
-                              {tech}
-                            </Badge>
-                          ))}
-                          {project.technologies.length > 3 && (
-                            <Badge variant="outline" className="text-xs">
-                              +{project.technologies.length - 3}
-                            </Badge>
-                          )}
-                        </div>
-                      )}
-                      <div className="flex gap-2">
-                        {project.github_url && (
-                          <Button variant="outline" size="sm" asChild className="flex-1">
-                            <a href={project.github_url} target="_blank" rel="noopener noreferrer">
-                              <Github className="h-4 w-4 mr-2" />
-                              Code
-                            </a>
-                          </Button>
-                        )}
-                        {project.live_url && (
-                          <Button variant="outline" size="sm" asChild className="flex-1">
-                            <a href={project.live_url} target="_blank" rel="noopener noreferrer">
-                              <Globe className="h-4 w-4 mr-2" />
-                              Demo
-                            </a>
-                          </Button>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredProjects.map((project) => (
+                <ProjectCard key={project.id} project={project} />
+              ))}
+            </div>
           )}
         </div>
       </div>
+
+      {/* Create Project Modal */}
+      {user && (
+        <ProjectFormModal
+          open={showCreateModal}
+          onOpenChange={setShowCreateModal}
+          userId={user.id}
+          onSuccess={fetchProjects}
+        />
+      )}
     </>
   );
 };
