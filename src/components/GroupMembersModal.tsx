@@ -126,8 +126,19 @@ const GroupMembersModal: React.FC<GroupMembersModalProps> = ({
             </DialogTitle>
             <DialogDescription>
               {members?.length || 0} members in this group
+              {canManageMembers && ' • Click the menu icon to manage roles'}
             </DialogDescription>
           </DialogHeader>
+
+          {/* Role management hint for owners/admins */}
+          {canManageMembers && (
+            <div className="bg-muted/50 border rounded-lg p-3 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <Crown className="h-4 w-4 text-amber-500" />
+                <span>As {userRole}, you can promote members, change roles, or remove members using the menu on each member.</span>
+              </div>
+            </div>
+          )}
 
           <ScrollArea className="max-h-[400px] pr-4">
             {isLoading ? (
@@ -142,21 +153,22 @@ const GroupMembersModal: React.FC<GroupMembersModalProps> = ({
               <div className="space-y-2">
                 {members.map((member) => {
                   const isCurrentUser = member.user_id === user?.id;
-                  const canManage = canManageMembers && 
-                                   !isCurrentUser && 
-                                   member.role !== 'owner' &&
-                                   userRole && 
-                                   canManageRole(userRole, member.role);
+                  const canManage =
+                    canManageMembers &&
+                    !isCurrentUser &&
+                    member.role !== 'owner' &&
+                    userRole &&
+                    canManageRole(userRole, member.role);
 
                   return (
-                    <div 
+                    <div
                       key={member.id}
                       className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors"
                     >
                       <div className="flex items-center gap-3">
                         <Avatar className="h-10 w-10">
-                          <AvatarImage 
-                            src={member.user_profile?.avatar_url || undefined} 
+                          <AvatarImage
+                            src={member.user_profile?.avatar_url || undefined}
                             alt={getDisplayName(member)}
                           />
                           <AvatarFallback>{getInitials(member)}</AvatarFallback>
@@ -171,10 +183,7 @@ const GroupMembersModal: React.FC<GroupMembersModalProps> = ({
                             </span>
                           </div>
                           <div className="flex items-center gap-1">
-                            <Badge 
-                              variant={getRoleBadgeVariant(member.role)} 
-                              className="text-xs gap-1"
-                            >
+                            <Badge variant={getRoleBadgeVariant(member.role)} className="text-xs gap-1">
                               {getRoleIcon(member.role)}
                               {getRoleDisplayName(member.role)}
                             </Badge>
@@ -185,7 +194,7 @@ const GroupMembersModal: React.FC<GroupMembersModalProps> = ({
                       {canManage && (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Manage this member">
                               <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
@@ -196,7 +205,7 @@ const GroupMembersModal: React.FC<GroupMembersModalProps> = ({
                                   Change Role
                                 </div>
                                 {getAssignableRoles(member.role).map((role) => (
-                                  <DropdownMenuItem 
+                                  <DropdownMenuItem
                                     key={role}
                                     onClick={() => handleRoleChange(member, role)}
                                     disabled={updateRoleMutation.isPending}
@@ -208,7 +217,7 @@ const GroupMembersModal: React.FC<GroupMembersModalProps> = ({
                                 <DropdownMenuSeparator />
                               </>
                             )}
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               onClick={() => setConfirmRemove({ open: true, member })}
                               className="text-destructive focus:text-destructive"
                               disabled={removeMemberMutation.isPending}
@@ -234,7 +243,9 @@ const GroupMembersModal: React.FC<GroupMembersModalProps> = ({
         onConfirm={handleRemoveMember}
         loading={removeMemberMutation.isPending}
         title="Remove Member"
-        description={`Are you sure you want to remove ${confirmRemove.member ? getDisplayName(confirmRemove.member) : 'this member'} from ${groupName}? They can rejoin later if needed.`}
+        description={`Are you sure you want to remove ${
+          confirmRemove.member ? getDisplayName(confirmRemove.member) : 'this member'
+        } from ${groupName}? They can rejoin later if needed.`}
         confirmText="Remove Member"
         variant="destructive"
       />

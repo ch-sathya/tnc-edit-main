@@ -87,15 +87,15 @@ export const fetchCommunityGroups = async (userId?: string): Promise<CommunityGr
         memberCount = 0;
       }
       
-      // Check if current user is a member - skip if database not available
+      // Check if current user is a member - use maybeSingle to avoid errors when not found
       if (userId) {
         try {
           const result = await supabase
             .from('group_memberships')
             .select('id')
             .match({ group_id: group.id, user_id: userId })
-            .single();
-          
+            .maybeSingle();
+
           isMember = !!result.data;
         } catch (membershipError) {
           console.warn('Failed to check membership for group', group.id, membershipError);
