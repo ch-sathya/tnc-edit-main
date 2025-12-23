@@ -40,10 +40,7 @@ interface CollaborationRoom {
   max_participants: number;
   created_by: string;
   created_at: string;
-  profiles: {
-    username: string;
-    display_name: string;
-  };
+  creator_name?: string;
   participant_count?: number;
 }
 
@@ -78,35 +75,40 @@ const Collaborate = () => {
   const fetchRooms = async () => {
     try {
       setLoading(true);
+      
+      // Fetch rooms without the broken foreign key join
       const { data, error } = await supabase
-        .from('collaboration_rooms' as any)
-        .select(`
-          *,
-          profiles:created_by (
-            username,
-            display_name
-          )
-        `)
+        .from('collaboration_rooms')
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      // Get participant counts for each room
-      const roomsWithCounts = await Promise.all(
-        ((data as any) || []).map(async (room: any) => {
+      // Get participant counts and creator names for each room
+      const roomsWithDetails = await Promise.all(
+        (data || []).map(async (room: any) => {
+          // Get participant count
           const { count } = await supabase
-            .from('room_participants' as any)
+            .from('room_participants')
             .select('*', { count: 'exact', head: true })
             .eq('room_id', room.id);
           
+          // Get creator profile
+          const { data: creatorProfile } = await supabase
+            .from('profiles')
+            .select('display_name, username')
+            .eq('user_id', room.created_by)
+            .maybeSingle();
+          
           return {
             ...room,
-            participant_count: count || 0
+            participant_count: count || 0,
+            creator_name: creatorProfile?.display_name || creatorProfile?.username || 'Unknown'
           };
         })
       );
 
-      setRooms(roomsWithCounts as any);
+      setRooms(roomsWithDetails as CollaborationRoom[]);
     } catch (error) {
       console.error('Error fetching rooms:', error);
       toast({
@@ -523,7 +525,7 @@ const Collaborate = () => {
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Created by</span>
                         <span className="font-medium">
-                          {room.profiles?.display_name || room.profiles?.username || 'Unknown'}
+                          {room.creator_name || 'Unknown'}
                         </span>
                       </div>
                       <div className="flex items-center justify-between text-sm">
