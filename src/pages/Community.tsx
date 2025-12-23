@@ -177,18 +177,6 @@ const Community = () => {
             </Breadcrumb>
           </nav>
 
-          {/* Legacy back button for mobile users who prefer it */}
-          <div className="flex items-center gap-4 mb-6 sm:hidden">
-            <Button 
-              variant="ghost" 
-              onClick={() => navigate('/')}
-              aria-label="Go back to home page"
-              className="min-h-[44px] min-w-[44px]"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              <span>Back</span>
-            </Button>
-          </div>
           
           <header className="mb-6">
             <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Community</h1>

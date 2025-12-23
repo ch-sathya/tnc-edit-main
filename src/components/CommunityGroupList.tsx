@@ -9,10 +9,12 @@ import {
   useDeleteCommunityGroup 
 } from '@/hooks/useCommunityGroups';
 import { useAuth } from '@/hooks/useAuth';
-import { Users, Crown, Plus, Trash2, UserMinus, UserPlus, AlertTriangle, MessageCircle } from 'lucide-react';
+import { Users, Crown, Plus, Trash2, UserMinus, UserPlus, AlertTriangle, MessageCircle, Settings } from 'lucide-react';
 import { CommunityGroup } from '@/types/community';
 import { toast } from 'sonner';
 import ConfirmationDialog from './ConfirmationDialog';
+import GroupMembersModal from './GroupMembersModal';
+import GroupSettingsModal from './GroupSettingsModal';
 import { CommunityGroupListSkeleton } from '@/components/LoadingSkeletons';
 import RetryHandler from '@/components/RetryHandler';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
@@ -28,6 +30,11 @@ interface ConfirmationState {
   groupId: string;
   groupName: string;
   isOwnerLeaving: boolean;
+}
+
+interface ModalState {
+  membersModal: { open: boolean; group: CommunityGroup | null };
+  settingsModal: { open: boolean; group: CommunityGroup | null };
 }
 
 const CommunityGroupList: React.FC<CommunityGroupListProps> = ({ onCreateGroup, onGroupSelect }) => {
@@ -50,6 +57,10 @@ const CommunityGroupList: React.FC<CommunityGroupListProps> = ({ onCreateGroup, 
     groupId: '',
     groupName: '',
     isOwnerLeaving: false,
+  });
+  const [modals, setModals] = useState<ModalState>({
+    membersModal: { open: false, group: null },
+    settingsModal: { open: false, group: null },
   });
 
   const handleJoinGroup = async (groupId: string) => {
@@ -232,6 +243,8 @@ const CommunityGroupList: React.FC<CommunityGroupListProps> = ({ onCreateGroup, 
               onLeave={() => handleLeaveGroup(group.id, group.name, group.is_owner || false, group.member_count || 0)}
               onDelete={() => handleDeleteGroup(group.id, group.name)}
               onSelect={() => onGroupSelect?.(group.id)}
+              onMembers={() => setModals(prev => ({ ...prev, membersModal: { open: true, group } }))}
+              onSettings={() => setModals(prev => ({ ...prev, settingsModal: { open: true, group } }))}
             />
           ))}
         </div>
@@ -244,6 +257,23 @@ const CommunityGroupList: React.FC<CommunityGroupListProps> = ({ onCreateGroup, 
         loading={confirmation.groupId ? loadingStates[confirmation.groupId] : false}
         {...getConfirmationContent()}
       />
+
+      {modals.membersModal.group && (
+        <GroupMembersModal
+          open={modals.membersModal.open}
+          onOpenChange={(open) => setModals(prev => ({ ...prev, membersModal: { ...prev.membersModal, open } }))}
+          groupId={modals.membersModal.group.id}
+          groupName={modals.membersModal.group.name}
+        />
+      )}
+
+      {modals.settingsModal.group && (
+        <GroupSettingsModal
+          open={modals.settingsModal.open}
+          onOpenChange={(open) => setModals(prev => ({ ...prev, settingsModal: { ...prev.settingsModal, open } }))}
+          group={modals.settingsModal.group}
+        />
+      )}
     </section>
   );
 };
@@ -255,6 +285,8 @@ interface GroupCardProps {
   onLeave: () => void;
   onDelete: () => void;
   onSelect?: () => void;
+  onMembers?: () => void;
+  onSettings?: () => void;
 }
 
 const GroupCard: React.FC<GroupCardProps> = ({ 
@@ -263,7 +295,9 @@ const GroupCard: React.FC<GroupCardProps> = ({
   onJoin, 
   onLeave, 
   onDelete,
-  onSelect
+  onSelect,
+  onMembers,
+  onSettings,
 }) => {
   const { user } = useAuth();
 
@@ -403,19 +437,43 @@ const GroupCard: React.FC<GroupCardProps> = ({
         </div>
       </CardContent>
       
-      <CardFooter className="pt-0 space-y-2">
-        {/* Chat button for members */}
-        {group.is_member && onSelect && (
-          <Button 
-            onClick={() => onSelect()}
-            variant="outline"
-            className="w-full min-h-[44px]"
-            aria-label={`Open chat for group ${group.name}`}
-            disabled={isLoading}
-          >
-            <MessageCircle className="h-4 w-4 mr-2" aria-hidden="true" />
-            {isLoading ? 'Loading...' : 'Open Chat'}
-          </Button>
+      <CardFooter className="pt-0 flex flex-col gap-2">
+        {/* Chat and Members buttons for members */}
+        {group.is_member && (
+          <div className="flex gap-2 w-full">
+            {onSelect && (
+              <Button 
+                onClick={() => onSelect()}
+                variant="outline"
+                className="flex-1 min-h-[44px]"
+                aria-label={`Open chat for group ${group.name}`}
+                disabled={isLoading}
+              >
+                <MessageCircle className="h-4 w-4 mr-2" aria-hidden="true" />
+                Chat
+              </Button>
+            )}
+            {onMembers && (
+              <Button 
+                onClick={onMembers}
+                variant="outline"
+                className="min-h-[44px]"
+                aria-label={`View members of ${group.name}`}
+              >
+                <Users className="h-4 w-4" aria-hidden="true" />
+              </Button>
+            )}
+            {group.is_owner && onSettings && (
+              <Button 
+                onClick={onSettings}
+                variant="outline"
+                className="min-h-[44px]"
+                aria-label={`Settings for ${group.name}`}
+              >
+                <Settings className="h-4 w-4" aria-hidden="true" />
+              </Button>
+            )}
+          </div>
         )}
         
         {/* Action buttons */}
