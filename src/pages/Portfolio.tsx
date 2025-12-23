@@ -530,11 +530,15 @@ const Portfolio = () => {
       </div>
 
       {/* Modals - Lazy loaded */}
-      <ProfileEditModal 
-        open={editProfileOpen} 
-        onOpenChange={setEditProfileOpen}
-        onSuccess={refreshData}
-      />
+      {editProfileOpen && (
+        <ProfileEditModal 
+          open={editProfileOpen} 
+          onOpenChange={setEditProfileOpen}
+          profile={profile || {}}
+          userId={user.id}
+          onSuccess={refreshData}
+        />
+      )}
       
       <QuickProjectModal
         open={quickProjectOpen}
