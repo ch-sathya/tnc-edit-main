@@ -20,11 +20,8 @@ interface Project {
   image_url: string;
   status: string;
   user_id: string;
-  profiles: {
-    username: string;
-    display_name: string;
-    avatar_url: string;
-  };
+  creator_name?: string;
+  creator_avatar?: string;
 }
 
 const Projects = () => {
@@ -46,21 +43,34 @@ const Projects = () => {
   const fetchProjects = async () => {
     try {
       setLoading(true);
+      
+      // Fetch projects without the broken foreign key join
       const { data, error } = await supabase
-        .from('projects' as any)
-        .select(`
-          *,
-          profiles:user_id (
-            username,
-            display_name,
-            avatar_url
-          )
-        `)
+        .from('projects')
+        .select('*')
         .eq('status', 'published')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setProjects((data as any) || []);
+
+      // Fetch creator profiles for each project
+      const projectsWithCreators = await Promise.all(
+        (data || []).map(async (project: any) => {
+          const { data: creatorProfile } = await supabase
+            .from('profiles')
+            .select('display_name, username, avatar_url')
+            .eq('user_id', project.user_id)
+            .maybeSingle();
+
+          return {
+            ...project,
+            creator_name: creatorProfile?.display_name || creatorProfile?.username || 'Unknown',
+            creator_avatar: creatorProfile?.avatar_url
+          };
+        })
+      );
+
+      setProjects(projectsWithCreators as Project[]);
     } catch (error) {
       console.error('Error fetching projects:', error);
       toast({
@@ -193,11 +203,11 @@ const Projects = () => {
                       <CardDescription className="line-clamp-2">
                         {project.description}
                       </CardDescription>
-                      {project.profiles && (
+                      {project.creator_name && (
                         <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
                           <span>by</span>
                           <span className="font-medium">
-                            {project.profiles.display_name || project.profiles.username}
+                            {project.creator_name}
                           </span>
                         </div>
                       )}
