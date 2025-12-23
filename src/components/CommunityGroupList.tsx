@@ -272,97 +272,150 @@ const GroupCard: React.FC<GroupCardProps> = ({
   onDelete,
   onSelect,
   onMembers,
-  onSettings
+  onSettings,
 }) => {
-  const {
-    user
-  } = useAuth();
+  const { user } = useAuth();
+
   const renderActionButton = () => {
+    // Non-authenticated users see login prompt
     if (!user) {
-      return <Button variant="outline" disabled className="w-full min-h-[44px]" aria-label="Login required to join group">
+      return (
+        <Button variant="outline" disabled className="w-full min-h-[44px]" aria-label="Login required to join group">
           Login to Join
-        </Button>;
+        </Button>
+      );
     }
+
+    // Non-members see join button prominently
+    if (!group.is_member && !group.is_owner) {
+      return (
+        <Button onClick={onJoin} disabled={isLoading} className="w-full min-h-[44px] bg-primary hover:bg-primary/90" aria-label={`Join group ${group.name}`}>
+          <UserPlus className="h-4 w-4 mr-2" aria-hidden="true" />
+          Join Group
+        </Button>
+      );
+    }
+
+    // Owner actions
     if (group.is_owner) {
-      const memberCount = group.member_count || 0;
-      const willDeleteGroup = memberCount > 1;
-      return <div className="flex flex-col sm:flex-row gap-2 w-full">
-          <Button variant={willDeleteGroup ? "destructive" : "outline"} onClick={onLeave} disabled={isLoading} className="flex-1 min-h-[44px]" aria-label={willDeleteGroup ? `Leave group ${group.name} and delete it for all members` : `Leave group ${group.name}`}>
-            {willDeleteGroup ? <>
-                <AlertTriangle className="h-4 w-4 mr-2" aria-hidden="true" />
-                <span className="hidden sm:inline">Leave & Delete</span>
-                <span className="sm:hidden">Leave & Delete</span>
-              </> : <>
-                <UserMinus className="h-4 w-4 mr-2" aria-hidden="true" />
-                <span className="hidden sm:inline">Leave</span>
-                <span className="sm:hidden">Leave</span>
-              </>}
-          </Button>
-          <Button variant="destructive" onClick={onDelete} disabled={isLoading} className="min-h-[44px] min-w-[44px] sm:w-auto" aria-label={`Delete group ${group.name} permanently`}>
-            <Trash2 className="h-4 w-4" aria-hidden="true" />
-            <span className="ml-2 sm:hidden">Delete</span>
-          </Button>
-        </div>;
-    }
-    if (group.is_member) {
-      return <Button variant="outline" onClick={onLeave} disabled={isLoading} className="w-full min-h-[44px]" aria-label={`Leave group ${group.name}`}>
+      return (
+        <Button variant="outline" onClick={onLeave} disabled={isLoading} className="w-full min-h-[44px]" aria-label={`Leave group ${group.name}`}>
           <UserMinus className="h-4 w-4 mr-2" aria-hidden="true" />
           Leave Group
-        </Button>;
+        </Button>
+      );
     }
-    return <Button onClick={onJoin} disabled={isLoading} className="w-full min-h-[44px]" aria-label={`Join group ${group.name}`}>
-        <UserPlus className="h-4 w-4 mr-2" aria-hidden="true" />
-        Join Group
-      </Button>;
+
+    // Regular member actions
+    return (
+      <Button variant="outline" onClick={onLeave} disabled={isLoading} className="w-full min-h-[44px]" aria-label={`Leave group ${group.name}`}>
+        <UserMinus className="h-4 w-4 mr-2" aria-hidden="true" />
+        Leave Group
+      </Button>
+    );
   };
-  return <Card className="hover:shadow-md transition-shadow focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2" role="gridcell" aria-labelledby={`group-title-${group.id}`} aria-describedby={`group-description-${group.id} group-members-${group.id}`}>
+  return (
+    <Card
+      className="hover:shadow-md transition-shadow focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2"
+      role="gridcell"
+      aria-labelledby={`group-title-${group.id}`}
+      aria-describedby={`group-description-${group.id} group-members-${group.id}`}
+    >
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <CardTitle id={`group-title-${group.id}`} className="text-base sm:text-lg line-clamp-2 flex-1">
             {group.name}
           </CardTitle>
           <div className="flex flex-col sm:flex-row gap-1 flex-shrink-0">
-            {group.is_owner && <Badge variant="secondary" className="text-xs">
+            {group.is_owner && (
+              <Badge variant="secondary" className="text-xs">
                 <Crown className="h-3 w-3 mr-1" aria-hidden="true" />
                 Owner
-              </Badge>}
-            {group.is_member && !group.is_owner && <Badge variant="outline" className="text-xs">
+              </Badge>
+            )}
+            {group.is_member && !group.is_owner && (
+              <Badge variant="outline" className="text-xs">
                 Member
-              </Badge>}
+              </Badge>
+            )}
           </div>
         </div>
         <CardDescription id={`group-description-${group.id}`} className="line-clamp-3 text-sm">
           {group.description || 'No description provided'}
         </CardDescription>
       </CardHeader>
-      
+
       <CardContent className="pb-3">
-        <div id={`group-members-${group.id}`} className="flex items-center text-sm text-muted-foreground" aria-label={`${group.member_count || 0} members in this group`}>
+        <div
+          id={`group-members-${group.id}`}
+          className="flex items-center text-sm text-muted-foreground"
+          aria-label={`${group.member_count || 0} members in this group`}
+        >
           <Users className="h-4 w-4 mr-1" aria-hidden="true" />
           <span>
             {group.member_count || 0} {group.member_count === 1 ? 'member' : 'members'}
           </span>
         </div>
       </CardContent>
-      
+
       <CardFooter className="pt-0 flex flex-col gap-2">
-        {/* Chat and Members buttons for members */}
-        {group.is_member && <div className="flex gap-2 w-full">
-            {onSelect && <Button onClick={() => onSelect()} variant="outline" className="flex-1 min-h-[44px]" aria-label={`Open chat for group ${group.name}`} disabled={isLoading}>
+        {/* Member tools: Chat, Members, Settings (owner), Delete (owner) */}
+        {group.is_member && (
+          <div className="flex gap-2 w-full">
+            {onSelect && (
+              <Button
+                onClick={() => onSelect()}
+                variant="outline"
+                className="flex-1 min-h-[44px]"
+                aria-label={`Open chat for group ${group.name}`}
+                disabled={isLoading}
+              >
                 <MessageCircle className="h-4 w-4 mr-2" aria-hidden="true" />
                 Chat
-              </Button>}
-            {onMembers && <Button onClick={onMembers} variant="outline" className="min-h-[44px]" aria-label={`View members of ${group.name}`}>
+              </Button>
+            )}
+            {onMembers && (
+              <Button
+                onClick={onMembers}
+                variant="outline"
+                className="min-h-[44px]"
+                aria-label={`View and manage members of ${group.name}`}
+                title="Manage Members"
+              >
                 <Users className="h-4 w-4" aria-hidden="true" />
-              </Button>}
-            {group.is_owner && onSettings && <Button onClick={onSettings} variant="outline" className="min-h-[44px]" aria-label={`Settings for ${group.name}`}>
+              </Button>
+            )}
+            {group.is_owner && onSettings && (
+              <Button
+                onClick={onSettings}
+                variant="outline"
+                className="min-h-[44px]"
+                aria-label={`Settings for ${group.name}`}
+                title="Group Settings"
+              >
                 <Settings className="h-4 w-4" aria-hidden="true" />
-              </Button>}
-          </div>}
-        
+              </Button>
+            )}
+            {group.is_owner && (
+              <Button
+                onClick={onDelete}
+                variant="destructive"
+                className="min-h-[44px]"
+                aria-label={`Delete group ${group.name}`}
+                title="Delete Group"
+                disabled={isLoading}
+              >
+                <Trash2 className="h-4 w-4" aria-hidden="true" />
+              </Button>
+            )}
+          </div>
+        )}
+
         {/* Action buttons */}
         {renderActionButton()}
       </CardFooter>
-    </Card>;
+    </Card>
+  );
 };
+
 export default CommunityGroupList;
