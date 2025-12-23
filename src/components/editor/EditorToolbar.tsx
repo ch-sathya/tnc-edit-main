@@ -7,23 +7,30 @@ import {
   Terminal, 
   Play, 
   Settings,
-  Loader2
+  Loader2,
+  Users
 } from 'lucide-react';
 
 interface EditorToolbarProps {
   project: { id: string; title: string } | null;
   saving: boolean;
+  isExecuting?: boolean;
   onSave: () => void;
+  onRun: () => void;
   onToggleTerminal: () => void;
   showTerminal: boolean;
+  onOpenCollab?: () => void;
 }
 
 export const EditorToolbar = ({ 
   project, 
-  saving, 
-  onSave, 
+  saving,
+  isExecuting = false,
+  onSave,
+  onRun,
   onToggleTerminal,
-  showTerminal 
+  showTerminal,
+  onOpenCollab
 }: EditorToolbarProps) => {
   const navigate = useNavigate();
 
@@ -65,6 +72,21 @@ export const EditorToolbar = ({
         </Button>
 
         <Button
+          variant="default"
+          size="sm"
+          onClick={onRun}
+          disabled={isExecuting}
+          className="gap-2"
+        >
+          {isExecuting ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Play className="h-4 w-4" />
+          )}
+          <span className="hidden sm:inline">{isExecuting ? 'Running...' : 'Run'}</span>
+        </Button>
+
+        <Button
           variant={showTerminal ? "secondary" : "ghost"}
           size="sm"
           onClick={onToggleTerminal}
@@ -75,10 +97,17 @@ export const EditorToolbar = ({
           <kbd className="hidden md:inline-block text-xs bg-muted px-1 rounded">⌘`</kbd>
         </Button>
 
-        <Button variant="ghost" size="sm" className="gap-2">
-          <Play className="h-4 w-4" />
-          <span className="hidden sm:inline">Run</span>
-        </Button>
+        {onOpenCollab && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onOpenCollab}
+            className="gap-2"
+          >
+            <Users className="h-4 w-4" />
+            <span className="hidden sm:inline">Collaborate</span>
+          </Button>
+        )}
 
         <Button variant="ghost" size="icon">
           <Settings className="h-4 w-4" />
