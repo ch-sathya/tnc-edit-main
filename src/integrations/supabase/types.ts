@@ -873,6 +873,14 @@ export type Database = {
           change_version: number
         }[]
       }
+      get_user_group_role: {
+        Args: { _group_id: string; _user_id: string }
+        Returns: string
+      }
+      has_group_role: {
+        Args: { _group_id: string; _roles: string[]; _user_id: string }
+        Returns: boolean
+      }
       is_room_participant_safe: {
         Args: { check_room_id: string; check_user_id: string }
         Returns: boolean
