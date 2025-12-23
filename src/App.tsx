@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Home from "./pages/Home";
 import Portfolio from "./pages/Portfolio";
 import Projects from "./pages/Projects";
+import ProjectDetail from "./pages/ProjectDetail";
 import Editor from "./pages/Editor";
 import Collaborate from "./pages/Collaborate";
 import CollaborationRoom from "./pages/CollaborationRoom";
@@ -47,6 +48,7 @@ const AnimatedRoutes = () => {
         <Route path="/portfolio" element={<Portfolio />} />
         <Route path="/@:username" element={<Portfolio />} />
         <Route path="/projects" element={<Projects />} />
+        <Route path="/projects/:projectId" element={<ProjectDetail />} />
         <Route path="/editor/:projectId" element={<Editor />} />
         <Route path="/collaborate" element={<Collaborate />} />
         <Route path="/collaborate/join" element={<JoinRoom />} />
