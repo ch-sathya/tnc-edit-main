@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Play, Square, Trash2, ExternalLink, AlertCircle, CheckCircle } from 'lucide-react';
+import { Play, Square, Trash2, ExternalLink, AlertCircle, CheckCircle, ShieldAlert } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface CodeCompilerProps {
   code: string;
@@ -17,6 +18,117 @@ export const CodeCompiler: React.FC<CodeCompilerProps> = ({ code, language }) =>
   const [output, setOutput] = useState<string>('');
   const [errors, setErrors] = useState<string>('');
   const [executionTime, setExecutionTime] = useState<number>(0);
+  const sandboxRef = useRef<HTMLIFrameElement | null>(null);
+
+  // Create sandboxed iframe for code execution
+  useEffect(() => {
+    // Cleanup on unmount
+    return () => {
+      if (sandboxRef.current) {
+        sandboxRef.current.remove();
+      }
+    };
+  }, []);
+
+  const executeCodeInSandbox = (codeToRun: string): Promise<{ output: string; error: string | null }> => {
+    return new Promise((resolve) => {
+      // Create a sandboxed iframe that cannot access parent context
+      const iframe = document.createElement('iframe');
+      iframe.setAttribute('sandbox', 'allow-scripts');
+      iframe.style.display = 'none';
+      document.body.appendChild(iframe);
+      sandboxRef.current = iframe;
+
+      // Set up message handler for sandbox communication
+      const messageHandler = (event: MessageEvent) => {
+        if (event.source === iframe.contentWindow) {
+          window.removeEventListener('message', messageHandler);
+          iframe.remove();
+          resolve(event.data);
+        }
+      };
+      window.addEventListener('message', messageHandler);
+
+      // Timeout after 5 seconds
+      const timeout = setTimeout(() => {
+        window.removeEventListener('message', messageHandler);
+        iframe.remove();
+        resolve({ output: '', error: 'Execution timed out (5 second limit)' });
+      }, 5000);
+
+      // Inject code into sandbox with console capture
+      const sandboxCode = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <script>
+            (function() {
+              const logs = [];
+              const errors = [];
+              
+              // Override console
+              const originalConsole = console;
+              console = {
+                log: function(...args) {
+                  logs.push(args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)).join(' '));
+                },
+                error: function(...args) {
+                  errors.push(args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)).join(' '));
+                },
+                warn: console.warn,
+                info: console.info
+              };
+
+              // Block dangerous APIs
+              window.fetch = undefined;
+              window.XMLHttpRequest = undefined;
+              window.localStorage = undefined;
+              window.sessionStorage = undefined;
+              window.indexedDB = undefined;
+              window.open = undefined;
+              window.parent = undefined;
+              window.top = undefined;
+              window.opener = undefined;
+              document.cookie = '';
+
+              try {
+                const result = (function() {
+                  ${codeToRun}
+                })();
+                
+                let output = logs.join('\\n');
+                if (!output && result !== undefined) {
+                  output = typeof result === 'object' ? JSON.stringify(result, null, 2) : String(result);
+                }
+                if (!output) {
+                  output = 'Code executed successfully (no output)';
+                }
+                
+                parent.postMessage({ 
+                  output: output, 
+                  error: errors.length > 0 ? errors.join('\\n') : null 
+                }, '*');
+              } catch (e) {
+                parent.postMessage({ 
+                  output: '', 
+                  error: e.message || 'Unknown error' 
+                }, '*');
+              }
+            })();
+          </script>
+        </head>
+        <body></body>
+        </html>
+      `;
+
+      iframe.srcdoc = sandboxCode;
+
+      // Clear timeout when resolved
+      iframe.onload = () => {
+        // Timeout is already set, just clear it when we get a response
+      };
+    });
+  };
 
   const executeCode = async () => {
     if (!code.trim()) {
@@ -40,49 +152,11 @@ export const CodeCompiler: React.FC<CodeCompilerProps> = ({ code, language }) =>
       switch (language) {
         case 'javascript':
         case 'typescript':
-          try {
-            // Create a safe execution environment
-            const originalLog = console.log;
-            const originalError = console.error;
-            const logs: string[] = [];
-            const errorLogs: string[] = [];
-
-            // Override console methods to capture output
-            console.log = (...args) => {
-              logs.push(args.map(arg => 
-                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
-              ).join(' '));
-            };
-            console.error = (...args) => {
-              errorLogs.push(args.map(arg => 
-                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
-              ).join(' '));
-            };
-
-            // Execute the code
-            const func = new Function(code);
-            const execResult = func();
-            
-            // Restore console methods
-            console.log = originalLog;
-            console.error = originalError;
-
-            if (logs.length > 0) {
-              result = logs.join('\n');
-            } else if (execResult !== undefined) {
-              result = typeof execResult === 'object' 
-                ? JSON.stringify(execResult, null, 2) 
-                : String(execResult);
-            } else {
-              result = 'Code executed successfully (no output)';
-            }
-
-            if (errorLogs.length > 0) {
-              setErrors(errorLogs.join('\n'));
-              hasErrors = true;
-            }
-          } catch (error) {
-            setErrors((error as Error).message);
+          // Execute in sandboxed iframe
+          const sandboxResult = await executeCodeInSandbox(code);
+          result = sandboxResult.output;
+          if (sandboxResult.error) {
+            setErrors(sandboxResult.error);
             hasErrors = true;
           }
           break;
@@ -212,6 +286,14 @@ export const CodeCompiler: React.FC<CodeCompilerProps> = ({ code, language }) =>
         </div>
       </CardHeader>
       <CardContent>
+        <Alert variant="default" className="mb-4 border-yellow-500/50 bg-yellow-500/10">
+          <ShieldAlert className="h-4 w-4 text-yellow-500" />
+          <AlertTitle className="text-yellow-500">Sandboxed Execution</AlertTitle>
+          <AlertDescription className="text-muted-foreground">
+            Code runs in an isolated sandbox with limited access. Network requests, storage, and DOM access are blocked for security.
+          </AlertDescription>
+        </Alert>
+
         <Tabs defaultValue="output" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="output" className="flex items-center gap-2">
