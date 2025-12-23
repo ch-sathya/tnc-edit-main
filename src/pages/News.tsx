@@ -15,10 +15,8 @@ const News = () => {
           
           
           <header className="mb-6 sm:mb-8">
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">News</h1>
-            <p className="text-muted-foreground mt-2 text-sm sm:text-base">
-              Stay updated with the latest in technology and software development
-            </p>
+            
+            
           </header>
           
           {/* News feed component */}

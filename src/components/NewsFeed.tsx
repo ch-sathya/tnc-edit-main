@@ -89,7 +89,7 @@ export const NewsFeed: React.FC<NewsFeedProps> = ({
       {/* Header with refresh button */}
       {showRefreshButton && <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
           <div className="flex-1">
-            <h2 id="news-feed-heading" className="text-xl sm:text-2xl font-bold text-foreground">
+            <h2 id="news-feed-heading" className="text-xl font-bold text-foreground sm:text-4xl">
               {category ? `${category.charAt(0).toUpperCase() + category.slice(1)} News` : 'Latest News'}
             </h2>
             
