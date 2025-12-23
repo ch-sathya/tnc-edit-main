@@ -183,71 +183,55 @@ export const fetchCommunityGroup = async (groupId: string, userId?: string): Pro
 };
 
 /**
- * Create a new community group and automatically add the creator as a member
+ * Create a new community group.
+ *
+ * Note: The database has triggers that automatically add the creator as a member.
  */
 export const createCommunityGroup = async (
-  groupData: CreateGroupRequest, 
+  groupData: CreateGroupRequest,
   userId: string
 ): Promise<CommunityGroup> => {
   try {
     // Ensure user profile exists
     await ensureUserProfile(userId);
-    
-    // Start a transaction-like operation
+
     const { data: group, error: groupError } = await supabase
       .from('community_groups')
       .insert({
         name: groupData.name.trim(),
         description: groupData.description.trim(),
-        created_by: userId
+        created_by: userId,
       })
       .select()
       .single();
 
     if (groupError) {
-      if (groupError.code === '23505') { // Unique constraint violation
+      if (groupError.code === '23505') {
         throw new CommunityGroupErrorClass({
           message: 'A group with this name already exists',
-          code: 'DUPLICATE_GROUP_NAME'
+          code: 'DUPLICATE_GROUP_NAME',
         });
       }
       throw new CommunityGroupErrorClass({
         message: 'Failed to create community group',
         code: 'CREATE_GROUP_ERROR',
-        details: groupError
+        details: groupError,
       });
     }
 
     if (!group) {
       throw new CommunityGroupErrorClass({
         message: 'Group creation failed - no data returned',
-        code: 'CREATE_GROUP_NO_DATA'
+        code: 'CREATE_GROUP_NO_DATA',
       });
     }
 
-    // Add the creator as the first member
-    const { error: membershipError } = await supabase
-      .from('group_memberships')
-      .insert({
-        group_id: group.id,
-        user_id: userId
-      });
-
-    if (membershipError) {
-      // If membership creation fails, we should clean up the group
-      await supabase.from('community_groups').delete().eq('id', group.id);
-      throw new CommunityGroupErrorClass({
-        message: 'Failed to add creator as group member',
-        code: 'CREATE_MEMBERSHIP_ERROR',
-        details: membershipError
-      });
-    }
-
+    // Creator membership is added by DB trigger (auto_add_group_creator_trigger).
     return {
       ...group,
       member_count: 1,
       is_member: true,
-      is_owner: true
+      is_owner: true,
     };
   } catch (error) {
     if (error instanceof CommunityGroupErrorClass) {
@@ -255,7 +239,7 @@ export const createCommunityGroup = async (
     }
     throw new CommunityGroupErrorClass({
       message: 'An unexpected error occurred while creating the group',
-      details: error
+      details: error,
     });
   }
 };
