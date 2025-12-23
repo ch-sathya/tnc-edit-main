@@ -5,12 +5,13 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useRealtimeCursors } from '@/hooks/useRealtimeCursors';
 import { executeCode } from '@/lib/codeExecution';
+import { RoomChat } from '@/components/RoomChat';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { 
   ResizableHandle, 
   ResizablePanel, 
@@ -31,21 +32,23 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Label } from '@/components/ui/label';
 import Editor, { OnMount } from '@monaco-editor/react';
 import type * as Monaco from 'monaco-editor';
 import {
   FolderOpen, 
   FileCode, 
   FilePlus, 
-  FolderPlus, 
   ChevronRight, 
   ChevronDown,
   X,
@@ -56,18 +59,16 @@ import {
   ArrowLeft,
   MoreVertical,
   Trash2,
-  Edit,
-  Download,
-  Upload,
   Search,
   Terminal,
-  SplitSquareHorizontal,
-  Maximize2,
-  Minimize2,
   Circle,
   FileJson,
   FileText,
-  File as FileIcon
+  File as FileIcon,
+  MessageSquare,
+  UserCog,
+  Copy,
+  Check
 } from 'lucide-react';
 
 interface RoomFile {
@@ -86,6 +87,7 @@ interface Participant {
   id: string;
   user_id: string;
   role: string;
+  status?: 'online' | 'away' | 'offline';
   profile?: {
     username: string;
     display_name: string;
@@ -174,12 +176,18 @@ const CollaborationRoom = () => {
   const [isParticipant, setIsParticipant] = useState(false);
   const [showNewFileDialog, setShowNewFileDialog] = useState(false);
   const [newFileName, setNewFileName] = useState('');
-  const [newFileLanguage, setNewFileLanguage] = useState('javascript');
   const [showSidebar, setShowSidebar] = useState(true);
   const [showTerminal, setShowTerminal] = useState(false);
   const [terminalOutput, setTerminalOutput] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
+  
+  // Chat & presence state
+  const [showChat, setShowChat] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
+  const [copiedRoomId, setCopiedRoomId] = useState(false);
+  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
 
   // Editor refs
   const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
@@ -335,7 +343,77 @@ const CollaborationRoom = () => {
     };
 
     fetchRoom();
-  }, [roomId, user, toast]);
+
+    // Set up real-time presence tracking
+    if (user && roomId) {
+      const presenceChannel = supabase.channel(`room-presence-${roomId}`);
+      
+      presenceChannel
+        .on('presence', { event: 'sync' }, () => {
+          const presenceState = presenceChannel.presenceState();
+          const currentOnline = new Set<string>();
+          Object.values(presenceState).forEach((presence: any) => {
+            presence.forEach((p: any) => {
+              if (p.user_id) currentOnline.add(p.user_id);
+            });
+          });
+          setOnlineUsers(currentOnline);
+        })
+        .subscribe(async (status) => {
+          if (status === 'SUBSCRIBED') {
+            await presenceChannel.track({
+              user_id: user.id,
+              user_name: userName,
+              online_at: new Date().toISOString(),
+            });
+          }
+        });
+
+      return () => {
+        supabase.removeChannel(presenceChannel);
+      };
+    }
+  }, [roomId, user, toast, userName]);
+
+  // Delete room function
+  const handleDeleteRoom = useCallback(async () => {
+    if (!roomId || !room) return;
+
+    try {
+      // Delete participants
+      await supabase.from('room_participants').delete().eq('room_id', roomId);
+      // Delete files
+      await supabase.from('collaboration_files').delete().eq('room_id', roomId);
+      // Delete code
+      await supabase.from('collaboration_code').delete().eq('room_id', roomId);
+      // Delete messages
+      await supabase.from('room_messages').delete().eq('room_id', roomId);
+      // Delete invitations
+      await supabase.from('room_invitations').delete().eq('room_id', roomId);
+      // Delete room
+      const { error } = await supabase.from('collaboration_rooms').delete().eq('id', roomId);
+
+      if (error) throw error;
+
+      toast({ title: "Success", description: "Room deleted successfully" });
+      navigate('/collaborate');
+    } catch (error) {
+      console.error('Error deleting room:', error);
+      toast({ title: "Error", description: "Failed to delete room", variant: "destructive" });
+    }
+  }, [roomId, room, navigate, toast]);
+
+  // Copy room ID
+  const handleCopyRoomId = useCallback(() => {
+    if (!roomId) return;
+    navigator.clipboard.writeText(`${window.location.origin}/collaborate/${roomId}`);
+    setCopiedRoomId(true);
+    setTimeout(() => setCopiedRoomId(false), 2000);
+    toast({ title: "Copied!", description: "Room link copied to clipboard" });
+  }, [roomId, toast]);
+
+  // Check if current user is owner
+  const isOwner = room?.created_by === user?.id;
 
   // Handle file selection
   const handleFileSelect = useCallback((file: RoomFile) => {
@@ -602,27 +680,57 @@ const CollaborationRoom = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Participants */}
-          <div className="flex items-center gap-1 mr-2">
-            <Users className="h-4 w-4 text-gray-400" />
-            <span className="text-sm text-gray-400">{participants.length}</span>
-            <div className="flex -space-x-2 ml-2">
-              {participants.slice(0, 3).map((p, i) => (
-                <div
-                  key={p.id}
-                  className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-xs font-bold border-2 border-[#323233]"
-                  title={(p.profile as any)?.display_name || 'User'}
-                >
-                  {((p.profile as any)?.display_name || 'U')[0].toUpperCase()}
-                </div>
-              ))}
-              {participants.length > 3 && (
-                <div className="w-6 h-6 rounded-full bg-[#464647] flex items-center justify-center text-xs border-2 border-[#323233]">
-                  +{participants.length - 3}
-                </div>
-              )}
+          {/* Participants with presence indicators */}
+          <TooltipProvider>
+            <div className="flex items-center gap-1 mr-2">
+              <Users className="h-4 w-4 text-gray-400" />
+              <span className="text-sm text-gray-400">{participants.length}</span>
+              <div className="flex -space-x-2 ml-2">
+                {participants.slice(0, 5).map((p) => {
+                  const isOnline = onlineUsers.has(p.user_id);
+                  const displayName = (p.profile as any)?.display_name || (p.profile as any)?.username || 'User';
+                  const statusColor = isOnline ? 'bg-green-500' : 'bg-gray-500';
+                  
+                  return (
+                    <Tooltip key={p.id}>
+                      <TooltipTrigger asChild>
+                        <div className="relative">
+                          <div
+                            className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-xs font-bold border-2 border-[#323233] cursor-pointer"
+                          >
+                            {displayName[0].toUpperCase()}
+                          </div>
+                          {/* Status dot */}
+                          <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ${statusColor} border-2 border-[#323233]`} />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="bg-[#252526] border-[#3c3c3c] text-white">
+                        <p className="font-medium">{displayName}</p>
+                        <p className="text-xs text-gray-400">{p.role} • {isOnline ? 'Online' : 'Offline'}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  );
+                })}
+                {participants.length > 5 && (
+                  <div className="w-7 h-7 rounded-full bg-[#464647] flex items-center justify-center text-xs border-2 border-[#323233]">
+                    +{participants.length - 5}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          </TooltipProvider>
+
+          <div className="h-4 w-px bg-[#3c3c3c]" />
+
+          {/* Chat button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowChat(prev => !prev)}
+            className={`text-gray-300 hover:text-white hover:bg-[#464647] ${showChat ? 'bg-[#464647]' : ''}`}
+          >
+            <MessageSquare className="h-4 w-4" />
+          </Button>
 
           <Button
             variant="ghost"
@@ -658,6 +766,47 @@ const CollaborationRoom = () => {
           >
             <Terminal className="h-4 w-4" />
           </Button>
+
+          {/* Room settings dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-gray-300 hover:text-white hover:bg-[#464647]"
+              >
+                <Settings className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-[#252526] border-[#3c3c3c]">
+              <DropdownMenuItem
+                className="text-gray-300 hover:bg-[#094771] hover:text-white focus:bg-[#094771] focus:text-white"
+                onClick={handleCopyRoomId}
+              >
+                {copiedRoomId ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
+                Copy Room Link
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="text-gray-300 hover:bg-[#094771] hover:text-white focus:bg-[#094771] focus:text-white"
+                onClick={() => setShowSettingsDialog(true)}
+              >
+                <UserCog className="h-4 w-4 mr-2" />
+                Room Info
+              </DropdownMenuItem>
+              {isOwner && (
+                <>
+                  <DropdownMenuSeparator className="bg-[#3c3c3c]" />
+                  <DropdownMenuItem
+                    className="text-red-400 hover:bg-red-900/30 hover:text-red-300 focus:bg-red-900/30 focus:text-red-300"
+                    onClick={() => setShowDeleteDialog(true)}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Room
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
@@ -870,6 +1019,20 @@ const CollaborationRoom = () => {
               )}
             </ResizablePanelGroup>
           </ResizablePanel>
+
+          {/* Chat Panel */}
+          {showChat && (
+            <>
+              <ResizableHandle className="w-1 bg-[#3c3c3c] hover:bg-[#094771] transition-colors" />
+              <ResizablePanel defaultSize={25} minSize={20} maxSize={40}>
+                <RoomChat 
+                  roomId={roomId || ''} 
+                  isOpen={showChat} 
+                  onClose={() => setShowChat(false)} 
+                />
+              </ResizablePanel>
+            </>
+          )}
         </ResizablePanelGroup>
       </div>
 
@@ -980,6 +1143,83 @@ const CollaborationRoom = () => {
               ))
             }
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Room Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent className="bg-[#252526] border-[#3c3c3c]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">Delete Room</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-400">
+              Are you sure you want to delete "{room?.name}"? This will permanently remove the room, all files, messages, and participants. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-[#3c3c3c] text-gray-300 hover:bg-[#37373d]">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteRoom}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Delete Room
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Room Settings Dialog */}
+      <Dialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog}>
+        <DialogContent className="bg-[#252526] border-[#3c3c3c]">
+          <DialogHeader>
+            <DialogTitle className="text-white">Room Information</DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Details about this collaboration room
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-gray-400 text-xs">Room Name</Label>
+                <p className="text-white font-medium">{room?.name}</p>
+              </div>
+              <div>
+                <Label className="text-gray-400 text-xs">Visibility</Label>
+                <p className="text-white font-medium">{room?.is_private ? 'Private' : 'Public'}</p>
+              </div>
+              <div>
+                <Label className="text-gray-400 text-xs">Your Role</Label>
+                <p className="text-white font-medium capitalize">{isOwner ? 'Owner' : 'Member'}</p>
+              </div>
+              <div>
+                <Label className="text-gray-400 text-xs">Participants</Label>
+                <p className="text-white font-medium">{participants.length}</p>
+              </div>
+            </div>
+            {room?.description && (
+              <div>
+                <Label className="text-gray-400 text-xs">Description</Label>
+                <p className="text-white">{room.description}</p>
+              </div>
+            )}
+            <div>
+              <Label className="text-gray-400 text-xs">Share Link</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <Input 
+                  value={`${window.location.origin}/collaborate/${roomId}`}
+                  readOnly
+                  className="bg-[#3c3c3c] border-[#3c3c3c] text-white text-sm"
+                />
+                <Button size="sm" onClick={handleCopyRoomId} variant="outline" className="border-[#3c3c3c]">
+                  {copiedRoomId ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setShowSettingsDialog(false)}>Close</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
