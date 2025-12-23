@@ -2,7 +2,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
 import Index from "./pages/Index";
 import Home from "./pages/Home";
 import Portfolio from "./pages/Portfolio";
@@ -23,32 +24,54 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+// Animated routes wrapper
+const AnimatedRoutes = () => {
+  const location = useLocation();
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  useEffect(() => {
+    setIsAnimating(true);
+    const timeout = setTimeout(() => setIsAnimating(false), 10);
+    return () => clearTimeout(timeout);
+  }, [location.pathname]);
+
+  return (
+    <div 
+      className={`min-h-screen transition-opacity duration-200 ease-out ${
+        isAnimating ? 'opacity-0' : 'opacity-100'
+      }`}
+    >
+      <Routes location={location}>
+        <Route path="/" element={<Index />} />
+        <Route path="/home" element={<Home />} />
+        <Route path="/portfolio" element={<Portfolio />} />
+        <Route path="/@:username" element={<Portfolio />} />
+        <Route path="/projects" element={<Projects />} />
+        <Route path="/editor/:projectId" element={<Editor />} />
+        <Route path="/collaborate" element={<Collaborate />} />
+        <Route path="/collaborate/join" element={<JoinRoom />} />
+        <Route path="/collaborate/:roomId" element={<CollaborationRoom />} />
+        <Route path="/community" element={<Community />} />
+        <Route path="/news" element={<News />} />
+        <Route path="/news/:id" element={<NewsArticle />} />
+        <Route path="/auth" element={<Auth />} />
+        <Route path="/setup-username" element={<UsernameSetup />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/pricing" element={<Pricing />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </div>
+  );
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/home" element={<Home />} />
-          <Route path="/portfolio" element={<Portfolio />} />
-          <Route path="/@:username" element={<Portfolio />} />
-          <Route path="/projects" element={<Projects />} />
-          <Route path="/editor/:projectId" element={<Editor />} />
-          <Route path="/collaborate" element={<Collaborate />} />
-          <Route path="/collaborate/join" element={<JoinRoom />} />
-          <Route path="/collaborate/:roomId" element={<CollaborationRoom />} />
-          <Route path="/community" element={<Community />} />
-          <Route path="/news" element={<News />} />
-          <Route path="/news/:id" element={<NewsArticle />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/setup-username" element={<UsernameSetup />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/pricing" element={<Pricing />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AnimatedRoutes />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
