@@ -3,38 +3,31 @@ import Navigation from '@/components/Navigation';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Home, Users, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Breadcrumb,
-  BreadcrumbList,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbSeparator,
-  BreadcrumbPage,
-} from '@/components/ui/breadcrumb';
+import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator, BreadcrumbPage } from '@/components/ui/breadcrumb';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import CommunityGroupList from '@/components/CommunityGroupList';
 import CreateGroupModal from '@/components/CreateGroupModal';
 import GroupChat from '@/components/GroupChat';
 import CommunityErrorBoundary from '@/components/CommunityErrorBoundary';
-
 import { useCommunityGroup } from '@/hooks/useCommunityGroups';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-
 const Community = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const {
+    user
+  } = useAuth();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'chat' | 'collaborate' | 'rooms'>('chat');
 
   // Fetch selected group data for breadcrumb
-  const { data: selectedGroup } = useCommunityGroup(selectedGroupId || '');
-
+  const {
+    data: selectedGroup
+  } = useCommunityGroup(selectedGroupId || '');
   const handleCreateGroup = () => {
     setShowCreateModal(true);
   };
-
   const handleGroupSelect = (groupId: string) => {
     // Verify user is authenticated before allowing chat access
     if (!user) {
@@ -43,7 +36,6 @@ const Community = () => {
     }
     setSelectedGroupId(groupId);
   };
-
   const handleBackToGroups = () => {
     setSelectedGroupId(null);
     setActiveTab('chat');
@@ -54,8 +46,7 @@ const Community = () => {
 
   // If a group is selected, show the group interface with tabs
   if (selectedGroupId) {
-    return (
-      <>
+    return <>
         <Navigation />
         <CommunityErrorBoundary feature="chat">
           <div className="min-h-screen bg-background p-3 sm:p-6">
@@ -65,38 +56,24 @@ const Community = () => {
               <Breadcrumb>
                 <BreadcrumbList>
                   <BreadcrumbItem>
-                    <BreadcrumbLink 
-                      onClick={() => navigate('/')}
-                      className="flex items-center gap-1 cursor-pointer hover:text-foreground"
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          navigate('/');
-                        }
-                      }}
-                      aria-label="Go to home page"
-                    >
+                    <BreadcrumbLink onClick={() => navigate('/')} className="flex items-center gap-1 cursor-pointer hover:text-foreground" role="button" tabIndex={0} onKeyDown={e => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        navigate('/');
+                      }
+                    }} aria-label="Go to home page">
                       <Home className="h-4 w-4" />
                       Home
                     </BreadcrumbLink>
                   </BreadcrumbItem>
                   <BreadcrumbSeparator />
                   <BreadcrumbItem>
-                    <BreadcrumbLink 
-                      onClick={handleBackToGroups}
-                      className="flex items-center gap-1 cursor-pointer hover:text-foreground"
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          handleBackToGroups();
-                        }
-                      }}
-                      aria-label="Go back to community groups"
-                    >
+                    <BreadcrumbLink onClick={handleBackToGroups} className="flex items-center gap-1 cursor-pointer hover:text-foreground" role="button" tabIndex={0} onKeyDown={e => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleBackToGroups();
+                      }
+                    }} aria-label="Go back to community groups">
                       <Users className="h-4 w-4" />
                       Community
                     </BreadcrumbLink>
@@ -116,30 +93,20 @@ const Community = () => {
             <div className="flex-1">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-bold">Group Chat</h2>
-                <Button 
-                  variant="outline" 
-                  onClick={handleBackToGroups}
-                  className="flex items-center gap-2"
-                >
+                <Button variant="outline" onClick={handleBackToGroups} className="flex items-center gap-2">
                   <ArrowLeft className="h-4 w-4" />
                   Back to Groups
                 </Button>
               </div>
 
-              <GroupChat 
-                groupId={selectedGroupId} 
-                onBack={handleBackToGroups}
-              />
+              <GroupChat groupId={selectedGroupId} onBack={handleBackToGroups} />
             </div>
           </div>
         </div>
         </CommunityErrorBoundary>
-      </>
-    );
+      </>;
   }
-
-  return (
-    <>
+  return <>
       <Navigation />
       <CommunityErrorBoundary feature="groups">
         <main className="min-h-screen bg-background p-3 sm:p-6" role="main">
@@ -147,33 +114,7 @@ const Community = () => {
           {/* Breadcrumb Navigation */}
           <nav className="mb-6" role="navigation" aria-label="Breadcrumb navigation">
             <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbLink 
-                    onClick={() => navigate('/')}
-                    className="flex items-center gap-1 cursor-pointer hover:text-foreground"
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        navigate('/');
-                      }
-                    }}
-                    aria-label="Go to home page"
-                  >
-                    <Home className="h-4 w-4" />
-                    Home
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbPage className="flex items-center gap-1">
-                    <Users className="h-4 w-4" />
-                    Community
-                  </BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
+              
             </Breadcrumb>
           </nav>
 
@@ -185,20 +126,12 @@ const Community = () => {
             </p>
           </header>
           
-          <CommunityGroupList 
-            onCreateGroup={handleCreateGroup}
-            onGroupSelect={handleGroupSelect}
-          />
+          <CommunityGroupList onCreateGroup={handleCreateGroup} onGroupSelect={handleGroupSelect} />
           
-          <CreateGroupModal 
-            open={showCreateModal} 
-            onOpenChange={setShowCreateModal} 
-          />
+          <CreateGroupModal open={showCreateModal} onOpenChange={setShowCreateModal} />
         </div>
       </main>
       </CommunityErrorBoundary>
-    </>
-  );
+    </>;
 };
-
 export default Community;
