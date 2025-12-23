@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useRealtimeCursors } from '@/hooks/useRealtimeCursors';
+import { executeCode } from '@/lib/codeExecution';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -489,7 +490,7 @@ const CollaborationRoom = () => {
   }, [activeFile, toast]);
 
   // Run code
-  const handleRunCode = useCallback(() => {
+  const handleRunCode = useCallback(async () => {
     if (!activeFile) return;
 
     setShowTerminal(true);
@@ -499,27 +500,29 @@ const CollaborationRoom = () => {
       ''
     ]);
 
-    // Simulate code execution
     try {
-      if (activeFile.language === 'javascript') {
-        // For demonstration, we just show the code would run
+      const result = await executeCode(activeFile.content, activeFile.language);
+      
+      if (result.success) {
         setTerminalOutput(prev => [
           ...prev,
-          '✓ Code executed successfully',
-          `Output: ${activeFile.content.includes('console.log') ? 'Check browser console for output' : 'No console output'}`,
+          `✓ Executed successfully (${result.executionTime}ms)`,
+          '',
+          result.output,
           ''
         ]);
       } else {
         setTerminalOutput(prev => [
           ...prev,
-          `Note: ${activeFile.language} execution requires a backend runtime`,
+          `✗ Execution failed (${result.executionTime}ms)`,
+          `Error: ${result.error}`,
           ''
         ]);
       }
     } catch (error) {
       setTerminalOutput(prev => [
         ...prev,
-        `Error: ${error}`,
+        `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
         ''
       ]);
     }

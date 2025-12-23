@@ -10,6 +10,7 @@ import { EditorTerminal } from '@/components/editor/EditorTerminal';
 import { EditorToolbar } from '@/components/editor/EditorToolbar';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
+import { executeCode } from '@/lib/codeExecution';
 
 export interface ProjectFile {
   id: string;
@@ -48,6 +49,7 @@ const Editor = () => {
   const [showTerminal, setShowTerminal] = useState(false);
   const [terminalOutput, setTerminalOutput] = useState<string[]>(['Welcome to the terminal. Type "help" for commands.']);
   const [sidebarWidth, setSidebarWidth] = useState(250);
+  const [isExecuting, setIsExecuting] = useState(false);
   
   // Auto-save ref
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -322,12 +324,54 @@ const Editor = () => {
     }
   }, [files, activeFile, toast]);
 
+  // Run code execution
+  const runCode = useCallback(async () => {
+    if (!activeFile) {
+      setTerminalOutput(prev => [...prev, '> No file selected to run']);
+      return;
+    }
+
+    setIsExecuting(true);
+    setShowTerminal(true);
+    setTerminalOutput(prev => [...prev, `$ run ${activeFile.name}`, `> Executing ${activeFile.language} code...`]);
+
+    try {
+      const result = await executeCode(activeFile.content, activeFile.language);
+      
+      if (result.success) {
+        setTerminalOutput(prev => [
+          ...prev,
+          `> Execution completed in ${result.executionTime}ms`,
+          '',
+          result.output,
+          ''
+        ]);
+      } else {
+        setTerminalOutput(prev => [
+          ...prev,
+          `> Execution failed (${result.executionTime}ms)`,
+          `> Error: ${result.error}`,
+          ''
+        ]);
+      }
+    } catch (error) {
+      setTerminalOutput(prev => [
+        ...prev,
+        `> Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        ''
+      ]);
+    } finally {
+      setIsExecuting(false);
+    }
+  }, [activeFile]);
+
   // Terminal command handler
-  const handleTerminalCommand = useCallback((command: string) => {
+  const handleTerminalCommand = useCallback(async (command: string) => {
     const cmd = command.trim().toLowerCase();
+    const parts = command.trim().split(' ');
     let output: string[] = [];
 
-    switch (cmd) {
+    switch (parts[0].toLowerCase()) {
       case 'help':
         output = [
           '> Available commands:',
@@ -335,7 +379,10 @@ const Editor = () => {
           '  clear    - Clear terminal',
           '  files    - List all files',
           '  run      - Run the active file',
-          '  save     - Save all files'
+          '  run <filename> - Run a specific file',
+          '  save     - Save all files',
+          '  node <code> - Execute JavaScript directly',
+          '  python <code> - Execute Python directly'
         ];
         break;
       case 'clear':
@@ -345,24 +392,43 @@ const Editor = () => {
         output = ['> Files:', ...files.map(f => `  ${f.path}`)];
         break;
       case 'run':
-        if (activeFile) {
-          output = [`> Running ${activeFile.name}...`, '> Output: (simulated execution)'];
-        } else {
-          output = ['> No file selected'];
-        }
-        break;
+        setTerminalOutput(prev => [...prev, `$ ${command}`]);
+        await runCode();
+        return;
       case 'save':
         if (activeFile) {
           saveFile(activeFile);
           output = ['> Saving files...'];
+        } else {
+          output = ['> No file to save'];
         }
         break;
+      case 'node':
+        const jsCode = parts.slice(1).join(' ');
+        if (jsCode) {
+          setTerminalOutput(prev => [...prev, `$ ${command}`]);
+          const result = await executeCode(jsCode, 'javascript');
+          setTerminalOutput(prev => [...prev, result.success ? result.output : `Error: ${result.error}`]);
+          return;
+        }
+        output = ['> Usage: node <code>'];
+        break;
+      case 'python':
+        const pyCode = parts.slice(1).join(' ');
+        if (pyCode) {
+          setTerminalOutput(prev => [...prev, `$ ${command}`]);
+          const result = await executeCode(pyCode, 'python');
+          setTerminalOutput(prev => [...prev, result.success ? result.output : `Error: ${result.error}`]);
+          return;
+        }
+        output = ['> Usage: python <code>'];
+        break;
       default:
-        output = [`> Unknown command: ${command}. Type "help" for available commands.`];
+        output = [`> Unknown command: ${parts[0]}. Type "help" for available commands.`];
     }
 
     setTerminalOutput(prev => [...prev, `$ ${command}`, ...output]);
-  }, [files, activeFile, saveFile]);
+  }, [files, activeFile, saveFile, runCode]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -408,7 +474,9 @@ const Editor = () => {
       <EditorToolbar 
         project={project}
         saving={saving}
+        isExecuting={isExecuting}
         onSave={() => activeFile && saveFile(activeFile)}
+        onRun={runCode}
         onToggleTerminal={() => setShowTerminal(prev => !prev)}
         showTerminal={showTerminal}
       />
