@@ -3,14 +3,32 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Play, Square, Trash2, ExternalLink, AlertCircle, CheckCircle, ShieldAlert } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { 
+  Play, Square, Trash2, ExternalLink, AlertCircle, CheckCircle, ShieldAlert, 
+  Share2, Copy, Terminal, ChevronDown, ChevronUp 
+} from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { supabase } from '@/integrations/supabase/client';
+import { executeCode } from '@/lib/codeExecution';
 
 interface CodeCompilerProps {
   code: string;
   language: string;
 }
+
+const generateShortCode = (): string => {
+  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let result = '';
+  for (let i = 0; i < 8; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+};
 
 export const CodeCompiler: React.FC<CodeCompilerProps> = ({ code, language }) => {
   const { toast } = useToast();
@@ -18,11 +36,18 @@ export const CodeCompiler: React.FC<CodeCompilerProps> = ({ code, language }) =>
   const [output, setOutput] = useState<string>('');
   const [errors, setErrors] = useState<string>('');
   const [executionTime, setExecutionTime] = useState<number>(0);
+  const [stdinInput, setStdinInput] = useState<string>('');
+  const [showInput, setShowInput] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const [shareUrl, setShareUrl] = useState<string>('');
+  const [shareTitle, setShareTitle] = useState<string>('');
   const sandboxRef = useRef<HTMLIFrameElement | null>(null);
+
+  // Languages that support stdin input
+  const supportsInput = ['javascript', 'typescript', 'python', 'shell', 'bash'].includes(language.toLowerCase());
 
   // Create sandboxed iframe for code execution
   useEffect(() => {
-    // Cleanup on unmount
     return () => {
       if (sandboxRef.current) {
         sandboxRef.current.remove();
@@ -32,14 +57,12 @@ export const CodeCompiler: React.FC<CodeCompilerProps> = ({ code, language }) =>
 
   const executeCodeInSandbox = (codeToRun: string): Promise<{ output: string; error: string | null }> => {
     return new Promise((resolve) => {
-      // Create a sandboxed iframe that cannot access parent context
       const iframe = document.createElement('iframe');
       iframe.setAttribute('sandbox', 'allow-scripts');
       iframe.style.display = 'none';
       document.body.appendChild(iframe);
       sandboxRef.current = iframe;
 
-      // Set up message handler for sandbox communication
       const messageHandler = (event: MessageEvent) => {
         if (event.source === iframe.contentWindow) {
           window.removeEventListener('message', messageHandler);
@@ -49,14 +72,12 @@ export const CodeCompiler: React.FC<CodeCompilerProps> = ({ code, language }) =>
       };
       window.addEventListener('message', messageHandler);
 
-      // Timeout after 5 seconds
       const timeout = setTimeout(() => {
         window.removeEventListener('message', messageHandler);
         iframe.remove();
         resolve({ output: '', error: 'Execution timed out (5 second limit)' });
       }, 5000);
 
-      // Inject code into sandbox with console capture
       const sandboxCode = `
         <!DOCTYPE html>
         <html>
@@ -65,9 +86,11 @@ export const CodeCompiler: React.FC<CodeCompilerProps> = ({ code, language }) =>
             (function() {
               const logs = [];
               const errors = [];
+              const stdinInput = ${JSON.stringify(stdinInput)};
+              let stdinIndex = 0;
+              const stdinLines = stdinInput.split('\\n');
               
               // Override console
-              const originalConsole = console;
               console = {
                 log: function(...args) {
                   logs.push(args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)).join(' '));
@@ -75,9 +98,28 @@ export const CodeCompiler: React.FC<CodeCompilerProps> = ({ code, language }) =>
                 error: function(...args) {
                   errors.push(args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)).join(' '));
                 },
-                warn: console.warn,
-                info: console.info
+                warn: function(...args) {
+                  logs.push('WARN: ' + args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)).join(' '));
+                },
+                info: function(...args) {
+                  logs.push('INFO: ' + args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)).join(' '));
+                }
               };
+
+              // Simulated input function
+              window.prompt = function(message) {
+                if (stdinIndex < stdinLines.length) {
+                  return stdinLines[stdinIndex++];
+                }
+                return '';
+              };
+              window.readline = function() {
+                if (stdinIndex < stdinLines.length) {
+                  return stdinLines[stdinIndex++];
+                }
+                return '';
+              };
+              window.input = stdinInput;
 
               // Block dangerous APIs
               window.fetch = undefined;
@@ -122,15 +164,10 @@ export const CodeCompiler: React.FC<CodeCompilerProps> = ({ code, language }) =>
       `;
 
       iframe.srcdoc = sandboxCode;
-
-      // Clear timeout when resolved
-      iframe.onload = () => {
-        // Timeout is already set, just clear it when we get a response
-      };
     });
   };
 
-  const executeCode = async () => {
+  const handleExecuteCode = async () => {
     if (!code.trim()) {
       toast({
         title: "No code to execute",
@@ -146,56 +183,26 @@ export const CodeCompiler: React.FC<CodeCompilerProps> = ({ code, language }) =>
     const startTime = Date.now();
 
     try {
-      let result = '';
-      let hasErrors = false;
-
-      switch (language) {
-        case 'javascript':
-        case 'typescript':
-          // Execute in sandboxed iframe
-          const sandboxResult = await executeCodeInSandbox(code);
-          result = sandboxResult.output;
-          if (sandboxResult.error) {
-            setErrors(sandboxResult.error);
-            hasErrors = true;
-          }
-          break;
-
-        case 'python':
-          // Simulate Python execution (in a real app, you'd use a Python interpreter)
-          result = 'Python execution not available in browser environment.\nConsider using an online Python interpreter like Repl.it or CodePen.';
-          break;
-
-        case 'html':
-          // For HTML, we can show a preview
-          result = 'HTML preview not available in this context.\nCode appears to be valid HTML.';
-          break;
-
-        case 'css':
-          result = 'CSS validation completed.\nStyles would be applied in HTML context.';
-          break;
-
-        case 'json':
-          try {
-            JSON.parse(code);
-            result = 'Valid JSON format ✓';
-          } catch (error) {
-            setErrors(`Invalid JSON: ${(error as Error).message}`);
-            hasErrors = true;
-          }
-          break;
-
-        default:
-          result = `Execution for ${language} is not supported in browser environment.`;
-      }
-
-      setOutput(result);
+      // Try edge function first for full language support
+      const result = await executeCode(code, language, stdinInput);
       
-      if (!hasErrors) {
+      if (result.success) {
+        setOutput(result.output);
         toast({
           title: "Code executed successfully",
-          description: `Execution completed in ${Date.now() - startTime}ms`
+          description: `Execution completed in ${result.executionTime}ms`
         });
+      } else {
+        // Fallback to sandbox for JS/TS
+        if (['javascript', 'typescript'].includes(language.toLowerCase())) {
+          const sandboxResult = await executeCodeInSandbox(code);
+          setOutput(sandboxResult.output);
+          if (sandboxResult.error) {
+            setErrors(sandboxResult.error);
+          }
+        } else {
+          setErrors(result.error || 'Execution failed');
+        }
       }
     } catch (error) {
       setErrors((error as Error).message);
@@ -216,11 +223,65 @@ export const CodeCompiler: React.FC<CodeCompilerProps> = ({ code, language }) =>
     setExecutionTime(0);
   };
 
+  const shareCode = async () => {
+    if (!code.trim()) {
+      toast({
+        title: "No code to share",
+        description: "Please write some code first",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsSharing(true);
+    try {
+      const shortCode = generateShortCode();
+      
+      const { error } = await supabase
+        .from('shared_snippets')
+        .insert({
+          short_code: shortCode,
+          code: code,
+          language: language,
+          title: shareTitle || `${language} snippet`,
+          input: stdinInput || null,
+        });
+
+      if (error) throw error;
+
+      const url = `${window.location.origin}/snippet/${shortCode}`;
+      setShareUrl(url);
+      
+      await navigator.clipboard.writeText(url);
+      
+      toast({
+        title: "Code shared!",
+        description: "Link copied to clipboard"
+      });
+    } catch (error) {
+      console.error('Share error:', error);
+      toast({
+        title: "Failed to share",
+        description: (error as Error).message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
+  const copyShareUrl = async () => {
+    if (shareUrl) {
+      await navigator.clipboard.writeText(shareUrl);
+      toast({ title: "Link copied!" });
+    }
+  };
+
   const openInExternalEditor = () => {
     const encodedCode = encodeURIComponent(code);
     let url = '';
 
-    switch (language) {
+    switch (language.toLowerCase()) {
       case 'javascript':
       case 'typescript':
         url = `https://codepen.io/pen?editors=0010&code=${encodedCode}`;
@@ -241,12 +302,22 @@ export const CodeCompiler: React.FC<CodeCompilerProps> = ({ code, language }) =>
   return (
     <Card className="glass-card">
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <CardTitle className="flex items-center gap-2">
             Code Execution
             <Badge variant="outline">{language}</Badge>
           </CardTitle>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={shareCode}
+              disabled={isSharing || !code.trim()}
+              className="glass-card"
+            >
+              <Share2 className="h-4 w-4 mr-2" />
+              {isSharing ? 'Sharing...' : 'Share'}
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -266,7 +337,7 @@ export const CodeCompiler: React.FC<CodeCompilerProps> = ({ code, language }) =>
               Clear
             </Button>
             <Button
-              onClick={executeCode}
+              onClick={handleExecuteCode}
               disabled={isRunning || !code.trim()}
               className="glass-card"
             >
@@ -285,12 +356,69 @@ export const CodeCompiler: React.FC<CodeCompilerProps> = ({ code, language }) =>
           </div>
         </div>
       </CardHeader>
-      <CardContent>
-        <Alert variant="default" className="mb-4 border-yellow-500/50 bg-yellow-500/10">
+      <CardContent className="space-y-4">
+        {/* Share URL Display */}
+        {shareUrl && (
+          <Alert className="border-primary/50 bg-primary/10">
+            <Share2 className="h-4 w-4 text-primary" />
+            <AlertTitle className="text-primary">Code Shared!</AlertTitle>
+            <AlertDescription className="flex items-center gap-2 mt-2">
+              <Input 
+                value={shareUrl} 
+                readOnly 
+                className="flex-1 bg-background/50 text-sm"
+              />
+              <Button size="sm" variant="outline" onClick={copyShareUrl}>
+                <Copy className="h-4 w-4" />
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Stdin Input Section */}
+        {supportsInput && (
+          <Collapsible open={showInput} onOpenChange={setShowInput}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="w-full justify-between">
+                <span className="flex items-center gap-2">
+                  <Terminal className="h-4 w-4" />
+                  Program Input (stdin)
+                </span>
+                {showInput ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pt-2">
+              <div className="space-y-2">
+                <Label htmlFor="stdin" className="text-sm text-muted-foreground">
+                  Enter input data (one value per line for multiple inputs)
+                </Label>
+                <Textarea
+                  id="stdin"
+                  placeholder="Enter input values here...&#10;Line 1&#10;Line 2"
+                  value={stdinInput}
+                  onChange={(e) => setStdinInput(e.target.value)}
+                  className="font-mono text-sm min-h-[80px] bg-muted/50"
+                />
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        )}
+
+        {/* Share Title Input */}
+        <div className="flex gap-2">
+          <Input
+            placeholder="Snippet title (optional)"
+            value={shareTitle}
+            onChange={(e) => setShareTitle(e.target.value)}
+            className="flex-1"
+          />
+        </div>
+
+        <Alert variant="default" className="border-yellow-500/50 bg-yellow-500/10">
           <ShieldAlert className="h-4 w-4 text-yellow-500" />
           <AlertTitle className="text-yellow-500">Sandboxed Execution</AlertTitle>
           <AlertDescription className="text-muted-foreground">
-            Code runs in an isolated sandbox with limited access. Network requests, storage, and DOM access are blocked for security.
+            Code runs in an isolated sandbox. Use the input section above to provide stdin data for your programs.
           </AlertDescription>
         </Alert>
 
