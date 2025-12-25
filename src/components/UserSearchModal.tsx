@@ -6,9 +6,10 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
-import { Search, UserPlus, Check, Clock, X } from 'lucide-react';
+import { Search, UserPlus, Check, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { UserProfileModal } from './UserProfileModal';
 
 interface UserProfile {
   id: string;
@@ -32,6 +33,8 @@ export const UserSearchModal = ({ open, onOpenChange }: UserSearchModalProps) =>
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(false);
   const [sendingRequest, setSendingRequest] = useState<string | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
 
   useEffect(() => {
     if (open && searchQuery.trim().length >= 2) {
@@ -95,7 +98,8 @@ export const UserSearchModal = ({ open, onOpenChange }: UserSearchModalProps) =>
     }
   };
 
-  const sendConnectionRequest = async (targetUserId: string) => {
+  const sendConnectionRequest = async (e: React.MouseEvent, targetUserId: string) => {
+    e.stopPropagation();
     if (!user) return;
 
     try {
@@ -134,6 +138,11 @@ export const UserSearchModal = ({ open, onOpenChange }: UserSearchModalProps) =>
     }
   };
 
+  const handleUserClick = (userId: string) => {
+    setSelectedUserId(userId);
+    setProfileModalOpen(true);
+  };
+
   const getConnectionButton = (userProfile: UserProfile) => {
     switch (userProfile.connectionStatus) {
       case 'connected':
@@ -161,7 +170,7 @@ export const UserSearchModal = ({ open, onOpenChange }: UserSearchModalProps) =>
         return (
           <Button 
             size="sm" 
-            onClick={() => sendConnectionRequest(userProfile.user_id)}
+            onClick={(e) => sendConnectionRequest(e, userProfile.user_id)}
             disabled={sendingRequest === userProfile.user_id}
           >
             <UserPlus className="h-4 w-4 mr-1" />
@@ -172,80 +181,91 @@ export const UserSearchModal = ({ open, onOpenChange }: UserSearchModalProps) =>
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[80vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle>Find People</DialogTitle>
-          <DialogDescription>
-            Search for developers and connect with them
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Find People</DialogTitle>
+            <DialogDescription>
+              Search for developers and connect with them
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by username or name..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-            autoFocus
-          />
-        </div>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by username or name..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+              autoFocus
+            />
+          </div>
 
-        <div className="flex-1 overflow-y-auto mt-4 space-y-2 min-h-[200px]">
-          {loading ? (
-            <>
-              {[1, 2, 3].map(i => (
-                <div key={i} className="flex items-center gap-3 p-3 rounded-lg border">
-                  <Skeleton className="h-10 w-10 rounded-full" />
-                  <div className="flex-1">
-                    <Skeleton className="h-4 w-32 mb-1" />
-                    <Skeleton className="h-3 w-48" />
-                  </div>
-                  <Skeleton className="h-8 w-20" />
-                </div>
-              ))}
-            </>
-          ) : users.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              {searchQuery.trim().length < 2 
-                ? "Type at least 2 characters to search"
-                : "No users found"
-              }
-            </div>
-          ) : (
-            users.map(userProfile => (
-              <div 
-                key={userProfile.id} 
-                className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors"
-              >
-                <Avatar className="h-10 w-10">
-                  <AvatarImage src={userProfile.avatar_url || undefined} />
-                  <AvatarFallback>
-                    {(userProfile.display_name || userProfile.username || '?')[0].toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium truncate">
-                    {userProfile.display_name || userProfile.username || 'Unknown User'}
-                  </div>
-                  {userProfile.username && userProfile.display_name && (
-                    <div className="text-sm text-muted-foreground truncate">
-                      @{userProfile.username}
+          <div className="flex-1 overflow-y-auto mt-4 space-y-2 min-h-[200px]">
+            {loading ? (
+              <>
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="flex items-center gap-3 p-3 rounded-lg border">
+                    <Skeleton className="h-10 w-10 rounded-full" />
+                    <div className="flex-1">
+                      <Skeleton className="h-4 w-32 mb-1" />
+                      <Skeleton className="h-3 w-48" />
                     </div>
-                  )}
-                  {userProfile.bio && (
-                    <div className="text-xs text-muted-foreground truncate mt-0.5">
-                      {userProfile.bio}
-                    </div>
-                  )}
-                </div>
-                {getConnectionButton(userProfile)}
+                    <Skeleton className="h-8 w-20" />
+                  </div>
+                ))}
+              </>
+            ) : users.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                {searchQuery.trim().length < 2 
+                  ? "Type at least 2 characters to search"
+                  : "No users found"
+                }
               </div>
-            ))
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
+            ) : (
+              users.map(userProfile => (
+                <div 
+                  key={userProfile.id} 
+                  className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors cursor-pointer"
+                  onClick={() => handleUserClick(userProfile.user_id)}
+                >
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={userProfile.avatar_url || undefined} />
+                    <AvatarFallback>
+                      {(userProfile.display_name || userProfile.username || '?')[0].toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium truncate">
+                      {userProfile.display_name || userProfile.username || 'Unknown User'}
+                    </div>
+                    {userProfile.username && userProfile.display_name && (
+                      <div className="text-sm text-muted-foreground truncate">
+                        @{userProfile.username}
+                      </div>
+                    )}
+                    {userProfile.bio && (
+                      <div className="text-xs text-muted-foreground truncate mt-0.5">
+                        {userProfile.bio}
+                      </div>
+                    )}
+                  </div>
+                  <div onClick={(e) => e.stopPropagation()}>
+                    {getConnectionButton(userProfile)}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <UserProfileModal
+        userId={selectedUserId}
+        open={profileModalOpen}
+        onOpenChange={setProfileModalOpen}
+      />
+    </>
   );
 };
