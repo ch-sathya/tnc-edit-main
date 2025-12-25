@@ -10,10 +10,11 @@ import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
-import { Github, Linkedin, Twitter, Globe, MapPin, Mail, FolderOpen, Star, Edit, Plus, ExternalLink, Code } from 'lucide-react';
+import { Github, Linkedin, Twitter, Globe, MapPin, Mail, FolderOpen, Star, Edit, Plus, ExternalLink, Code, Users, MessageCircle, UserX } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ProfileEditModal } from '@/components/ProfileEditModal';
 import { QuickProjectModal } from '@/components/QuickProjectModal';
+import { DirectMessageModal } from '@/components/DirectMessageModal';
 
 interface Project {
   id: string;
@@ -34,6 +35,19 @@ interface Repository {
   star_count: number;
   visibility: string;
   tags: string[];
+}
+
+interface Connection {
+  id: string;
+  requester_id: string;
+  addressee_id: string;
+  status: string;
+  profile: {
+    user_id: string;
+    username: string | null;
+    display_name: string | null;
+    avatar_url: string | null;
+  };
 }
 
 // Lazy load the heavy project form modal
@@ -76,6 +90,7 @@ const Portfolio = () => {
   // Data states - initialize as empty, not loading
   const [projects, setProjects] = useState<Project[]>([]);
   const [repositories, setRepositories] = useState<Repository[]>([]);
+  const [connections, setConnections] = useState<Connection[]>([]);
   const [dataLoading, setDataLoading] = useState(false);
   const [dataFetched, setDataFetched] = useState(false);
   
@@ -83,6 +98,7 @@ const Portfolio = () => {
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [projectModalOpen, setProjectModalOpen] = useState(false);
   const [quickProjectOpen, setQuickProjectOpen] = useState(false);
+  const [chatWithUser, setChatWithUser] = useState<Connection['profile'] | null>(null);
   const [editingProject, setEditingProject] = useState<Project | undefined>(undefined);
 
   // Fetch data in background - non-blocking
@@ -93,7 +109,7 @@ const Portfolio = () => {
     
     try {
       // Parallel fetch for better performance
-      const [projectsResult, reposResult] = await Promise.all([
+      const [projectsResult, reposResult, connectionsResult] = await Promise.all([
         supabase
           .from('projects')
           .select('id, title, description, technologies, github_url, live_url, image_url, status')
@@ -105,11 +121,44 @@ const Portfolio = () => {
           .select('id, name, description, star_count, visibility, tags')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
-          .limit(50)
+          .limit(50),
+        supabase
+          .from('user_connections')
+          .select('id, requester_id, addressee_id, status')
+          .eq('status', 'accepted')
+          .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`)
       ]);
 
       if (projectsResult.data) setProjects(projectsResult.data as Project[]);
       if (reposResult.data) setRepositories(reposResult.data as Repository[]);
+      
+      // Fetch profiles for connections
+      if (connectionsResult.data && connectionsResult.data.length > 0) {
+        const userIds = new Set<string>();
+        connectionsResult.data.forEach(conn => {
+          if (conn.requester_id !== user.id) userIds.add(conn.requester_id);
+          if (conn.addressee_id !== user.id) userIds.add(conn.addressee_id);
+        });
+
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('user_id, username, display_name, avatar_url')
+          .in('user_id', Array.from(userIds));
+
+        const connectionsWithProfiles = connectionsResult.data.map(conn => {
+          const otherUserId = conn.requester_id === user.id ? conn.addressee_id : conn.requester_id;
+          const profile = profiles?.find(p => p.user_id === otherUserId) || {
+            user_id: otherUserId,
+            username: null,
+            display_name: 'Unknown User',
+            avatar_url: null
+          };
+          return { ...conn, profile };
+        });
+
+        setConnections(connectionsWithProfiles);
+      }
+      
       setDataFetched(true);
     } catch (error) {
       console.error('Error fetching user data:', error);
@@ -122,6 +171,30 @@ const Portfolio = () => {
       setDataLoading(false);
     }
   }, [user?.id, dataFetched, toast]);
+
+  const removeConnection = async (connectionId: string) => {
+    try {
+      const { error } = await supabase
+        .from('user_connections')
+        .delete()
+        .eq('id', connectionId);
+
+      if (error) throw error;
+
+      setConnections(prev => prev.filter(c => c.id !== connectionId));
+      toast({
+        title: "Removed",
+        description: "Connection removed successfully"
+      });
+    } catch (error) {
+      console.error('Error removing connection:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove connection",
+        variant: "destructive"
+      });
+    }
+  };
 
   // Fetch data when user is available - non-blocking effect
   useEffect(() => {
@@ -314,7 +387,7 @@ const Portfolio = () => {
           </Card>
 
           {/* Stats - Shows loading state but doesn't block */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Projects</CardTitle>
@@ -348,13 +421,25 @@ const Portfolio = () => {
                 </div>
               </CardContent>
             </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Connections</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {dataLoading ? <Skeleton className="h-8 w-12" /> : connections.length}
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Content Tabs - Always interactive */}
           <Tabs defaultValue="projects" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="projects">Projects</TabsTrigger>
               <TabsTrigger value="repositories">Repositories</TabsTrigger>
+              <TabsTrigger value="connections">Connections</TabsTrigger>
             </TabsList>
 
             <TabsContent value="projects" className="mt-6">
@@ -525,6 +610,87 @@ const Portfolio = () => {
                 </div>
               )}
             </TabsContent>
+
+            <TabsContent value="connections" className="mt-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold">My Connections</h2>
+                <Button onClick={() => navigate('/connections')} variant="outline" className="gap-2">
+                  <Users className="h-4 w-4" />
+                  Manage Connections
+                </Button>
+              </div>
+
+              {dataLoading ? (
+                <div className="space-y-4">
+                  {[1, 2, 3].map(i => (
+                    <Card key={i}>
+                      <CardContent className="py-4">
+                        <div className="flex items-center gap-4">
+                          <Skeleton className="h-12 w-12 rounded-full" />
+                          <div className="flex-1">
+                            <Skeleton className="h-4 w-32 mb-2" />
+                            <Skeleton className="h-3 w-24" />
+                          </div>
+                          <Skeleton className="h-8 w-20" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : connections.length === 0 ? (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <h3 className="text-lg font-semibold mb-2">No connections yet</h3>
+                    <p className="text-muted-foreground mb-4">Start connecting with other developers!</p>
+                    <Button onClick={() => navigate('/connections')}>Find People</Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-4">
+                  {connections.map((connection) => (
+                    <Card key={connection.id} className="hover:shadow-md transition-shadow">
+                      <CardContent className="py-4">
+                        <div className="flex items-center gap-4">
+                          <Avatar className="h-12 w-12">
+                            <AvatarImage src={connection.profile.avatar_url || undefined} />
+                            <AvatarFallback>
+                              {(connection.profile.display_name || connection.profile.username || '?')[0].toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium truncate">
+                              {connection.profile.display_name || connection.profile.username || 'Unknown User'}
+                            </div>
+                            {connection.profile.username && connection.profile.display_name && (
+                              <div className="text-sm text-muted-foreground truncate">
+                                @{connection.profile.username}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex gap-2">
+                            <Button 
+                              size="sm" 
+                              onClick={() => setChatWithUser(connection.profile)}
+                            >
+                              <MessageCircle className="h-4 w-4 mr-1" />
+                              Message
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => removeConnection(connection.id)}
+                            >
+                              <UserX className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
           </Tabs>
         </div>
       </div>
@@ -558,6 +724,14 @@ const Portfolio = () => {
           />
         )}
       </Suspense>
+
+      {chatWithUser && (
+        <DirectMessageModal
+          open={!!chatWithUser}
+          onOpenChange={(open) => !open && setChatWithUser(null)}
+          otherUser={chatWithUser}
+        />
+      )}
     </>
   );
 };
