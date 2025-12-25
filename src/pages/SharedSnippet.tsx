@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Play, Copy, ArrowLeft, Loader2, Eye, Calendar, Terminal, 
   CheckCircle, AlertCircle, ChevronDown, ChevronUp, Code2 
@@ -17,7 +18,6 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { executeCode } from '@/lib/codeExecution';
 import { useToast } from '@/hooks/use-toast';
-import Editor from '@monaco-editor/react';
 import { format } from 'date-fns';
 
 interface Snippet {
@@ -209,21 +209,11 @@ const SharedSnippet: React.FC = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="border rounded-lg overflow-hidden">
-                <Editor
-                  height="400px"
-                  language={snippet?.language || 'javascript'}
-                  value={snippet?.code || ''}
-                  theme="vs-dark"
-                  options={{
-                    readOnly: true,
-                    minimap: { enabled: false },
-                    fontSize: 14,
-                    padding: { top: 16 },
-                    scrollBeyondLastLine: false,
-                  }}
-                />
-              </div>
+              <ScrollArea className="h-[400px] border rounded-lg bg-muted/50">
+                <pre className="p-4 text-sm font-mono whitespace-pre-wrap break-all">
+                  <code>{snippet?.code || ''}</code>
+                </pre>
+              </ScrollArea>
             </CardContent>
           </Card>
 
