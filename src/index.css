@@ -99,6 +99,8 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    overflow-y: scroll;
+    scrollbar-gutter: stable;
   }
 }
 
@@ -225,18 +227,6 @@ All colors MUST be HSL.
     animation: fadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
   }
 
-  /* Staggered animation utilities */
-  .animate-in {
-    animation: animateIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  }
-
-  .fade-in {
-    opacity: 0;
-  }
-
-  .fill-mode-both {
-    animation-fill-mode: both;
-  }
 
   /* Accessibility utilities */
   .sr-only {
@@ -290,21 +280,8 @@ All colors MUST be HSL.
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(16px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes animateIn {
-  from {
-    opacity: 0;
-    transform: translateY(var(--tw-enter-translate-y, 16px)) translateX(var(--tw-enter-translate-x, 0));
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) translateX(0);
   }
 }

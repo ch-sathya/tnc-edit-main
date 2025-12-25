@@ -4,19 +4,33 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
-import { Github, Linkedin, Twitter, Globe, MapPin, Mail, FolderOpen, Star, Edit, Plus, ExternalLink, Code, Users, MessageCircle, UserX } from 'lucide-react';
+import {
+  Github,
+  Linkedin,
+  Twitter,
+  Globe,
+  MapPin,
+  Mail,
+  FolderOpen,
+  Star,
+  Edit,
+  Plus,
+  ExternalLink,
+  Code,
+  Users,
+  MessageCircle,
+  UserX,
+  Loader2,
+} from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ProfileEditModal } from '@/components/ProfileEditModal';
 import { QuickProjectModal } from '@/components/QuickProjectModal';
 import { DirectMessageModal } from '@/components/DirectMessageModal';
-import { AnimatedSection } from '@/components/AnimatedSection';
-import { PortfolioPageSkeleton, ProjectCardSkeleton, RepoCardSkeleton, ConnectionCardSkeleton } from '@/components/PageSkeletons';
 
 interface Project {
   id: string;
@@ -225,13 +239,15 @@ const Portfolio = () => {
     setDataFetched(false);
   };
 
-  // Show skeleton only for auth loading - UI is immediately interactive
   if (authLoading) {
     return (
       <>
         <Navigation />
         <div className="min-h-screen bg-background">
-          <PortfolioPageSkeleton />
+          <div className="container mx-auto py-16 px-4 max-w-7xl flex items-center justify-center text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin text-primary mr-2" aria-hidden="true" />
+            <span className="text-sm">Loading…</span>
+          </div>
         </div>
       </>
     );
@@ -268,104 +284,92 @@ const Portfolio = () => {
       <div className="min-h-screen bg-background">
         <div className="container mx-auto py-8 px-4 max-w-7xl">
           {/* Profile Header - Shows immediately with profile data */}
-          <AnimatedSection delay={0}>
+          
             <Card className="mb-8">
               <CardContent className="pt-6">
                 <div className="flex flex-col md:flex-row gap-6">
-                  {profileLoading ? (
-                    <Skeleton className="h-32 w-32 rounded-full" />
-                  ) : (
-                    <Avatar className="h-32 w-32">
-                      <AvatarImage src={profile?.avatar_url} alt={profile?.display_name} />
-                      <AvatarFallback className="text-4xl">
-                        {profile?.display_name?.charAt(0) || 'U'}
-                      </AvatarFallback>
-                    </Avatar>
-                  )}
+                  <Avatar className="h-32 w-32">
+                    <AvatarImage src={profile?.avatar_url ?? undefined} alt={profile?.display_name || 'User'} />
+                    <AvatarFallback className="text-4xl">
+                      {(profile?.display_name?.charAt(0) || 'U').toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
 
                 <div className="flex-1">
-                  {profileLoading ? (
-                    <div className="space-y-4">
-                      <Skeleton className="h-8 w-48" />
-                      <Skeleton className="h-4 w-64" />
+                  <>
+                    <h1 className="text-3xl font-bold text-foreground mb-2">
+                      {profile?.display_name || 'User'}
+                    </h1>
+                    {(profile as any)?.username && (
+                      <p className="text-muted-foreground mb-3">@{(profile as any).username}</p>
+                    )}
+
+                    {profile?.bio && (
+                      <p className="text-foreground mb-4">{profile.bio}</p>
+                    )}
+
+                    <div className="flex flex-wrap gap-4 mb-4">
+                      {(profile as any)?.location && (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <MapPin className="h-4 w-4" />
+                          <span>{(profile as any).location}</span>
+                        </div>
+                      )}
+                      {user?.email && (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Mail className="h-4 w-4" />
+                          <span>{user.email}</span>
+                        </div>
+                      )}
                     </div>
-                  ) : (
-                    <>
-                      <h1 className="text-3xl font-bold text-foreground mb-2">
-                        {profile?.display_name || 'User'}
-                      </h1>
-                      {(profile as any)?.username && (
-                        <p className="text-muted-foreground mb-3">@{(profile as any).username}</p>
+
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {(profile as any)?.github_url && (
+                        <Button variant="outline" size="sm" asChild>
+                          <a href={(profile as any).github_url} target="_blank" rel="noopener noreferrer">
+                            <Github className="h-4 w-4 mr-2" />
+                            GitHub
+                          </a>
+                        </Button>
                       )}
-                      
-                      {profile?.bio && (
-                        <p className="text-foreground mb-4">{profile.bio}</p>
+                      {(profile as any)?.linkedin_url && (
+                        <Button variant="outline" size="sm" asChild>
+                          <a href={(profile as any).linkedin_url} target="_blank" rel="noopener noreferrer">
+                            <Linkedin className="h-4 w-4 mr-2" />
+                            LinkedIn
+                          </a>
+                        </Button>
                       )}
+                      {(profile as any)?.twitter_url && (
+                        <Button variant="outline" size="sm" asChild>
+                          <a href={(profile as any).twitter_url} target="_blank" rel="noopener noreferrer">
+                            <Twitter className="h-4 w-4 mr-2" />
+                            Twitter
+                          </a>
+                        </Button>
+                      )}
+                      {(profile as any)?.website && (
+                        <Button variant="outline" size="sm" asChild>
+                          <a href={(profile as any).website} target="_blank" rel="noopener noreferrer">
+                            <Globe className="h-4 w-4 mr-2" />
+                            Website
+                          </a>
+                        </Button>
+                      )}
+                    </div>
 
-                      <div className="flex flex-wrap gap-4 mb-4">
-                        {(profile as any)?.location && (
-                          <div className="flex items-center gap-2 text-muted-foreground">
-                            <MapPin className="h-4 w-4" />
-                            <span>{(profile as any).location}</span>
-                          </div>
-                        )}
-                        {user?.email && (
-                          <div className="flex items-center gap-2 text-muted-foreground">
-                            <Mail className="h-4 w-4" />
-                            <span>{user.email}</span>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        {(profile as any)?.github_url && (
-                          <Button variant="outline" size="sm" asChild>
-                            <a href={(profile as any).github_url} target="_blank" rel="noopener noreferrer">
-                              <Github className="h-4 w-4 mr-2" />
-                              GitHub
-                            </a>
-                          </Button>
-                        )}
-                        {(profile as any)?.linkedin_url && (
-                          <Button variant="outline" size="sm" asChild>
-                            <a href={(profile as any).linkedin_url} target="_blank" rel="noopener noreferrer">
-                              <Linkedin className="h-4 w-4 mr-2" />
-                              LinkedIn
-                            </a>
-                          </Button>
-                        )}
-                        {(profile as any)?.twitter_url && (
-                          <Button variant="outline" size="sm" asChild>
-                            <a href={(profile as any).twitter_url} target="_blank" rel="noopener noreferrer">
-                              <Twitter className="h-4 w-4 mr-2" />
-                              Twitter
-                            </a>
-                          </Button>
-                        )}
-                        {(profile as any)?.website && (
-                          <Button variant="outline" size="sm" asChild>
-                            <a href={(profile as any).website} target="_blank" rel="noopener noreferrer">
-                              <Globe className="h-4 w-4 mr-2" />
-                              Website
-                            </a>
-                          </Button>
-                        )}
-                      </div>
-
-                      <Button onClick={() => setEditProfileOpen(true)} className="gap-2">
-                        <Edit className="h-4 w-4" />
-                        Edit Profile
-                      </Button>
-                    </>
-                  )}
+                    <Button onClick={() => setEditProfileOpen(true)} className="gap-2">
+                      <Edit className="h-4 w-4" />
+                      Edit Profile
+                    </Button>
+                  </>
                 </div>
               </div>
             </CardContent>
           </Card>
-          </AnimatedSection>
 
           {/* Stats - Shows loading state but doesn't block */}
-          <AnimatedSection delay={100}>
+          
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -374,7 +378,7 @@ const Portfolio = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {dataLoading ? <Skeleton className="h-8 w-12" /> : projects.length}
+                  {dataLoading ? '…' : projects.length}
                 </div>
               </CardContent>
             </Card>
@@ -385,7 +389,7 @@ const Portfolio = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {dataLoading ? <Skeleton className="h-8 w-12" /> : repositories.length}
+                  {dataLoading ? '…' : repositories.length}
                 </div>
               </CardContent>
             </Card>
@@ -396,7 +400,7 @@ const Portfolio = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {dataLoading ? <Skeleton className="h-8 w-12" /> : totalStars}
+                  {dataLoading ? '…' : totalStars}
                 </div>
               </CardContent>
             </Card>
@@ -407,15 +411,14 @@ const Portfolio = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {dataLoading ? <Skeleton className="h-8 w-12" /> : connections.length}
+                  {dataLoading ? '…' : connections.length}
                 </div>
               </CardContent>
             </Card>
           </div>
-          </AnimatedSection>
 
           {/* Content Tabs - Always interactive */}
-          <AnimatedSection delay={200}>
+          
           <Tabs defaultValue="projects" className="w-full">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="projects">Projects</TabsTrigger>
@@ -439,16 +442,9 @@ const Portfolio = () => {
               </div>
 
               {dataLoading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {[1, 2, 3, 4].map(i => (
-                    <Card key={i}>
-                      <CardContent className="pt-6">
-                        <Skeleton className="h-40 w-full mb-4" />
-                        <Skeleton className="h-6 w-3/4 mb-2" />
-                        <Skeleton className="h-4 w-full" />
-                      </CardContent>
-                    </Card>
-                  ))}
+                <div className="flex items-center gap-2 text-muted-foreground py-12">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" aria-hidden="true" />
+                  <span className="text-sm">Loading projects…</span>
                 </div>
               ) : projects.length === 0 ? (
                 <Card>
@@ -540,15 +536,9 @@ const Portfolio = () => {
 
             <TabsContent value="repositories" className="mt-6">
               {dataLoading ? (
-                <div className="space-y-4">
-                  {[1, 2, 3].map(i => (
-                    <Card key={i}>
-                      <CardContent className="pt-6">
-                        <Skeleton className="h-6 w-48 mb-2" />
-                        <Skeleton className="h-4 w-full" />
-                      </CardContent>
-                    </Card>
-                  ))}
+                <div className="flex items-center gap-2 text-muted-foreground py-12">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" aria-hidden="true" />
+                  <span className="text-sm">Loading repositories…</span>
                 </div>
               ) : repositories.length === 0 ? (
                 <Card>
@@ -602,21 +592,9 @@ const Portfolio = () => {
               </div>
 
               {dataLoading ? (
-                <div className="space-y-4">
-                  {[1, 2, 3].map(i => (
-                    <Card key={i}>
-                      <CardContent className="py-4">
-                        <div className="flex items-center gap-4">
-                          <Skeleton className="h-12 w-12 rounded-full" />
-                          <div className="flex-1">
-                            <Skeleton className="h-4 w-32 mb-2" />
-                            <Skeleton className="h-3 w-24" />
-                          </div>
-                          <Skeleton className="h-8 w-20" />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                <div className="flex items-center gap-2 text-muted-foreground py-12">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" aria-hidden="true" />
+                  <span className="text-sm">Loading connections…</span>
                 </div>
               ) : connections.length === 0 ? (
                 <Card>
@@ -673,7 +651,7 @@ const Portfolio = () => {
               )}
             </TabsContent>
           </Tabs>
-          </AnimatedSection>
+          
         </div>
       </div>
 
