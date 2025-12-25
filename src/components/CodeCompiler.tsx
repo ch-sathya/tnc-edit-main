@@ -6,15 +6,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { 
   Play, Square, Trash2, ExternalLink, AlertCircle, CheckCircle, ShieldAlert, 
-  Share2, Copy, Terminal, ChevronDown, ChevronUp 
+  Share2, Copy, Terminal, ChevronDown, ChevronUp, CalendarIcon 
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { supabase } from '@/integrations/supabase/client';
 import { executeCode } from '@/lib/codeExecution';
+import { format, addDays, addHours, addWeeks } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 interface CodeCompilerProps {
   code: string;
@@ -30,6 +34,14 @@ const generateShortCode = (): string => {
   return result;
 };
 
+const expirationPresets = [
+  { label: '1 hour', getValue: () => addHours(new Date(), 1) },
+  { label: '24 hours', getValue: () => addDays(new Date(), 1) },
+  { label: '1 week', getValue: () => addWeeks(new Date(), 1) },
+  { label: '1 month', getValue: () => addDays(new Date(), 30) },
+  { label: 'Never', getValue: () => null },
+];
+
 export const CodeCompiler: React.FC<CodeCompilerProps> = ({ code, language }) => {
   const { toast } = useToast();
   const [isRunning, setIsRunning] = useState(false);
@@ -41,6 +53,8 @@ export const CodeCompiler: React.FC<CodeCompilerProps> = ({ code, language }) =>
   const [isSharing, setIsSharing] = useState(false);
   const [shareUrl, setShareUrl] = useState<string>('');
   const [shareTitle, setShareTitle] = useState<string>('');
+  const [expirationDate, setExpirationDate] = useState<Date | null>(null);
+  const [showExpirationPicker, setShowExpirationPicker] = useState(false);
   const sandboxRef = useRef<HTMLIFrameElement | null>(null);
 
   // Languages that support stdin input
@@ -245,6 +259,7 @@ export const CodeCompiler: React.FC<CodeCompilerProps> = ({ code, language }) =>
           language: language,
           title: shareTitle || `${language} snippet`,
           input: stdinInput || null,
+          expires_at: expirationDate ? expirationDate.toISOString() : null,
         });
 
       if (error) throw error;
@@ -404,14 +419,58 @@ export const CodeCompiler: React.FC<CodeCompilerProps> = ({ code, language }) =>
           </Collapsible>
         )}
 
-        {/* Share Title Input */}
-        <div className="flex gap-2">
+        {/* Share Options */}
+        <div className="flex gap-2 flex-wrap">
           <Input
             placeholder="Snippet title (optional)"
             value={shareTitle}
             onChange={(e) => setShareTitle(e.target.value)}
-            className="flex-1"
+            className="flex-1 min-w-[200px]"
           />
+          <Popover open={showExpirationPicker} onOpenChange={setShowExpirationPicker}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "justify-start text-left font-normal min-w-[180px]",
+                  !expirationDate && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {expirationDate ? format(expirationDate, "PPP") : "No expiration"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <div className="p-2 border-b">
+                <p className="text-sm font-medium mb-2">Quick presets</p>
+                <div className="flex flex-wrap gap-1">
+                  {expirationPresets.map((preset) => (
+                    <Button
+                      key={preset.label}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setExpirationDate(preset.getValue());
+                        setShowExpirationPicker(false);
+                      }}
+                    >
+                      {preset.label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+              <Calendar
+                mode="single"
+                selected={expirationDate || undefined}
+                onSelect={(date) => {
+                  setExpirationDate(date || null);
+                  setShowExpirationPicker(false);
+                }}
+                disabled={(date) => date < new Date()}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
         </div>
 
         <Alert variant="default" className="border-yellow-500/50 bg-yellow-500/10">
