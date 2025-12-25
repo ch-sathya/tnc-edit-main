@@ -26,6 +26,7 @@ import JoinRoom from "./pages/JoinRoom";
 import Pricing from "./pages/Pricing";
 import NotFound from "./pages/NotFound";
 import UserProfile from "./pages/UserProfile";
+import SharedSnippet from "./pages/SharedSnippet";
 
 const queryClient = new QueryClient();
 
@@ -68,6 +69,7 @@ const AnimatedRoutes = () => {
             <Route path="/settings" element={<Settings />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/pricing" element={<Pricing />} />
+            <Route path="/snippet/:shortCode" element={<SharedSnippet />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>

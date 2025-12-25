@@ -804,6 +804,45 @@ export type Database = {
           },
         ]
       }
+      shared_snippets: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          input: string | null
+          language: string
+          short_code: string
+          title: string | null
+          view_count: number | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          input?: string | null
+          language: string
+          short_code: string
+          title?: string | null
+          view_count?: number | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          input?: string | null
+          language?: string
+          short_code?: string
+          title?: string | null
+          view_count?: number | null
+        }
+        Relationships: []
+      }
       user_connections: {
         Row: {
           addressee_id: string
@@ -907,6 +946,10 @@ export type Database = {
       has_group_role: {
         Args: { _group_id: string; _roles: string[]; _user_id: string }
         Returns: boolean
+      }
+      increment_snippet_view_count: {
+        Args: { snippet_code: string }
+        Returns: undefined
       }
       is_room_participant_safe: {
         Args: { check_room_id: string; check_user_id: string }
