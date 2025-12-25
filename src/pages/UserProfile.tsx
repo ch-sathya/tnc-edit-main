@@ -15,6 +15,8 @@ import {
   UserPlus, Check, Clock, MessageCircle, ExternalLink 
 } from 'lucide-react';
 import { DirectMessageModal } from '@/components/DirectMessageModal';
+import { AnimatedSection } from '@/components/AnimatedSection';
+import { UserProfilePageSkeleton } from '@/components/PageSkeletons';
 
 interface UserProfileData {
   id: string;
@@ -247,20 +249,7 @@ const UserProfile = () => {
       <>
         <Navigation />
         <div className="min-h-screen bg-background">
-          <div className="container mx-auto py-8 px-4 max-w-5xl">
-            <Card className="mb-8">
-              <CardContent className="pt-6">
-                <div className="flex flex-col md:flex-row gap-6">
-                  <Skeleton className="h-32 w-32 rounded-full" />
-                  <div className="flex-1 space-y-4">
-                    <Skeleton className="h-8 w-48" />
-                    <Skeleton className="h-4 w-64" />
-                    <Skeleton className="h-20 w-full" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <UserProfilePageSkeleton />
         </div>
       </>
     );
@@ -291,6 +280,7 @@ const UserProfile = () => {
       <div className="min-h-screen bg-background">
         <div className="container mx-auto py-8 px-4 max-w-5xl">
           {/* Profile Header */}
+          <AnimatedSection delay={0}>
           <Card className="mb-8">
             <CardContent className="pt-6">
               <div className="flex flex-col md:flex-row gap-6">
@@ -426,8 +416,10 @@ const UserProfile = () => {
               </div>
             </CardContent>
           </Card>
+          </AnimatedSection>
 
           {/* Stats */}
+          <AnimatedSection delay={100}>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -457,8 +449,10 @@ const UserProfile = () => {
               </CardContent>
             </Card>
           </div>
+          </AnimatedSection>
 
           {/* Content Tabs */}
+          <AnimatedSection delay={200}>
           <Tabs defaultValue="projects" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="projects">Projects</TabsTrigger>
@@ -568,6 +562,7 @@ const UserProfile = () => {
               )}
             </TabsContent>
           </Tabs>
+          </AnimatedSection>
         </div>
       </div>
 

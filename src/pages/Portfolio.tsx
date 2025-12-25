@@ -15,6 +15,8 @@ import { useToast } from '@/hooks/use-toast';
 import { ProfileEditModal } from '@/components/ProfileEditModal';
 import { QuickProjectModal } from '@/components/QuickProjectModal';
 import { DirectMessageModal } from '@/components/DirectMessageModal';
+import { AnimatedSection } from '@/components/AnimatedSection';
+import { PortfolioPageSkeleton, ProjectCardSkeleton, RepoCardSkeleton, ConnectionCardSkeleton } from '@/components/PageSkeletons';
 
 interface Project {
   id: string;
@@ -53,32 +55,6 @@ interface Connection {
 // Lazy load the heavy project form modal
 const ProjectFormModal = lazy(() => 
   import('@/components/ProjectFormModal').then(mod => ({ default: mod.ProjectFormModal }))
-);
-
-const PortfolioSkeleton = () => (
-  <div className="container mx-auto py-8 px-4 max-w-7xl">
-    <Card className="mb-8">
-      <CardContent className="pt-6">
-        <div className="flex flex-col md:flex-row gap-6">
-          <Skeleton className="h-32 w-32 rounded-full" />
-          <div className="flex-1 space-y-4">
-            <Skeleton className="h-8 w-48" />
-            <Skeleton className="h-4 w-64" />
-            <Skeleton className="h-20 w-full" />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-      {[1, 2, 3].map(i => (
-        <Card key={i}>
-          <CardContent className="pt-6">
-            <Skeleton className="h-12 w-full" />
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  </div>
 );
 
 const Portfolio = () => {
@@ -255,7 +231,7 @@ const Portfolio = () => {
       <>
         <Navigation />
         <div className="min-h-screen bg-background">
-          <PortfolioSkeleton />
+          <PortfolioPageSkeleton />
         </div>
       </>
     );
@@ -292,19 +268,20 @@ const Portfolio = () => {
       <div className="min-h-screen bg-background">
         <div className="container mx-auto py-8 px-4 max-w-7xl">
           {/* Profile Header - Shows immediately with profile data */}
-          <Card className="mb-8">
-            <CardContent className="pt-6">
-              <div className="flex flex-col md:flex-row gap-6">
-                {profileLoading ? (
-                  <Skeleton className="h-32 w-32 rounded-full" />
-                ) : (
-                  <Avatar className="h-32 w-32">
-                    <AvatarImage src={profile?.avatar_url} alt={profile?.display_name} />
-                    <AvatarFallback className="text-4xl">
-                      {profile?.display_name?.charAt(0) || 'U'}
-                    </AvatarFallback>
-                  </Avatar>
-                )}
+          <AnimatedSection delay={0}>
+            <Card className="mb-8">
+              <CardContent className="pt-6">
+                <div className="flex flex-col md:flex-row gap-6">
+                  {profileLoading ? (
+                    <Skeleton className="h-32 w-32 rounded-full" />
+                  ) : (
+                    <Avatar className="h-32 w-32">
+                      <AvatarImage src={profile?.avatar_url} alt={profile?.display_name} />
+                      <AvatarFallback className="text-4xl">
+                        {profile?.display_name?.charAt(0) || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                  )}
 
                 <div className="flex-1">
                   {profileLoading ? (
@@ -385,8 +362,10 @@ const Portfolio = () => {
               </div>
             </CardContent>
           </Card>
+          </AnimatedSection>
 
           {/* Stats - Shows loading state but doesn't block */}
+          <AnimatedSection delay={100}>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -433,8 +412,10 @@ const Portfolio = () => {
               </CardContent>
             </Card>
           </div>
+          </AnimatedSection>
 
           {/* Content Tabs - Always interactive */}
+          <AnimatedSection delay={200}>
           <Tabs defaultValue="projects" className="w-full">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="projects">Projects</TabsTrigger>
@@ -692,6 +673,7 @@ const Portfolio = () => {
               )}
             </TabsContent>
           </Tabs>
+          </AnimatedSection>
         </div>
       </div>
 
