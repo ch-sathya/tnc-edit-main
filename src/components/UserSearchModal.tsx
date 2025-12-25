@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -9,7 +10,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { Search, UserPlus, Check, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { UserProfileModal } from './UserProfileModal';
 
 interface UserProfile {
   id: string;
@@ -29,12 +29,11 @@ interface UserSearchModalProps {
 export const UserSearchModal = ({ open, onOpenChange }: UserSearchModalProps) => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(false);
   const [sendingRequest, setSendingRequest] = useState<string | null>(null);
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-  const [profileModalOpen, setProfileModalOpen] = useState(false);
 
   useEffect(() => {
     if (open && searchQuery.trim().length >= 2) {
@@ -139,8 +138,8 @@ export const UserSearchModal = ({ open, onOpenChange }: UserSearchModalProps) =>
   };
 
   const handleUserClick = (userId: string) => {
-    setSelectedUserId(userId);
-    setProfileModalOpen(true);
+    onOpenChange(false);
+    navigate(`/user/${userId}`);
   };
 
   const getConnectionButton = (userProfile: UserProfile) => {
@@ -181,15 +180,14 @@ export const UserSearchModal = ({ open, onOpenChange }: UserSearchModalProps) =>
   };
 
   return (
-    <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-lg max-h-[80vh] overflow-hidden flex flex-col">
-          <DialogHeader>
-            <DialogTitle>Find People</DialogTitle>
-            <DialogDescription>
-              Search for developers and connect with them
-            </DialogDescription>
-          </DialogHeader>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg max-h-[80vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Find People</DialogTitle>
+          <DialogDescription>
+            Search for developers and connect with them
+          </DialogDescription>
+        </DialogHeader>
 
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -258,14 +256,7 @@ export const UserSearchModal = ({ open, onOpenChange }: UserSearchModalProps) =>
               ))
             )}
           </div>
-        </DialogContent>
-      </Dialog>
-
-      <UserProfileModal
-        userId={selectedUserId}
-        open={profileModalOpen}
-        onOpenChange={setProfileModalOpen}
-      />
-    </>
+      </DialogContent>
+    </Dialog>
   );
 };
