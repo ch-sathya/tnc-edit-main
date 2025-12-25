@@ -23,6 +23,7 @@ import ResetPassword from "./pages/ResetPassword";
 import JoinRoom from "./pages/JoinRoom";
 import Pricing from "./pages/Pricing";
 import NotFound from "./pages/NotFound";
+import UserProfile from "./pages/UserProfile";
 
 const queryClient = new QueryClient();
 
@@ -56,6 +57,7 @@ const AnimatedRoutes = () => {
         <Route path="/collaborate/:roomId" element={<CollaborationRoom />} />
         <Route path="/community" element={<Community />} />
         <Route path="/connections" element={<Connections />} />
+        <Route path="/user/:userId" element={<UserProfile />} />
         <Route path="/news" element={<News />} />
         <Route path="/news/:id" element={<NewsArticle />} />
         <Route path="/auth" element={<Auth />} />
