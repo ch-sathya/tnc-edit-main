@@ -229,9 +229,9 @@ const Collaborate = () => {
   const generateInviteCode = async (room: CollaborationRoom) => {
     setGeneratingCode(true);
     try {
-      // Generate random 8-character code
+      // Generate random 8-digit numeric code
       const code = Array.from({ length: 8 }, () => 
-        'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'[Math.floor(Math.random() * 36)]
+        Math.floor(Math.random() * 10).toString()
       ).join('');
 
       // Check if invitation already exists
@@ -614,23 +614,28 @@ const Collaborate = () => {
           <DialogHeader>
             <DialogTitle>Join by Invite Code</DialogTitle>
             <DialogDescription>
-              Enter the 8-character invite code to join a room
+              Enter the 8-digit invite code to join a room
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <Input 
               value={joinCode}
-              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-              placeholder="Enter code"
+              onChange={(e) => {
+                const numericValue = e.target.value.replace(/\D/g, '');
+                setJoinCode(numericValue);
+              }}
+              placeholder="Enter 8-digit code"
               maxLength={8}
-              className="font-mono text-lg tracking-widest text-center uppercase"
+              className="font-mono text-lg tracking-widest text-center"
+              inputMode="numeric"
+              pattern="\d*"
             />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setJoinCodeDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleJoinByCode} disabled={joinCode.length !== 8}>
+            <Button onClick={handleJoinByCode} disabled={joinCode.length !== 8 || !/^\d{8}$/.test(joinCode)}>
               Join Room
             </Button>
           </DialogFooter>
