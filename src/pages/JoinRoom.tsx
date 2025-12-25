@@ -39,15 +39,15 @@ export default function JoinRoom() {
   }, [searchParams]);
 
   const validateInviteCode = async (code: string) => {
-    if (!code || code.length !== 8) return;
+    if (!code || code.length !== 8 || !/^\d{8}$/.test(code)) return;
     
     setValidating(true);
     try {
-      // Find invitation by code
+      // Find invitation by code (numeric only)
       const { data: invitation, error: invError } = await supabase
         .from('room_invitations')
         .select('*, room:room_id(*)')
-        .eq('invite_code', code.toUpperCase())
+        .eq('invite_code', code)
         .maybeSingle();
 
       if (invError || !invitation) {
@@ -159,8 +159,8 @@ export default function JoinRoom() {
       // Increment used_count on invitation
       await supabase
         .from('room_invitations')
-        .update({ used_count: (await supabase.from('room_invitations').select('used_count').eq('invite_code', inviteCode.toUpperCase()).single()).data?.used_count + 1 || 1 })
-        .eq('invite_code', inviteCode.toUpperCase());
+        .update({ used_count: (await supabase.from('room_invitations').select('used_count').eq('invite_code', inviteCode).single()).data?.used_count + 1 || 1 })
+        .eq('invite_code', inviteCode);
 
       toast({
         title: "Joined!",
@@ -201,12 +201,16 @@ export default function JoinRoom() {
                 id="code"
                 value={inviteCode}
                 onChange={(e) => {
-                  setInviteCode(e.target.value.toUpperCase());
+                  // Only allow numeric input
+                  const numericValue = e.target.value.replace(/\D/g, '');
+                  setInviteCode(numericValue);
                   setRoomInfo(null);
                 }}
-                placeholder="Enter 8-character code"
+                placeholder="Enter 8-digit code"
                 maxLength={8}
-                className="text-center text-lg tracking-widest font-mono uppercase"
+                className="text-center text-lg tracking-widest font-mono"
+                inputMode="numeric"
+                pattern="\d*"
               />
             </div>
 

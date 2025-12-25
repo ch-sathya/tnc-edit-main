@@ -556,7 +556,7 @@ const CollaborationRoom = () => {
     });
   }, [roomId, user, userName]);
 
-  // Generate invite code for private room
+  // Generate invite code for private room (numeric only)
   const generateInviteCode = useCallback(async () => {
     if (!roomId || !user) return;
     
@@ -572,9 +572,9 @@ const CollaborationRoom = () => {
       if (existing) {
         setInviteCode(existing.invite_code);
       } else {
-        // Generate random 8-character code
+        // Generate random 8-digit numeric code
         const code = Array.from({ length: 8 }, () => 
-          'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'[Math.floor(Math.random() * 36)]
+          Math.floor(Math.random() * 10).toString()
         ).join('');
 
         const { data, error } = await supabase
