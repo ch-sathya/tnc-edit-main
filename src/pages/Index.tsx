@@ -9,10 +9,6 @@ import { Loader2 } from 'lucide-react';
 const Index = () => {
   const { user, loading, isAuthenticated } = useAuth();
 
-  // Enable dark mode by default for better contrast
-  React.useEffect(() => {
-    document.documentElement.classList.add('dark');
-  }, []);
 
   // Show loading spinner while checking authentication
   if (loading) {
