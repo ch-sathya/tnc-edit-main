@@ -11,7 +11,9 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 import { 
   ResizableHandle, 
   ResizablePanel, 
@@ -181,6 +183,8 @@ const CollaborationRoom = () => {
   const [showSidebar, setShowSidebar] = useState(true);
   const [showTerminal, setShowTerminal] = useState(false);
   const [terminalOutput, setTerminalOutput] = useState<string[]>([]);
+  const [stdinInput, setStdinInput] = useState('');
+  const [showStdinPanel, setShowStdinPanel] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -861,7 +865,7 @@ const CollaborationRoom = () => {
     ]);
 
     try {
-      const result = await executeCode(activeFile.content, activeFile.language);
+      const result = await executeCode(activeFile.content, activeFile.language, stdinInput);
       
       if (result.success) {
         setTerminalOutput(prev => [
@@ -886,7 +890,7 @@ const CollaborationRoom = () => {
         ''
       ]);
     }
-  }, [activeFile]);
+  }, [activeFile, stdinInput]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -1308,11 +1312,27 @@ const CollaborationRoom = () => {
                 <>
                   <ResizableHandle className="h-1 bg-[#3c3c3c] hover:bg-[#094771] transition-colors" />
                   <ResizablePanel defaultSize={30} minSize={15}>
-                    <div className="h-full bg-[#1e1e1e] border-t border-[#3c3c3c]">
+                    <div className="h-full bg-[#1e1e1e] border-t border-[#3c3c3c] flex flex-col">
                       <div className="h-9 bg-[#252526] flex items-center justify-between px-4 border-b border-[#3c3c3c]">
-                        <div className="flex items-center gap-2">
-                          <Terminal className="h-4 w-4 text-gray-400" />
-                          <span className="text-sm text-gray-300">Terminal</span>
+                        <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-2">
+                            <Terminal className="h-4 w-4 text-gray-400" />
+                            <span className="text-sm text-gray-300">Terminal</span>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className={cn(
+                              "h-6 px-2 text-xs",
+                              showStdinPanel 
+                                ? "text-primary bg-primary/20" 
+                                : "text-gray-400 hover:text-white hover:bg-[#37373d]"
+                            )}
+                            onClick={() => setShowStdinPanel(!showStdinPanel)}
+                          >
+                            <Terminal className="h-3 w-3 mr-1" />
+                            Input (stdin)
+                          </Button>
                         </div>
                         <Button
                           variant="ghost"
@@ -1323,10 +1343,28 @@ const CollaborationRoom = () => {
                           <X className="h-4 w-4" />
                         </Button>
                       </div>
-                      <ScrollArea className="h-[calc(100%-36px)]">
+                      
+                      {/* Stdin Input Panel */}
+                      {showStdinPanel && (
+                        <div className="p-3 border-b border-[#3c3c3c] bg-[#252526]">
+                          <Label className="text-xs text-gray-400 mb-2 block">
+                            Program Input (one value per line)
+                          </Label>
+                          <Textarea
+                            placeholder="Enter input values here...&#10;Line 1&#10;Line 2"
+                            value={stdinInput}
+                            onChange={(e) => setStdinInput(e.target.value)}
+                            className="font-mono text-sm min-h-[60px] bg-[#1e1e1e] border-[#3c3c3c] text-gray-300 resize-none"
+                          />
+                        </div>
+                      )}
+                      
+                      <ScrollArea className="flex-1">
                         <div className="p-4 font-mono text-sm text-gray-300">
                           {terminalOutput.length === 0 ? (
-                            <p className="text-gray-500">Terminal ready. Press Run to execute code.</p>
+                            <p className="text-gray-500">
+                              Terminal ready. {showStdinPanel ? 'Enter input above and press' : 'Press'} Run to execute code.
+                            </p>
                           ) : (
                             terminalOutput.map((line, i) => (
                               <div key={i} className={line.startsWith('Error') ? 'text-red-400' : line.startsWith('✓') ? 'text-green-400' : ''}>
