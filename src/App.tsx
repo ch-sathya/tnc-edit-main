@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { useEffect, Suspense } from "react";
 import { Loader2 } from "lucide-react";
+import { TopLoadingBar } from "@/components/TopLoadingBar";
 import Index from "./pages/Index";
 import Home from "./pages/Home";
 import Portfolio from "./pages/Portfolio";
@@ -37,38 +38,41 @@ const PageLoader = () => (
   </div>
 );
 
-// Smooth route transitions: fade-in only (no layout-shifting translate)
+// Smooth route transitions with top loading bar
 const AnimatedRoutes = () => {
   const location = useLocation();
 
   return (
-    <div key={location.pathname} className="min-h-screen animate-fade-in">
-      <Suspense fallback={<PageLoader />}>
-        <Routes location={location}>
-          <Route path="/" element={<Index />} />
-          <Route path="/home" element={<Home />} />
-          <Route path="/portfolio" element={<Portfolio />} />
-          <Route path="/@:username" element={<Portfolio />} />
-          <Route path="/projects" element={<Projects />} />
-          <Route path="/projects/:projectId" element={<ProjectDetail />} />
-          <Route path="/editor/:projectId" element={<Editor />} />
-          <Route path="/collaborate" element={<Collaborate />} />
-          <Route path="/collaborate/join" element={<JoinRoom />} />
-          <Route path="/collaborate/:roomId" element={<CollaborationRoom />} />
-          <Route path="/community" element={<Community />} />
-          <Route path="/connections" element={<Connections />} />
-          <Route path="/user/:userId" element={<UserProfile />} />
-          <Route path="/news" element={<News />} />
-          <Route path="/news/:id" element={<NewsArticle />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/setup-username" element={<UsernameSetup />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/pricing" element={<Pricing />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </Suspense>
-    </div>
+    <>
+      <TopLoadingBar />
+      <div key={location.pathname} className="min-h-screen animate-fade-in">
+        <Suspense fallback={<PageLoader />}>
+          <Routes location={location}>
+            <Route path="/" element={<Index />} />
+            <Route path="/home" element={<Home />} />
+            <Route path="/portfolio" element={<Portfolio />} />
+            <Route path="/@:username" element={<Portfolio />} />
+            <Route path="/projects" element={<Projects />} />
+            <Route path="/projects/:projectId" element={<ProjectDetail />} />
+            <Route path="/editor/:projectId" element={<Editor />} />
+            <Route path="/collaborate" element={<Collaborate />} />
+            <Route path="/collaborate/join" element={<JoinRoom />} />
+            <Route path="/collaborate/:roomId" element={<CollaborationRoom />} />
+            <Route path="/community" element={<Community />} />
+            <Route path="/connections" element={<Connections />} />
+            <Route path="/user/:userId" element={<UserProfile />} />
+            <Route path="/news" element={<News />} />
+            <Route path="/news/:id" element={<NewsArticle />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/setup-username" element={<UsernameSetup />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/pricing" element={<Pricing />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
+      </div>
+    </>
   );
 };
 
