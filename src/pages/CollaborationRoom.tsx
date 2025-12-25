@@ -68,7 +68,9 @@ import {
   MessageSquare,
   UserCog,
   Copy,
-  Check
+  Check,
+  Share2,
+  Loader2
 } from 'lucide-react';
 
 interface RoomFile {
@@ -181,17 +183,25 @@ const CollaborationRoom = () => {
   const [terminalOutput, setTerminalOutput] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   
   // Chat & presence state
   const [showChat, setShowChat] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
+  const [inviteCode, setInviteCode] = useState('');
+  const [generatingCode, setGeneratingCode] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
   const [copiedRoomId, setCopiedRoomId] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
+  const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
 
   // Editor refs
   const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<typeof Monaco | null>(null);
+  const isRemoteChange = useRef(false);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   // Get user display name
   const userName = user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'Anonymous';
@@ -248,7 +258,7 @@ const CollaborationRoom = () => {
     }
   }, [collaborators, renderCursors]);
 
-  // Fetch room data
+  // Fetch room data and files
   useEffect(() => {
     if (!roomId) return;
     
@@ -286,48 +296,74 @@ const CollaborationRoom = () => {
           }
         }
 
-        // Fetch participants
+        // Fetch participants with profiles
         const { data: participantsData } = await supabase
           .from('room_participants')
-          .select(`
-            *,
-            profile:user_id (
-              username,
-              display_name,
-              avatar_url
-            )
-          `)
-          .eq('room_id', roomId);
-
-        setParticipants((participantsData as any) || []);
-
-        // Fetch room code/files
-        const { data: codeData } = await supabase
-          .from('collaboration_code')
           .select('*')
           .eq('room_id', roomId);
 
-        if (codeData && codeData.length > 0) {
-          const roomFiles: RoomFile[] = codeData.map((code: any) => ({
-            id: code.id,
-            name: `main.${code.language === 'javascript' ? 'js' : code.language}`,
-            path: `/main.${code.language === 'javascript' ? 'js' : code.language}`,
-            content: code.content,
-            language: code.language,
+        if (participantsData) {
+          // Fetch profiles separately
+          const userIds = participantsData.map(p => p.user_id);
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('user_id, username, display_name, avatar_url')
+            .in('user_id', userIds);
+
+          const participantsWithProfiles = participantsData.map(p => ({
+            ...p,
+            profile: profiles?.find(prof => prof.user_id === p.user_id)
+          }));
+          setParticipants(participantsWithProfiles as Participant[]);
+        }
+
+        // Fetch room files from collaboration_files table
+        const { data: filesData } = await supabase
+          .from('collaboration_files')
+          .select('*')
+          .eq('room_id', roomId)
+          .order('created_at', { ascending: true });
+
+        if (filesData && filesData.length > 0) {
+          const roomFiles: RoomFile[] = filesData.map((file: any) => ({
+            id: file.id,
+            name: file.name,
+            path: file.path,
+            content: file.content || '',
+            language: file.language || getLanguageFromFileName(file.name),
           }));
           setFiles(roomFiles);
         } else {
-          // Create default file structure
-          const defaultFiles: RoomFile[] = [
-            {
-              id: 'default-1',
-              name: 'index.js',
-              path: '/index.js',
-              content: '// Welcome to the collaboration room!\n// Start coding together!\n\nconsole.log("Hello, World!");\n',
-              language: 'javascript',
-            }
-          ];
-          setFiles(defaultFiles);
+          // Create default file if none exist
+          const defaultFile = {
+            name: 'index.js',
+            path: '/index.js',
+            content: '// Welcome to the collaboration room!\n// Start coding together!\n\nconsole.log("Hello, World!");\n',
+            language: 'javascript',
+          };
+
+          const { data: newFile, error: fileError } = await supabase
+            .from('collaboration_files')
+            .insert([{
+              room_id: roomId,
+              name: defaultFile.name,
+              path: defaultFile.path,
+              content: defaultFile.content,
+              language: defaultFile.language,
+              created_by: user?.id
+            }])
+            .select()
+            .single();
+
+          if (!fileError && newFile) {
+            setFiles([{
+              id: newFile.id,
+              name: newFile.name,
+              path: newFile.path,
+              content: newFile.content || '',
+              language: newFile.language || 'javascript',
+            }]);
+          }
         }
 
       } catch (error) {
@@ -343,37 +379,238 @@ const CollaborationRoom = () => {
     };
 
     fetchRoom();
+  }, [roomId, user, toast]);
 
-    // Set up real-time presence tracking
-    if (user && roomId) {
-      const presenceChannel = supabase.channel(`room-presence-${roomId}`);
-      
-      presenceChannel
-        .on('presence', { event: 'sync' }, () => {
-          const presenceState = presenceChannel.presenceState();
-          const currentOnline = new Set<string>();
-          Object.values(presenceState).forEach((presence: any) => {
-            presence.forEach((p: any) => {
-              if (p.user_id) currentOnline.add(p.user_id);
-            });
+  // Set up real-time subscriptions
+  useEffect(() => {
+    if (!roomId || !user) return;
+
+    // Presence channel for online users and typing indicators
+    const presenceChannel = supabase.channel(`room-presence-${roomId}`);
+    
+    presenceChannel
+      .on('presence', { event: 'sync' }, () => {
+        const presenceState = presenceChannel.presenceState();
+        const currentOnline = new Set<string>();
+        const currentTyping = new Set<string>();
+        
+        Object.values(presenceState).forEach((presence: any) => {
+          presence.forEach((p: any) => {
+            if (p.user_id) {
+              currentOnline.add(p.user_id);
+              if (p.isTyping && p.user_id !== user.id) {
+                currentTyping.add(p.user_name || 'Someone');
+              }
+            }
           });
-          setOnlineUsers(currentOnline);
-        })
-        .subscribe(async (status) => {
-          if (status === 'SUBSCRIBED') {
-            await presenceChannel.track({
-              user_id: user.id,
-              user_name: userName,
-              online_at: new Date().toISOString(),
+        });
+        setOnlineUsers(currentOnline);
+        setTypingUsers(currentTyping);
+      })
+      .on('presence', { event: 'join' }, ({ newPresences }) => {
+        newPresences.forEach((p: any) => {
+          if (p.user_id && p.user_id !== user.id) {
+            setOnlineUsers(prev => new Set([...prev, p.user_id]));
+          }
+        });
+      })
+      .on('presence', { event: 'leave' }, ({ leftPresences }) => {
+        leftPresences.forEach((p: any) => {
+          if (p.user_id) {
+            setOnlineUsers(prev => {
+              const newSet = new Set(prev);
+              newSet.delete(p.user_id);
+              return newSet;
+            });
+            setTypingUsers(prev => {
+              const newSet = new Set(prev);
+              newSet.delete(p.user_name || '');
+              return newSet;
             });
           }
         });
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await presenceChannel.track({
+            user_id: user.id,
+            user_name: userName,
+            online_at: new Date().toISOString(),
+            isTyping: false,
+          });
+        }
+      });
 
-      return () => {
-        supabase.removeChannel(presenceChannel);
-      };
+    // Real-time file updates
+    const filesChannel = supabase
+      .channel(`room-files-${roomId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'collaboration_files',
+          filter: `room_id=eq.${roomId}`,
+        },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const newFile = payload.new as any;
+            setFiles(prev => {
+              if (prev.some(f => f.id === newFile.id)) return prev;
+              return [...prev, {
+                id: newFile.id,
+                name: newFile.name,
+                path: newFile.path,
+                content: newFile.content || '',
+                language: newFile.language || 'plaintext',
+              }];
+            });
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedFile = payload.new as any;
+            // Only update if this wasn't our own change
+            if (updatedFile.created_by !== user.id || isRemoteChange.current) {
+              isRemoteChange.current = true;
+              setFiles(prev =>
+                prev.map(f => f.id === updatedFile.id ? {
+                  ...f,
+                  content: updatedFile.content || '',
+                  language: updatedFile.language || f.language,
+                } : f)
+              );
+              setOpenFiles(prev =>
+                prev.map(f => f.id === updatedFile.id ? {
+                  ...f,
+                  content: updatedFile.content || '',
+                } : f)
+              );
+              setActiveFile(prev => 
+                prev?.id === updatedFile.id ? {
+                  ...prev,
+                  content: updatedFile.content || '',
+                } : prev
+              );
+              setTimeout(() => { isRemoteChange.current = false; }, 100);
+            }
+          } else if (payload.eventType === 'DELETE') {
+            const deletedId = (payload.old as any).id;
+            setFiles(prev => prev.filter(f => f.id !== deletedId));
+            setOpenFiles(prev => prev.filter(f => f.id !== deletedId));
+            setActiveFile(prev => prev?.id === deletedId ? null : prev);
+          }
+        }
+      )
+      .subscribe();
+
+    // Real-time participant updates
+    const participantsChannel = supabase
+      .channel(`room-participants-${roomId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'room_participants',
+          filter: `room_id=eq.${roomId}`,
+        },
+        async () => {
+          // Refetch participants when changes occur
+          const { data: participantsData } = await supabase
+            .from('room_participants')
+            .select('*')
+            .eq('room_id', roomId);
+
+          if (participantsData) {
+            const userIds = participantsData.map(p => p.user_id);
+            const { data: profiles } = await supabase
+              .from('profiles')
+              .select('user_id, username, display_name, avatar_url')
+              .in('user_id', userIds);
+
+            const participantsWithProfiles = participantsData.map(p => ({
+              ...p,
+              profile: profiles?.find(prof => prof.user_id === p.user_id)
+            }));
+            setParticipants(participantsWithProfiles as Participant[]);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(presenceChannel);
+      supabase.removeChannel(filesChannel);
+      supabase.removeChannel(participantsChannel);
+    };
+  }, [roomId, user, userName]);
+
+  // Broadcast typing status
+  const broadcastTyping = useCallback(async (isTyping: boolean) => {
+    if (!roomId || !user) return;
+    
+    const channel = supabase.channel(`room-presence-${roomId}`);
+    await channel.track({
+      user_id: user.id,
+      user_name: userName,
+      online_at: new Date().toISOString(),
+      isTyping,
+    });
+  }, [roomId, user, userName]);
+
+  // Generate invite code for private room
+  const generateInviteCode = useCallback(async () => {
+    if (!roomId || !user) return;
+    
+    setGeneratingCode(true);
+    try {
+      // Check if invitation already exists
+      const { data: existing } = await supabase
+        .from('room_invitations')
+        .select('invite_code')
+        .eq('room_id', roomId)
+        .maybeSingle();
+
+      if (existing) {
+        setInviteCode(existing.invite_code);
+      } else {
+        // Generate random 8-character code
+        const code = Array.from({ length: 8 }, () => 
+          'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'[Math.floor(Math.random() * 36)]
+        ).join('');
+
+        const { data, error } = await supabase
+          .from('room_invitations')
+          .insert([{
+            room_id: roomId,
+            invite_code: code,
+            created_by: user.id
+          }])
+          .select()
+          .single();
+
+        if (error) throw error;
+        setInviteCode(data.invite_code);
+      }
+      setShowShareDialog(true);
+    } catch (error) {
+      console.error('Error generating invite code:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate invite code",
+        variant: "destructive"
+      });
+    } finally {
+      setGeneratingCode(false);
     }
-  }, [roomId, user, toast, userName]);
+  }, [roomId, user, toast]);
+
+  // Copy invite code
+  const copyInviteCode = useCallback(() => {
+    const link = `${window.location.origin}/collaborate/join?code=${inviteCode}`;
+    navigator.clipboard.writeText(link);
+    setCopiedCode(true);
+    setTimeout(() => setCopiedCode(false), 2000);
+    toast({ title: "Copied!", description: "Invite link copied to clipboard" });
+  }, [inviteCode, toast]);
 
   // Delete room function
   const handleDeleteRoom = useCallback(async () => {
@@ -418,7 +655,6 @@ const CollaborationRoom = () => {
   // Handle file selection
   const handleFileSelect = useCallback((file: RoomFile) => {
     if (file.isFolder) {
-      // Toggle folder
       setFiles(prevFiles => 
         prevFiles.map(f => 
           f.id === file.id ? { ...f, isOpen: !f.isOpen } : f
@@ -427,7 +663,6 @@ const CollaborationRoom = () => {
       return;
     }
 
-    // Check if file is already open
     const isAlreadyOpen = openFiles.some(f => f.id === file.id);
     if (!isAlreadyOpen) {
       setOpenFiles(prev => [...prev, file]);
@@ -445,60 +680,65 @@ const CollaborationRoom = () => {
     }
   }, [activeFile, openFiles]);
 
-  // Handle code change
+  // Handle code change with real-time sync
   const handleCodeChange = useCallback((value: string | undefined) => {
-    if (!activeFile || value === undefined) return;
+    if (!activeFile || value === undefined || isRemoteChange.current) return;
     
-    // Update file content
+    // Update local state immediately
     setFiles(prevFiles =>
       prevFiles.map(f =>
         f.id === activeFile.id ? { ...f, content: value, isDirty: true } : f
       )
     );
-    
-    // Update in open files
     setOpenFiles(prevOpenFiles =>
       prevOpenFiles.map(f =>
         f.id === activeFile.id ? { ...f, content: value, isDirty: true } : f
       )
     );
-
-    // Update active file
     setActiveFile(prev => prev ? { ...prev, content: value, isDirty: true } : null);
-  }, [activeFile]);
+
+    // Broadcast typing
+    broadcastTyping(true);
+
+    // Debounce sync to database
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+
+    debounceRef.current = setTimeout(async () => {
+      if (!roomId || !user) return;
+
+      try {
+        await supabase
+          .from('collaboration_files')
+          .update({
+            content: value,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', activeFile.id);
+      } catch (error) {
+        console.error('Error syncing code:', error);
+      }
+
+      // Stop typing indicator
+      broadcastTyping(false);
+    }, 500);
+  }, [activeFile, roomId, user, broadcastTyping]);
 
   // Save file
   const handleSaveFile = useCallback(async () => {
     if (!activeFile || !roomId) return;
 
+    setIsSaving(true);
     try {
-      // Try to update existing code or insert new
-      const { data: existingCode } = await supabase
-        .from('collaboration_code')
-        .select('id')
-        .eq('room_id', roomId)
-        .maybeSingle();
-
-      if (existingCode) {
-        await supabase
-          .from('collaboration_code')
-          .update({
-            content: activeFile.content,
-            language: activeFile.language,
-            updated_by: user?.id,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existingCode.id);
-      } else {
-        await supabase
-          .from('collaboration_code')
-          .insert([{
-            room_id: roomId,
-            content: activeFile.content,
-            language: activeFile.language,
-            updated_by: user?.id
-          }]);
-      }
+      await supabase
+        .from('collaboration_files')
+        .update({
+          content: activeFile.content,
+          language: activeFile.language,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', activeFile.id);
 
       // Mark file as saved
       setFiles(prevFiles =>
@@ -524,12 +764,14 @@ const CollaborationRoom = () => {
         description: "Failed to save file",
         variant: "destructive"
       });
+    } finally {
+      setIsSaving(false);
     }
-  }, [activeFile, roomId, user, toast]);
+  }, [activeFile, roomId, toast]);
 
-  // Create new file
-  const handleCreateFile = useCallback(() => {
-    if (!newFileName.trim()) {
+  // Create new file - now saves to database
+  const handleCreateFile = useCallback(async () => {
+    if (!newFileName.trim() || !roomId || !user) {
       toast({
         title: "Error",
         description: "Please enter a file name",
@@ -539,32 +781,72 @@ const CollaborationRoom = () => {
     }
 
     const language = getLanguageFromFileName(newFileName);
-    const newFile: RoomFile = {
-      id: `file-${Date.now()}`,
-      name: newFileName,
-      path: `/${newFileName}`,
-      content: '',
-      language,
-    };
 
-    setFiles(prev => [...prev, newFile]);
-    setOpenFiles(prev => [...prev, newFile]);
-    setActiveFile(newFile);
-    setShowNewFileDialog(false);
-    setNewFileName('');
-  }, [newFileName, toast]);
+    try {
+      const { data: newFile, error } = await supabase
+        .from('collaboration_files')
+        .insert([{
+          room_id: roomId,
+          name: newFileName,
+          path: `/${newFileName}`,
+          content: '',
+          language,
+          created_by: user.id
+        }])
+        .select()
+        .single();
 
-  // Delete file
-  const handleDeleteFile = useCallback((fileId: string) => {
-    setFiles(prev => prev.filter(f => f.id !== fileId));
-    setOpenFiles(prev => prev.filter(f => f.id !== fileId));
-    if (activeFile?.id === fileId) {
-      setActiveFile(null);
+      if (error) throw error;
+
+      const file: RoomFile = {
+        id: newFile.id,
+        name: newFile.name,
+        path: newFile.path,
+        content: newFile.content || '',
+        language: newFile.language || language,
+      };
+
+      setFiles(prev => [...prev, file]);
+      setOpenFiles(prev => [...prev, file]);
+      setActiveFile(file);
+      setShowNewFileDialog(false);
+      setNewFileName('');
+
+      toast({ title: "Success", description: `${newFileName} created` });
+    } catch (error) {
+      console.error('Error creating file:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create file",
+        variant: "destructive"
+      });
     }
-    toast({
-      title: "Deleted",
-      description: "File deleted"
-    });
+  }, [newFileName, roomId, user, toast]);
+
+  // Delete file - now deletes from database
+  const handleDeleteFile = useCallback(async (fileId: string) => {
+    try {
+      const { error } = await supabase
+        .from('collaboration_files')
+        .delete()
+        .eq('id', fileId);
+
+      if (error) throw error;
+
+      setFiles(prev => prev.filter(f => f.id !== fileId));
+      setOpenFiles(prev => prev.filter(f => f.id !== fileId));
+      if (activeFile?.id === fileId) {
+        setActiveFile(null);
+      }
+      toast({ title: "Deleted", description: "File deleted" });
+    } catch (error) {
+      console.error('Error deleting file:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete file",
+        variant: "destructive"
+      });
+    }
   }, [activeFile, toast]);
 
   // Run code
@@ -631,12 +913,15 @@ const CollaborationRoom = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleSaveFile]);
 
+  // Get online participant count
+  const onlineCount = onlineUsers.size;
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#1e1e1e] flex items-center justify-center">
         <div className="text-center">
-          <Skeleton className="h-8 w-48 mb-4 mx-auto bg-[#2d2d2d]" />
-          <Skeleton className="h-4 w-32 mx-auto bg-[#2d2d2d]" />
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-500" />
+          <p className="text-gray-400">Loading collaboration room...</p>
         </div>
       </div>
     );
@@ -680,11 +965,21 @@ const CollaborationRoom = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Typing indicator */}
+          {typingUsers.size > 0 && (
+            <div className="flex items-center gap-2 mr-2 text-xs text-gray-400">
+              <span className="animate-pulse">
+                {Array.from(typingUsers).slice(0, 2).join(', ')}
+                {typingUsers.size > 2 ? ` +${typingUsers.size - 2}` : ''} typing...
+              </span>
+            </div>
+          )}
+
           {/* Participants with presence indicators */}
           <TooltipProvider>
             <div className="flex items-center gap-1 mr-2">
               <Users className="h-4 w-4 text-gray-400" />
-              <span className="text-sm text-gray-400">{participants.length}</span>
+              <span className="text-sm text-gray-400">{onlineCount}/{participants.length}</span>
               <div className="flex -space-x-2 ml-2">
                 {participants.slice(0, 5).map((p) => {
                   const isOnline = onlineUsers.has(p.user_id);
@@ -700,7 +995,6 @@ const CollaborationRoom = () => {
                           >
                             {displayName[0].toUpperCase()}
                           </div>
-                          {/* Status dot */}
                           <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ${statusColor} border-2 border-[#323233]`} />
                         </div>
                       </TooltipTrigger>
@@ -721,6 +1015,19 @@ const CollaborationRoom = () => {
           </TooltipProvider>
 
           <div className="h-4 w-px bg-[#3c3c3c]" />
+
+          {/* Share button for private rooms */}
+          {room.is_private && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={generateInviteCode}
+              disabled={generatingCode}
+              className="text-gray-300 hover:text-white hover:bg-[#464647]"
+            >
+              {generatingCode ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
+            </Button>
+          )}
 
           {/* Chat button */}
           <Button
@@ -745,9 +1052,9 @@ const CollaborationRoom = () => {
             size="sm"
             onClick={handleSaveFile}
             className="text-gray-300 hover:text-white hover:bg-[#464647]"
-            disabled={!activeFile?.isDirty}
+            disabled={!activeFile?.isDirty || isSaving}
           >
-            <Save className="h-4 w-4" />
+            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
           </Button>
           <Button
             variant="ghost"
@@ -838,49 +1145,65 @@ const CollaborationRoom = () => {
                   {/* File Tree */}
                   <ScrollArea className="flex-1">
                     <div className="py-2">
-                      {files.map((file) => (
-                        <div
-                          key={file.id}
-                          className={`flex items-center gap-2 px-4 py-1 cursor-pointer hover:bg-[#2a2d2e] group ${
-                            activeFile?.id === file.id ? 'bg-[#37373d]' : ''
-                          }`}
-                          onClick={() => handleFileSelect(file)}
-                        >
-                          {file.isFolder && (
-                            file.isOpen ? 
-                              <ChevronDown className="h-4 w-4 text-gray-400" /> : 
-                              <ChevronRight className="h-4 w-4 text-gray-400" />
-                          )}
-                          {getFileIcon(file.name, !!file.isFolder)}
-                          <span className="text-sm text-gray-300 flex-1 truncate">
-                            {file.name}
-                          </span>
-                          {file.isDirty && (
-                            <Circle className="h-2 w-2 fill-white text-white" />
-                          )}
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-5 w-5 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-white hover:bg-[#37373d]"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <MoreVertical className="h-3 w-3" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent className="bg-[#3c3c3c] border-[#454545]">
-                              <DropdownMenuItem 
-                                className="text-gray-300 hover:bg-[#094771] hover:text-white focus:bg-[#094771] focus:text-white"
-                                onClick={() => handleDeleteFile(file.id)}
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                      {files.length === 0 ? (
+                        <div className="px-4 py-8 text-center">
+                          <FileCode className="h-8 w-8 mx-auto mb-2 text-gray-500" />
+                          <p className="text-sm text-gray-500 mb-2">No files yet</p>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setShowNewFileDialog(true)}
+                            className="text-gray-400"
+                          >
+                            <FilePlus className="h-4 w-4 mr-1" />
+                            Create File
+                          </Button>
                         </div>
-                      ))}
+                      ) : (
+                        files.map((file) => (
+                          <div
+                            key={file.id}
+                            className={`flex items-center gap-2 px-4 py-1 cursor-pointer hover:bg-[#2a2d2e] group ${
+                              activeFile?.id === file.id ? 'bg-[#37373d]' : ''
+                            }`}
+                            onClick={() => handleFileSelect(file)}
+                          >
+                            {file.isFolder && (
+                              file.isOpen ? 
+                                <ChevronDown className="h-4 w-4 text-gray-400" /> : 
+                                <ChevronRight className="h-4 w-4 text-gray-400" />
+                            )}
+                            {getFileIcon(file.name, !!file.isFolder)}
+                            <span className="text-sm text-gray-300 flex-1 truncate">
+                              {file.name}
+                            </span>
+                            {file.isDirty && (
+                              <Circle className="h-2 w-2 fill-white text-white" />
+                            )}
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-5 w-5 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-white hover:bg-[#37373d]"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <MoreVertical className="h-3 w-3" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="bg-[#3c3c3c] border-[#454545]">
+                                <DropdownMenuItem 
+                                  className="text-gray-300 hover:bg-[#094771] hover:text-white focus:bg-[#094771] focus:text-white"
+                                  onClick={() => handleDeleteFile(file.id)}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </ScrollArea>
                 </div>
@@ -1070,7 +1393,7 @@ const CollaborationRoom = () => {
               </div>
             </div>
           )}
-          <span>{participants.length} collaborator{participants.length !== 1 ? 's' : ''} online</span>
+          <span>{onlineCount} online</span>
           <span>Spaces: 2</span>
         </div>
       </div>
@@ -1146,6 +1469,36 @@ const CollaborationRoom = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Share Dialog */}
+      <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
+        <DialogContent className="bg-[#252526] border-[#3c3c3c]">
+          <DialogHeader>
+            <DialogTitle className="text-white">Share Room</DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Share this invite code to let others join "{room?.name}"
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Input 
+                value={inviteCode} 
+                readOnly 
+                className="font-mono text-lg tracking-widest text-center bg-[#3c3c3c] border-[#3c3c3c] text-white"
+              />
+              <Button onClick={copyInviteCode} variant="outline" className="border-[#3c3c3c]">
+                {copiedCode ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              </Button>
+            </div>
+            <p className="text-sm text-gray-400 text-center">
+              Or share this link: {window.location.origin}/collaborate/join?code={inviteCode}
+            </p>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setShowShareDialog(false)}>Done</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Delete Room Confirmation Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent className="bg-[#252526] border-[#3c3c3c]">
@@ -1189,12 +1542,16 @@ const CollaborationRoom = () => {
                 <p className="text-white font-medium">{room?.is_private ? 'Private' : 'Public'}</p>
               </div>
               <div>
-                <Label className="text-gray-400 text-xs">Your Role</Label>
-                <p className="text-white font-medium capitalize">{isOwner ? 'Owner' : 'Member'}</p>
-              </div>
-              <div>
                 <Label className="text-gray-400 text-xs">Participants</Label>
                 <p className="text-white font-medium">{participants.length}</p>
+              </div>
+              <div>
+                <Label className="text-gray-400 text-xs">Online Now</Label>
+                <p className="text-white font-medium">{onlineCount}</p>
+              </div>
+              <div>
+                <Label className="text-gray-400 text-xs">Files</Label>
+                <p className="text-white font-medium">{files.length}</p>
               </div>
             </div>
             {room?.description && (
@@ -1203,19 +1560,6 @@ const CollaborationRoom = () => {
                 <p className="text-white">{room.description}</p>
               </div>
             )}
-            <div>
-              <Label className="text-gray-400 text-xs">Share Link</Label>
-              <div className="flex items-center gap-2 mt-1">
-                <Input 
-                  value={`${window.location.origin}/collaborate/${roomId}`}
-                  readOnly
-                  className="bg-[#3c3c3c] border-[#3c3c3c] text-white text-sm"
-                />
-                <Button size="sm" onClick={handleCopyRoomId} variant="outline" className="border-[#3c3c3c]">
-                  {copiedRoomId ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                </Button>
-              </div>
-            </div>
           </div>
           <DialogFooter>
             <Button onClick={() => setShowSettingsDialog(false)}>Close</Button>
