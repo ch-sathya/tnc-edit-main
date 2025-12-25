@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, Suspense } from "react";
 import { Loader2 } from "lucide-react";
 import Index from "./pages/Index";
 import Home from "./pages/Home";
@@ -28,57 +28,23 @@ import UserProfile from "./pages/UserProfile";
 
 const queryClient = new QueryClient();
 
-// Code-style loading indicator
 const PageLoader = () => (
   <div className="min-h-screen bg-background flex items-center justify-center">
-    <div className="flex flex-col items-center gap-4">
-      <div className="flex gap-1">
-        {[0, 1, 2, 3, 4].map((i) => (
-          <div
-            key={i}
-            className="w-2 h-8 bg-emerald-500 rounded-sm animate-pulse"
-            style={{
-              animationDelay: `${i * 0.1}s`,
-              animationDuration: '0.6s',
-            }}
-          />
-        ))}
-      </div>
-      <span className="text-emerald-500 font-mono text-sm">Loading...</span>
+    <div className="flex items-center gap-3 text-muted-foreground">
+      <Loader2 className="h-5 w-5 animate-spin text-primary" aria-hidden="true" />
+      <span className="text-sm">Loading…</span>
     </div>
   </div>
 );
 
-// Smooth animated routes wrapper
+// Smooth route transitions: fade-in only (no layout-shifting translate)
 const AnimatedRoutes = () => {
   const location = useLocation();
-  const [displayLocation, setDisplayLocation] = useState(location);
-  const [transitionStage, setTransitionStage] = useState<'enter' | 'exit'>('enter');
-
-  useEffect(() => {
-    if (location.pathname !== displayLocation.pathname) {
-      setTransitionStage('exit');
-    }
-  }, [location, displayLocation]);
-
-  const handleTransitionEnd = () => {
-    if (transitionStage === 'exit') {
-      setDisplayLocation(location);
-      setTransitionStage('enter');
-    }
-  };
 
   return (
-    <div 
-      className={`min-h-screen transition-all duration-300 ease-out ${
-        transitionStage === 'exit' 
-          ? 'opacity-0 translate-y-2' 
-          : 'opacity-100 translate-y-0'
-      }`}
-      onTransitionEnd={handleTransitionEnd}
-    >
+    <div key={location.pathname} className="min-h-screen animate-fade-in">
       <Suspense fallback={<PageLoader />}>
-        <Routes location={displayLocation}>
+        <Routes location={location}>
           <Route path="/" element={<Index />} />
           <Route path="/home" element={<Home />} />
           <Route path="/portfolio" element={<Portfolio />} />

@@ -5,18 +5,26 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  Github, Linkedin, Twitter, Globe, MapPin, FolderOpen, Star, 
-  UserPlus, Check, Clock, MessageCircle, ExternalLink 
+import {
+  Github,
+  Linkedin,
+  Twitter,
+  Globe,
+  MapPin,
+  FolderOpen,
+  Star,
+  UserPlus,
+  Check,
+  Clock,
+  MessageCircle,
+  ExternalLink,
+  Loader2,
 } from 'lucide-react';
 import { DirectMessageModal } from '@/components/DirectMessageModal';
-import { AnimatedSection } from '@/components/AnimatedSection';
-import { UserProfilePageSkeleton } from '@/components/PageSkeletons';
 
 interface UserProfileData {
   id: string;
@@ -249,7 +257,10 @@ const UserProfile = () => {
       <>
         <Navigation />
         <div className="min-h-screen bg-background">
-          <UserProfilePageSkeleton />
+          <div className="container mx-auto py-16 px-4 max-w-5xl flex items-center justify-center text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin text-primary mr-2" aria-hidden="true" />
+            <span className="text-sm">Loading profile…</span>
+          </div>
         </div>
       </>
     );
@@ -280,7 +291,7 @@ const UserProfile = () => {
       <div className="min-h-screen bg-background">
         <div className="container mx-auto py-8 px-4 max-w-5xl">
           {/* Profile Header */}
-          <AnimatedSection delay={0}>
+          
           <Card className="mb-8">
             <CardContent className="pt-6">
               <div className="flex flex-col md:flex-row gap-6">
@@ -416,10 +427,9 @@ const UserProfile = () => {
               </div>
             </CardContent>
           </Card>
-          </AnimatedSection>
 
           {/* Stats */}
-          <AnimatedSection delay={100}>
+          
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -449,10 +459,9 @@ const UserProfile = () => {
               </CardContent>
             </Card>
           </div>
-          </AnimatedSection>
 
           {/* Content Tabs */}
-          <AnimatedSection delay={200}>
+          
           <Tabs defaultValue="projects" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="projects">Projects</TabsTrigger>
@@ -562,7 +571,7 @@ const UserProfile = () => {
               )}
             </TabsContent>
           </Tabs>
-          </AnimatedSection>
+          
         </div>
       </div>
 

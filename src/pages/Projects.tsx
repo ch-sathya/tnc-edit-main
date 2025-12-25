@@ -4,11 +4,10 @@ import Navigation from '@/components/Navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
-import { Github, Globe, Search, Filter, Plus, Star, Sparkles, Edit, Trash2 } from 'lucide-react';
+import { Github, Globe, Search, Filter, Plus, Star, Sparkles, Edit, Trash2, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { ProjectFormModal } from '@/components/ProjectFormModal';
@@ -301,16 +300,9 @@ const Projects = () => {
                 <Sparkles className="h-5 w-5 text-primary" />
                 <h2 className="text-2xl font-bold">Featured Projects</h2>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {[1, 2, 3].map(i => (
-                  <Card key={i}>
-                    <Skeleton className="aspect-video w-full" />
-                    <CardHeader>
-                      <Skeleton className="h-6 w-3/4 mb-2" />
-                      <Skeleton className="h-4 w-full" />
-                    </CardHeader>
-                  </Card>
-                ))}
+              <div className="flex items-center gap-2 text-muted-foreground py-10">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" aria-hidden="true" />
+                <span className="text-sm">Loading projects…</span>
               </div>
             </div>
           ) : featuredProjects.length > 0 && (
@@ -359,32 +351,15 @@ const Projects = () => {
           <div className="mb-4">
             <h2 className="text-2xl font-bold mb-1">All Projects</h2>
             <p className="text-sm text-muted-foreground">
-              Showing {filteredProjects.length} of {projects.length} projects
+              {loading ? 'Loading projects…' : `Showing ${filteredProjects.length} of ${projects.length} projects`}
             </p>
           </div>
 
           {/* Projects Grid */}
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[1, 2, 3, 4, 5, 6].map(i => (
-                <Card key={i}>
-                  <Skeleton className="aspect-video w-full" />
-                  <CardHeader>
-                    <Skeleton className="h-6 w-3/4 mb-2" />
-                    <Skeleton className="h-4 w-full" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex gap-2 mb-4">
-                      <Skeleton className="h-6 w-16" />
-                      <Skeleton className="h-6 w-16" />
-                    </div>
-                    <div className="flex gap-2">
-                      <Skeleton className="h-8 flex-1" />
-                      <Skeleton className="h-8 flex-1" />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+            <div className="flex items-center gap-2 text-muted-foreground py-16">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" aria-hidden="true" />
+              <span className="text-sm">Loading projects…</span>
             </div>
           ) : filteredProjects.length === 0 ? (
             <Card>
