@@ -955,6 +955,10 @@ export type Database = {
         Args: { snippet_code: string }
         Returns: undefined
       }
+      is_group_member: {
+        Args: { _group_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_room_participant_safe: {
         Args: { check_room_id: string; check_user_id: string }
         Returns: boolean
