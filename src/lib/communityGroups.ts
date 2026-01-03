@@ -426,44 +426,25 @@ export const joinCommunityGroup = async (groupId: string, userId: string): Promi
 
 /**
  * Leave a community group
- * Special handling for group owners: if owner leaves and there are other members,
- * the group is deleted to prevent orphaned groups
+ * Special handling for group owners: ownership is transferred to the next oldest member.
+ * If owner is the only member, the group is deleted.
  */
 export const leaveCommunityGroup = async (groupId: string, userId: string): Promise<void> => {
   try {
-    // Check if user is a member and get group info
-    const { data: groupInfo, error: groupError } = await supabase
-      .from('community_groups')
-      .select(`
-        id,
-        created_by,
-        name,
-        group_memberships(count)
-      `)
-      .eq('id', groupId)
-      .single();
-
-    if (groupError) {
-      throw new CommunityGroupErrorClass({
-        message: 'Failed to fetch group information',
-        code: 'FETCH_GROUP_ERROR',
-        details: groupError
-      });
-    }
-
-    if (!groupInfo) {
-      throw new CommunityGroupErrorClass({
-        message: 'Group not found',
-        code: 'GROUP_NOT_FOUND'
-      });
-    }
-
-    // Check if user is a member
-    const { data: membership } = await supabase
+    // Check if user is a member first
+    const { data: membership, error: membershipError } = await supabase
       .from('group_memberships')
-      .select('id')
+      .select('id, role')
       .match({ group_id: groupId, user_id: userId })
-      .single();
+      .maybeSingle();
+
+    if (membershipError) {
+      throw new CommunityGroupErrorClass({
+        message: 'Failed to check membership status',
+        code: 'CHECK_MEMBERSHIP_ERROR',
+        details: membershipError
+      });
+    }
 
     if (!membership) {
       throw new CommunityGroupErrorClass({
@@ -472,12 +453,60 @@ export const leaveCommunityGroup = async (groupId: string, userId: string): Prom
       });
     }
 
-    const isOwner = groupInfo.created_by === userId;
-    const memberCount = Array.isArray(groupInfo.group_memberships) ? groupInfo.group_memberships.length : 0;
+    // Get group info and member count
+    const { data: groupInfo, error: groupError } = await supabase
+      .from('community_groups')
+      .select('id, created_by, name')
+      .eq('id', groupId)
+      .single();
 
-    // If owner is leaving and there are other members, delete the entire group
-    // This prevents orphaned groups without owners
-    if (isOwner && memberCount > 1) {
+    if (groupError || !groupInfo) {
+      throw new CommunityGroupErrorClass({
+        message: 'Group not found',
+        code: 'GROUP_NOT_FOUND',
+        details: groupError
+      });
+    }
+
+    // Get actual member count
+    const { count: memberCount, error: countError } = await supabase
+      .from('group_memberships')
+      .select('*', { count: 'exact', head: true })
+      .eq('group_id', groupId);
+
+    if (countError) {
+      throw new CommunityGroupErrorClass({
+        message: 'Failed to get member count',
+        code: 'COUNT_ERROR',
+        details: countError
+      });
+    }
+
+    const isOwner = groupInfo.created_by === userId;
+    const actualMemberCount = memberCount || 0;
+
+    // If owner is leaving and there are other members, transfer ownership first
+    if (isOwner && actualMemberCount > 1) {
+      // Call the database function to transfer ownership
+      const { data: newOwnerId, error: transferError } = await supabase
+        .rpc('transfer_group_ownership_on_leave', {
+          p_group_id: groupId,
+          p_current_owner: userId
+        });
+
+      if (transferError) {
+        throw new CommunityGroupErrorClass({
+          message: 'Failed to transfer group ownership',
+          code: 'TRANSFER_OWNERSHIP_ERROR',
+          details: transferError
+        });
+      }
+
+      console.log('Ownership transferred to:', newOwnerId);
+    }
+
+    // If owner is the only member, delete the group
+    if (isOwner && actualMemberCount === 1) {
       const { error: deleteError } = await supabase
         .from('community_groups')
         .delete()
@@ -485,15 +514,15 @@ export const leaveCommunityGroup = async (groupId: string, userId: string): Prom
 
       if (deleteError) {
         throw new CommunityGroupErrorClass({
-          message: 'Failed to delete group when owner left',
-          code: 'DELETE_ON_OWNER_LEAVE_ERROR',
+          message: 'Failed to delete empty group',
+          code: 'DELETE_EMPTY_GROUP_ERROR',
           details: deleteError
         });
       }
-      return; // Group deleted, no need to remove membership
+      return; // Group deleted, done
     }
 
-    // For non-owners or owners of single-member groups, just remove membership
+    // Remove the user's membership
     const { error: leaveError } = await supabase
       .from('group_memberships')
       .delete()
@@ -506,9 +535,6 @@ export const leaveCommunityGroup = async (groupId: string, userId: string): Prom
         details: leaveError
       });
     }
-
-    // If owner left a single-member group, the group becomes empty but remains
-    // This allows for the natural cleanup through the cascade delete when the group is eventually deleted
   } catch (error) {
     if (error instanceof CommunityGroupErrorClass) {
       throw error;

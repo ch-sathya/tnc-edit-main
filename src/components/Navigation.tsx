@@ -39,7 +39,7 @@ const Navigation: React.FC = () => {
   }];
 
   return (
-    <nav className="bg-card border-b border-border">
+    <nav className="glass sticky top-0 z-50 border-b border-border/50 backdrop-blur-xl">
       <div className="flex items-center justify-between h-16 w-full">
         {/* Left side - Title and Mobile Nav */}
         <div className="flex items-center gap-2 pl-2">
