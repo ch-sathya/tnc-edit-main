@@ -6,10 +6,20 @@ import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Loader2, Eye, EyeOff, ArrowLeft, CheckCircle, XCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { z } from 'zod';
 
 type AuthMode = 'login' | 'signup' | 'forgot-password';
+
+// Validation schemas
+const emailSchema = z.string().email('Please enter a valid email address');
+
+const passwordSchema = z.string()
+  .min(8, 'Password must be at least 8 characters')
+  .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+  .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+  .regex(/[0-9]/, 'Password must contain at least one number');
 
 export default function Auth() {
   const [mode, setMode] = useState<AuthMode>('login');
@@ -19,6 +29,8 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [resetSent, setResetSent] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
@@ -29,6 +41,30 @@ export default function Auth() {
       checkUserProfileSetup();
     }
   }, [user, authLoading]);
+
+  // Validate email on change
+  useEffect(() => {
+    if (email) {
+      const result = emailSchema.safeParse(email);
+      setEmailError(result.success ? null : result.error.errors[0].message);
+    } else {
+      setEmailError(null);
+    }
+  }, [email]);
+
+  // Validate password on change (only in signup mode)
+  useEffect(() => {
+    if (mode === 'signup' && password) {
+      const errors: string[] = [];
+      if (password.length < 8) errors.push('At least 8 characters');
+      if (!/[a-z]/.test(password)) errors.push('One lowercase letter');
+      if (!/[A-Z]/.test(password)) errors.push('One uppercase letter');
+      if (!/[0-9]/.test(password)) errors.push('One number');
+      setPasswordErrors(errors);
+    } else {
+      setPasswordErrors([]);
+    }
+  }, [password, mode]);
 
   const checkUserProfileSetup = async () => {
     if (!user) return;
@@ -53,6 +89,18 @@ export default function Auth() {
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate email
+    const emailResult = emailSchema.safeParse(email);
+    if (!emailResult.success) {
+      toast({
+        title: "Invalid Email",
+        description: emailResult.error.errors[0].message,
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -81,6 +129,40 @@ export default function Auth() {
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate email
+    const emailResult = emailSchema.safeParse(email);
+    if (!emailResult.success) {
+      toast({
+        title: "Invalid Email",
+        description: emailResult.error.errors[0].message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate password for signup
+    if (mode === 'signup') {
+      const passwordResult = passwordSchema.safeParse(password);
+      if (!passwordResult.success) {
+        toast({
+          title: "Weak Password",
+          description: passwordResult.error.errors[0].message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        toast({
+          title: "Passwords Don't Match",
+          description: "Please make sure your passwords match.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     setLoading(true);
 
     try {
@@ -97,10 +179,6 @@ export default function Auth() {
           description: "Successfully signed in.",
         });
       } else if (mode === 'signup') {
-        if (password !== confirmPassword) {
-          throw new Error("Passwords don't match");
-        }
-        
         const redirectUrl = `${window.location.origin}/`;
         const { error } = await supabase.auth.signUp({
           email,
@@ -128,6 +206,17 @@ export default function Auth() {
     }
   };
 
+  const PasswordRequirement = ({ met, text }: { met: boolean; text: string }) => (
+    <div className={`flex items-center gap-2 text-xs ${met ? 'text-green-500' : 'text-muted-foreground'}`}>
+      {met ? (
+        <CheckCircle className="h-3 w-3" />
+      ) : (
+        <XCircle className="h-3 w-3" />
+      )}
+      {text}
+    </div>
+  );
+
   // Forgot Password View
   if (mode === 'forgot-password') {
     return (
@@ -151,13 +240,17 @@ export default function Auth() {
                     id="email"
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => setEmail(e.target.value.trim())}
                     placeholder="Enter your email"
                     required
+                    className={emailError ? 'border-destructive' : ''}
                   />
+                  {emailError && (
+                    <p className="text-xs text-destructive">{emailError}</p>
+                  )}
                 </div>
                 
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button type="submit" className="w-full" disabled={loading || !!emailError}>
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Send Reset Link
                 </Button>
@@ -220,10 +313,14 @@ export default function Auth() {
                 id="email"
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => setEmail(e.target.value.trim())}
                 placeholder="Enter your email"
                 required
+                className={emailError ? 'border-destructive' : ''}
               />
+              {emailError && (
+                <p className="text-xs text-destructive">{emailError}</p>
+              )}
             </div>
             
             <div className="space-y-2">
@@ -247,6 +344,28 @@ export default function Auth() {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </Button>
               </div>
+              
+              {/* Password requirements for signup */}
+              {mode === 'signup' && password && (
+                <div className="space-y-1 pt-1">
+                  <PasswordRequirement 
+                    met={password.length >= 8} 
+                    text="At least 8 characters" 
+                  />
+                  <PasswordRequirement 
+                    met={/[a-z]/.test(password)} 
+                    text="One lowercase letter" 
+                  />
+                  <PasswordRequirement 
+                    met={/[A-Z]/.test(password)} 
+                    text="One uppercase letter" 
+                  />
+                  <PasswordRequirement 
+                    met={/[0-9]/.test(password)} 
+                    text="One number" 
+                  />
+                </div>
+              )}
             </div>
             
             {mode === 'signup' && (
@@ -259,7 +378,11 @@ export default function Auth() {
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Confirm your password"
                   required
+                  className={confirmPassword && password !== confirmPassword ? 'border-destructive' : ''}
                 />
+                {confirmPassword && password !== confirmPassword && (
+                  <p className="text-xs text-destructive">Passwords do not match</p>
+                )}
               </div>
             )}
 
@@ -276,7 +399,11 @@ export default function Auth() {
               </div>
             )}
             
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={loading || !!emailError || (mode === 'signup' && passwordErrors.length > 0)}
+            >
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {mode === 'login' ? 'Sign In' : 'Create Account'}
             </Button>
@@ -285,7 +412,10 @@ export default function Auth() {
           <div className="mt-4 text-center">
             <Button
               variant="link"
-              onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
+              onClick={() => {
+                setMode(mode === 'login' ? 'signup' : 'login');
+                setPasswordErrors([]);
+              }}
               className="text-sm"
             >
               {mode === 'login' 
