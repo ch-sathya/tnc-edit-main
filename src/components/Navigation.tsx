@@ -1,9 +1,10 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Home, FolderOpen, User, Users, MessageSquare, Newspaper } from 'lucide-react';
+import { Home, FolderOpen, User, Users, MessageSquare, Newspaper, LayoutDashboard } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { MobileNav } from '@/components/MobileNav';
 import { NotificationBell } from '@/components/NotificationBell';
+import { GlobalSearch } from '@/components/GlobalSearch';
 import ProfileDropdown from '@/components/ProfileDropdown';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -12,31 +13,15 @@ const Navigation: React.FC = () => {
   const location = useLocation();
   const { user } = useAuth();
 
-  const navItems = [{
-    path: '/',
-    label: 'Home',
-    icon: Home
-  }, {
-    path: '/portfolio',
-    label: 'Portfolio',
-    icon: User
-  }, {
-    path: '/projects',
-    label: 'Projects',
-    icon: FolderOpen
-  }, {
-    path: '/collaborate',
-    label: 'Collaborate',
-    icon: Users
-  }, {
-    path: '/community',
-    label: 'Community',
-    icon: MessageSquare
-  }, {
-    path: '/news',
-    label: 'News',
-    icon: Newspaper
-  }];
+  const navItems = [
+    { path: '/', label: 'Home', icon: Home },
+    ...(user ? [{ path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard }] : []),
+    { path: '/portfolio', label: 'Portfolio', icon: User },
+    { path: '/projects', label: 'Projects', icon: FolderOpen },
+    { path: '/collaborate', label: 'Collaborate', icon: Users },
+    { path: '/community', label: 'Community', icon: MessageSquare },
+    { path: '/news', label: 'News', icon: Newspaper },
+  ];
 
   return (
     <nav className="glass sticky top-0 z-50 border-b border-border/50 backdrop-blur-xl">
@@ -54,9 +39,12 @@ const Navigation: React.FC = () => {
         
         {/* Right side - Navigation and User */}
         <div className="flex items-center space-x-2 md:space-x-4 pr-2">
+          {/* Global Search */}
+          <GlobalSearch />
+          
           {/* Navigation Items */}
-          <div className="hidden md:block">
-            <div className="flex items-baseline space-x-2">
+          <div className="hidden lg:block">
+            <div className="flex items-baseline space-x-1">
               {navItems.map(item => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.path;
@@ -66,10 +54,10 @@ const Navigation: React.FC = () => {
                     variant={isActive ? "default" : "ghost"} 
                     size="sm"
                     onClick={() => navigate(item.path)}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-1.5"
                   >
                     <Icon className="h-4 w-4" />
-                    {item.label}
+                    <span className="hidden xl:inline">{item.label}</span>
                   </Button>
                 );
               })}

@@ -8,6 +8,7 @@ import { Loader2 } from "lucide-react";
 import { TopLoadingBar } from "@/components/TopLoadingBar";
 import Index from "./pages/Index";
 import Home from "./pages/Home";
+import Dashboard from "./pages/Dashboard";
 import Portfolio from "./pages/Portfolio";
 import Projects from "./pages/Projects";
 import ProjectDetail from "./pages/ProjectDetail";
@@ -27,6 +28,7 @@ import Pricing from "./pages/Pricing";
 import NotFound from "./pages/NotFound";
 import UserProfile from "./pages/UserProfile";
 import SharedSnippet from "./pages/SharedSnippet";
+import Notifications from "./pages/Notifications";
 
 const queryClient = new QueryClient();
 
@@ -51,6 +53,7 @@ const AnimatedRoutes = () => {
           <Routes location={location}>
             <Route path="/" element={<Index />} />
             <Route path="/home" element={<Home />} />
+            <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/portfolio" element={<Portfolio />} />
             <Route path="/@:username" element={<Portfolio />} />
             <Route path="/projects" element={<Projects />} />
@@ -67,6 +70,7 @@ const AnimatedRoutes = () => {
             <Route path="/auth" element={<Auth />} />
             <Route path="/setup-username" element={<UsernameSetup />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/notifications" element={<Notifications />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/snippet/:shortCode" element={<SharedSnippet />} />
