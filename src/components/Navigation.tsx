@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Home, FolderOpen, User, Users, MessageSquare, Newspaper, LayoutDashboard } from 'lucide-react';
+import { Home, FolderOpen, User, Users, MessageSquare, Newspaper } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { MobileNav } from '@/components/MobileNav';
 import { NotificationBell } from '@/components/NotificationBell';
@@ -15,7 +15,6 @@ const Navigation: React.FC = () => {
 
   const navItems = [
     { path: '/', label: 'Home', icon: Home },
-    ...(user ? [{ path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard }] : []),
     { path: '/portfolio', label: 'Portfolio', icon: User },
     { path: '/projects', label: 'Projects', icon: FolderOpen },
     { path: '/collaborate', label: 'Collaborate', icon: Users },

@@ -13,7 +13,6 @@ import {
   Menu, 
   Settings, 
   Bell,
-  LayoutDashboard,
   Search
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -44,7 +43,6 @@ export const MobileNav: React.FC<MobileNavProps> = ({ unreadNotifications = 0 })
 
   const navItems = [
     { path: '/', label: 'Home', icon: Home },
-    ...(user ? [{ path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard }] : []),
     { path: '/portfolio', label: 'Portfolio', icon: User },
     { path: '/projects', label: 'Projects', icon: FolderOpen },
     { path: '/collaborate', label: 'Collaborate', icon: Users },
