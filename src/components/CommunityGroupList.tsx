@@ -149,9 +149,9 @@ const CommunityGroupList: React.FC<CommunityGroupListProps> = ({
       if (confirmation.isOwnerLeaving) {
         return {
           title: 'Leave Community Group',
-          description: `As the owner of "${confirmation.groupName}", leaving will permanently delete the group and all its messages for all members. This action cannot be undone.`,
-          confirmText: 'Leave & Delete Group',
-          variant: 'destructive' as const
+          description: `As the owner of "${confirmation.groupName}", ownership will be transferred to another member. You can rejoin later if needed.`,
+          confirmText: 'Leave Group',
+          variant: 'default' as const
         };
       } else {
         return {

@@ -963,6 +963,10 @@ export type Database = {
         Args: { invite_code_input: string; joining_user_id: string }
         Returns: Json
       }
+      transfer_group_ownership_on_leave: {
+        Args: { p_current_owner: string; p_group_id: string }
+        Returns: string
+      }
       update_session_activity: {
         Args: {
           cursor_pos?: Json
