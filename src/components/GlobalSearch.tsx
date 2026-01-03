@@ -204,10 +204,7 @@ export const GlobalSearch: React.FC = () => {
         className="hidden md:flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground bg-secondary/50 border border-border rounded-lg hover:bg-secondary transition-colors"
       >
         <Search className="h-4 w-4" />
-        <span>Search...</span>
-        <kbd className="hidden lg:inline-flex h-5 select-none items-center gap-1 rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
-          <Command className="h-3 w-3" />K
-        </kbd>
+        <span>Search</span>
       </button>
 
       <CommandDialog open={open} onOpenChange={setOpen}>

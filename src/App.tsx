@@ -8,7 +8,6 @@ import { Loader2 } from "lucide-react";
 import { TopLoadingBar } from "@/components/TopLoadingBar";
 import Index from "./pages/Index";
 import Home from "./pages/Home";
-import Dashboard from "./pages/Dashboard";
 import Portfolio from "./pages/Portfolio";
 import Projects from "./pages/Projects";
 import ProjectDetail from "./pages/ProjectDetail";
@@ -53,8 +52,8 @@ const AnimatedRoutes = () => {
           <Routes location={location}>
             <Route path="/" element={<Index />} />
             <Route path="/home" element={<Home />} />
-            <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/portfolio" element={<Portfolio />} />
+            <Route path="/dashboard" element={<Portfolio />} />
             <Route path="/@:username" element={<Portfolio />} />
             <Route path="/projects" element={<Projects />} />
             <Route path="/projects/:projectId" element={<ProjectDetail />} />
