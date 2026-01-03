@@ -111,7 +111,7 @@ export interface UserActivityData {
 }
 
 // Connection status types
-export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'reconnecting';
+export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'reconnecting' | 'auth_error';
 
 // Room management types
 export interface CollaborationRoom {

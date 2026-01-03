@@ -1,21 +1,22 @@
 import { io, Socket } from 'socket.io-client';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   CollaborationUser, 
   CursorPosition, 
   TextSelection
 } from '@/types/collaboration';
 
-type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'reconnecting';
+type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'reconnecting' | 'auth_error';
 
 interface ClientToServerEvents {
-  'join-collaboration': (data: { groupId: string; user: CollaborationUser }) => void;
-  'leave-collaboration': (data: { groupId: string; userId: string }) => void;
-  'cursor-update': (data: { groupId: string; fileId: string; cursor: CursorPosition }) => void;
-  'selection-update': (data: { groupId: string; fileId: string; selection: TextSelection }) => void;
-  'typing-start': (data: { groupId: string; fileId: string; userId: string }) => void;
-  'typing-stop': (data: { groupId: string; fileId: string; userId: string }) => void;
-  'file-switch': (data: { groupId: string; fileId: string; userId: string }) => void;
-  'user-activity': (data: { groupId: string; userId: string }) => void;
+  'join-collaboration': (data: { groupId: string }) => void;
+  'leave-collaboration': (data: { groupId: string }) => void;
+  'cursor-update': (data: { groupId: string; fileId: string; cursor: Omit<CursorPosition, 'userId'> }) => void;
+  'selection-update': (data: { groupId: string; fileId: string; selection: Omit<TextSelection, 'userId'> }) => void;
+  'typing-start': (data: { groupId: string; fileId: string }) => void;
+  'typing-stop': (data: { groupId: string; fileId: string }) => void;
+  'file-switch': (data: { groupId: string; fileId: string }) => void;
+  'user-activity': (data: { groupId: string }) => void;
 }
 
 interface ServerToClientEvents {
@@ -27,6 +28,7 @@ interface ServerToClientEvents {
   'file-switched': (data: { fileId: string; userId: string }) => void;
   'connection-status': (status: 'connected' | 'disconnected') => void;
   'user-activity-updated': (data: { userId: string; lastActivity: Date }) => void;
+  'auth-error': (message: string) => void;
 }
 
 type CollaborationSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
@@ -37,15 +39,28 @@ export class SocketService {
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
+  private currentUserId: string | null = null;
 
   // Event listeners
   private eventListeners: Map<string, Set<Function>> = new Map();
 
   constructor() {
-    this.initializeSocket();
+    // Socket will be initialized when connect() is called with auth
   }
 
-  private initializeSocket(): void {
+  private async initializeSocket(): Promise<boolean> {
+    // Get the current session token
+    const { data: { session }, error } = await supabase.auth.getSession();
+    
+    if (error || !session?.access_token) {
+      console.error('Cannot initialize socket: No authenticated session');
+      this.connectionStatus = 'auth_error';
+      this.emit('connection-status-changed', 'auth_error');
+      return false;
+    }
+
+    this.currentUserId = session.user.id;
+
     const serverUrl = process.env.NODE_ENV === 'production' 
       ? process.env.VITE_SOCKET_URL || 'ws://localhost:3001'
       : 'ws://localhost:3001';
@@ -57,10 +72,14 @@ export class SocketService {
       reconnectionAttempts: this.maxReconnectAttempts,
       reconnectionDelay: this.reconnectDelay,
       reconnectionDelayMax: 5000,
-      timeout: 20000
+      timeout: 20000,
+      auth: {
+        token: session.access_token
+      }
     });
 
     this.setupEventHandlers();
+    return true;
   }
 
   private setupEventHandlers(): void {
@@ -68,7 +87,7 @@ export class SocketService {
 
     // Connection events
     this.socket.on('connect', () => {
-      console.log('Socket.IO connected');
+      console.log('Socket.IO connected (authenticated)');
       this.connectionStatus = 'connected';
       this.reconnectAttempts = 0;
       this.emit('connection-status-changed', 'connected');
@@ -80,10 +99,30 @@ export class SocketService {
       this.emit('connection-status-changed', 'disconnected');
     });
 
-    this.socket.on('connect_error', (error) => {
-      console.error('Socket.IO connection error:', error);
-      this.connectionStatus = 'disconnected';
-      this.handleReconnection();
+    this.socket.on('connect_error', async (error) => {
+      console.error('Socket.IO connection error:', error.message);
+      
+      // Check if it's an auth error
+      if (error.message.includes('Authentication') || error.message.includes('Invalid')) {
+        this.connectionStatus = 'auth_error';
+        this.emit('connection-status-changed', 'auth_error');
+        
+        // Try to refresh the token and reconnect
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token && this.socket) {
+          this.socket.auth = { token: session.access_token };
+          this.handleReconnection();
+        }
+      } else {
+        this.connectionStatus = 'disconnected';
+        this.handleReconnection();
+      }
+    });
+
+    // Authentication error from server
+    this.socket.on('auth-error', (message) => {
+      console.error('Socket auth error:', message);
+      this.emit('auth-error', message);
     });
 
     // Collaboration events
@@ -136,7 +175,15 @@ export class SocketService {
   }
 
   // Public methods
-  public connect(): void {
+  public async connect(): Promise<void> {
+    // Initialize socket with auth if not already done
+    if (!this.socket) {
+      const initialized = await this.initializeSocket();
+      if (!initialized) {
+        return;
+      }
+    }
+
     if (this.socket && !this.socket.connected) {
       this.connectionStatus = 'connecting';
       this.emit('connection-status-changed', 'connecting');
@@ -152,49 +199,59 @@ export class SocketService {
 
   public joinCollaboration(groupId: string, user: CollaborationUser): void {
     if (this.socket && this.socket.connected) {
-      this.socket.emit('join-collaboration', { groupId, user });
+      // Only send groupId - server will use authenticated userId
+      this.socket.emit('join-collaboration', { groupId });
     }
   }
 
   public leaveCollaboration(groupId: string, userId: string): void {
     if (this.socket && this.socket.connected) {
-      this.socket.emit('leave-collaboration', { groupId, userId });
+      // Only send groupId - server will use authenticated userId
+      this.socket.emit('leave-collaboration', { groupId });
     }
   }
 
   public updateCursor(groupId: string, fileId: string, cursor: CursorPosition): void {
     if (this.socket && this.socket.connected) {
-      this.socket.emit('cursor-update', { groupId, fileId, cursor });
+      // Don't send userId - server will use authenticated userId
+      const { userId, ...cursorWithoutUserId } = cursor;
+      this.socket.emit('cursor-update', { groupId, fileId, cursor: cursorWithoutUserId });
     }
   }
 
   public updateSelection(groupId: string, fileId: string, selection: TextSelection): void {
     if (this.socket && this.socket.connected) {
-      this.socket.emit('selection-update', { groupId, fileId, selection });
+      // Don't send userId - server will use authenticated userId
+      const { userId, ...selectionWithoutUserId } = selection;
+      this.socket.emit('selection-update', { groupId, fileId, selection: selectionWithoutUserId });
     }
   }
 
   public startTyping(groupId: string, fileId: string, userId: string): void {
     if (this.socket && this.socket.connected) {
-      this.socket.emit('typing-start', { groupId, fileId, userId });
+      // Don't send userId - server will use authenticated userId
+      this.socket.emit('typing-start', { groupId, fileId });
     }
   }
 
   public stopTyping(groupId: string, fileId: string, userId: string): void {
     if (this.socket && this.socket.connected) {
-      this.socket.emit('typing-stop', { groupId, fileId, userId });
+      // Don't send userId - server will use authenticated userId
+      this.socket.emit('typing-stop', { groupId, fileId });
     }
   }
 
   public switchFile(groupId: string, fileId: string, userId: string): void {
     if (this.socket && this.socket.connected) {
-      this.socket.emit('file-switch', { groupId, fileId, userId });
+      // Don't send userId - server will use authenticated userId
+      this.socket.emit('file-switch', { groupId, fileId });
     }
   }
 
   public updateActivity(groupId: string, userId: string): void {
     if (this.socket && this.socket.connected) {
-      this.socket.emit('user-activity', { groupId, userId });
+      // Don't send userId - server will use authenticated userId
+      this.socket.emit('user-activity', { groupId });
     }
   }
 
@@ -234,6 +291,10 @@ export class SocketService {
 
   public getSocket(): CollaborationSocket | null {
     return this.socket;
+  }
+
+  public getCurrentUserId(): string | null {
+    return this.currentUserId;
   }
 }
 
