@@ -33,7 +33,7 @@ export default function JoinRoom() {
   // Validate invite code when provided
   useEffect(() => {
     const code = searchParams.get('code');
-    if (code) {
+    if (code && code.length === 8 && /^\d{8}$/.test(code)) {
       validateInviteCode(code);
     }
   }, [searchParams]);
@@ -43,61 +43,49 @@ export default function JoinRoom() {
     
     setValidating(true);
     try {
-      // Find invitation by code (numeric only)
-      const { data: invitation, error: invError } = await supabase
-        .from('room_invitations')
-        .select('*, room:room_id(*)')
-        .eq('invite_code', code)
-        .maybeSingle();
+      // Use secure server-side validation function
+      const { data, error } = await supabase
+        .rpc('validate_and_use_invite_code', { invite_code_input: code });
 
-      if (invError || !invitation) {
+      if (error) {
+        console.error('Validation error:', error);
+        toast({
+          title: "Error",
+          description: "Failed to validate invite code.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Cast result to expected shape
+      const result = data as { success: boolean; error?: string; room?: any } | null;
+
+      if (!result?.success) {
         toast({
           title: "Invalid Code",
-          description: "This invite code is invalid or has expired.",
+          description: result?.error || "This invite code is invalid.",
           variant: "destructive"
         });
         return;
       }
 
-      // Check if expired
-      if (invitation.expires_at && new Date(invitation.expires_at) < new Date()) {
-        toast({
-          title: "Expired Code",
-          description: "This invite code has expired.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Check max uses
-      if (invitation.max_uses && invitation.used_count >= invitation.max_uses) {
-        toast({
-          title: "Code Limit Reached",
-          description: "This invite code has reached its maximum uses.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      const room = invitation.room as any;
-      
-      // Get participant count
-      const { count } = await supabase
-        .from('room_participants')
-        .select('*', { count: 'exact', head: true })
-        .eq('room_id', room.id);
-
+      const room = result.room;
       setRoomInfo({
         id: room.id,
         name: room.name,
         description: room.description,
         is_private: room.is_private,
         max_participants: room.max_participants,
-        participant_count: count || 0
+        participant_count: room.participant_count
       });
 
     } catch (error) {
       console.error('Error validating code:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred.",
+        variant: "destructive"
+      });
     } finally {
       setValidating(false);
     }
@@ -114,60 +102,59 @@ export default function JoinRoom() {
       return;
     }
 
-    if (!roomInfo) {
+    if (!roomInfo && inviteCode.length === 8) {
       await validateInviteCode(inviteCode);
+      return;
+    }
+
+    if (!roomInfo) {
+      toast({
+        title: "Invalid Code",
+        description: "Please enter a valid 8-digit invite code.",
+        variant: "destructive"
+      });
       return;
     }
 
     setLoading(true);
     try {
-      // Check if already a participant
-      const { data: existing } = await supabase
-        .from('room_participants')
-        .select('id')
-        .eq('room_id', roomInfo.id)
-        .eq('user_id', user.id)
-        .maybeSingle();
+      // Use secure server-side join function
+      const { data, error } = await supabase
+        .rpc('join_room_with_invite_code', { 
+          invite_code_input: inviteCode,
+          joining_user_id: user.id
+        });
 
-      if (existing) {
-        // Already a member, just navigate
-        navigate(`/collaborate/${roomInfo.id}`);
-        return;
+      if (error) {
+        console.error('Join error:', error);
+        throw new Error('Failed to join room');
       }
 
-      // Check room capacity
-      if (roomInfo.participant_count >= roomInfo.max_participants) {
+      // Cast result to expected shape
+      const result = data as { 
+        success: boolean; 
+        error?: string; 
+        already_member?: boolean; 
+        room_id?: string 
+      } | null;
+
+      if (!result?.success) {
         toast({
-          title: "Room Full",
-          description: "This room has reached its maximum capacity.",
+          title: "Failed to Join",
+          description: result?.error || "Could not join the room.",
           variant: "destructive"
         });
         return;
       }
 
-      // Join the room
-      const { error: joinError } = await supabase
-        .from('room_participants')
-        .insert([{
-          room_id: roomInfo.id,
-          user_id: user.id,
-          role: 'member'
-        }]);
-
-      if (joinError) throw joinError;
-
-      // Increment used_count on invitation
-      await supabase
-        .from('room_invitations')
-        .update({ used_count: (await supabase.from('room_invitations').select('used_count').eq('invite_code', inviteCode).single()).data?.used_count + 1 || 1 })
-        .eq('invite_code', inviteCode);
-
       toast({
-        title: "Joined!",
-        description: `You have joined ${roomInfo.name}`
+        title: result.already_member ? "Welcome back!" : "Joined!",
+        description: result.already_member 
+          ? `You're already a member of ${roomInfo.name}`
+          : `You have joined ${roomInfo.name}`
       });
 
-      navigate(`/collaborate/${roomInfo.id}`);
+      navigate(`/collaborate/${result.room_id}`);
     } catch (error) {
       console.error('Error joining room:', error);
       toast({

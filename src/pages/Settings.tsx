@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,17 +8,28 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { User, Bell, Shield, Palette, Loader2 } from 'lucide-react';
+import { User, Bell, Shield, Palette, Loader2, AlertTriangle } from 'lucide-react';
 import { PhotoUpload } from '@/components/PhotoUpload';
 
 const Settings = () => {
   const { user } = useAuth();
   const { profile } = useProfile();
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   const [loading, setLoading] = useState(false);
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -25,9 +37,13 @@ const Settings = () => {
   const [messageNotifications, setMessageNotifications] = useState(true);
   const [roomInviteNotifications, setRoomInviteNotifications] = useState(true);
   
-  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
+
+  // Delete account state
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleAvatarChange = async (url: string) => {
     if (!user) return;
@@ -52,8 +68,8 @@ const Settings = () => {
       return;
     }
 
-    if (newPassword.length < 6) {
-      toast({ title: 'Password must be at least 6 characters', variant: 'destructive' });
+    if (newPassword.length < 8) {
+      toast({ title: 'Password must be at least 8 characters', variant: 'destructive' });
       return;
     }
 
@@ -63,7 +79,6 @@ const Settings = () => {
       if (error) throw error;
       
       toast({ title: 'Password updated successfully' });
-      setCurrentPassword('');
       setNewPassword('');
       setConfirmNewPassword('');
     } catch (error: any) {
@@ -74,15 +89,54 @@ const Settings = () => {
   };
 
   const handleDeleteAccount = async () => {
-    const confirmed = window.confirm(
-      'Are you sure you want to delete your account? This action cannot be undone.'
-    );
-    if (!confirmed) return;
+    if (deleteConfirmText !== 'DELETE') {
+      toast({ title: 'Please type DELETE to confirm', variant: 'destructive' });
+      return;
+    }
 
-    toast({
-      title: 'Account Deletion',
-      description: 'Please contact support to delete your account.',
-    });
+    setIsDeleting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        toast({ title: 'Session expired. Please log in again.', variant: 'destructive' });
+        navigate('/auth');
+        return;
+      }
+
+      const response = await supabase.functions.invoke('delete-account', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || 'Failed to delete account');
+      }
+
+      const result = response.data;
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to delete account');
+      }
+
+      // Sign out locally
+      await supabase.auth.signOut();
+      
+      toast({ title: 'Account deleted successfully' });
+      navigate('/');
+    } catch (error: any) {
+      console.error('Error deleting account:', error);
+      toast({ 
+        title: 'Failed to delete account', 
+        description: error.message,
+        variant: 'destructive' 
+      });
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteDialog(false);
+      setDeleteConfirmText('');
+    }
   };
 
   return (
@@ -165,7 +219,7 @@ const Settings = () => {
                       type="password"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="Enter new password"
+                      placeholder="Enter new password (min 8 characters)"
                     />
                   </div>
                   <div className="space-y-2">
@@ -287,11 +341,21 @@ const Settings = () => {
 
               <Card className="border-destructive/50">
                 <CardHeader>
-                  <CardTitle className="text-destructive">Danger Zone</CardTitle>
+                  <CardTitle className="text-destructive flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5" />
+                    Danger Zone
+                  </CardTitle>
                   <CardDescription>Irreversible actions</CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <Button variant="destructive" onClick={handleDeleteAccount}>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Once you delete your account, there is no going back. All your data including 
+                    projects, repositories, messages, and collaborations will be permanently deleted.
+                  </p>
+                  <Button 
+                    variant="destructive" 
+                    onClick={() => setShowDeleteDialog(true)}
+                  >
                     Delete Account
                   </Button>
                 </CardContent>
@@ -321,6 +385,61 @@ const Settings = () => {
           </Tabs>
         </div>
       </div>
+
+      {/* Delete Account Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Delete Account Permanently
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-4">
+              <p>
+                This action <strong>cannot be undone</strong>. This will permanently delete your 
+                account and remove all associated data including:
+              </p>
+              <ul className="list-disc list-inside space-y-1 text-sm">
+                <li>Your profile and personal information</li>
+                <li>All projects and repositories</li>
+                <li>Collaboration rooms you created</li>
+                <li>Messages and chat history</li>
+                <li>Social connections and follows</li>
+              </ul>
+              <div className="pt-2">
+                <Label htmlFor="deleteConfirm" className="text-foreground">
+                  Type <strong>DELETE</strong> to confirm:
+                </Label>
+                <Input
+                  id="deleteConfirm"
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value.toUpperCase())}
+                  placeholder="DELETE"
+                  className="mt-2"
+                  autoComplete="off"
+                />
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteAccount}
+              disabled={deleteConfirmText !== 'DELETE' || isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete Account'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };

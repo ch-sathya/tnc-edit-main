@@ -925,6 +925,10 @@ export type Database = {
         }
         Returns: string
       }
+      delete_user_account_data: {
+        Args: { target_user_id: string }
+        Returns: Json
+      }
       get_file_latest_version: { Args: { file_uuid: string }; Returns: number }
       get_pending_changes: {
         Args: { file_uuid: string }
@@ -955,6 +959,10 @@ export type Database = {
         Args: { check_room_id: string; check_user_id: string }
         Returns: boolean
       }
+      join_room_with_invite_code: {
+        Args: { invite_code_input: string; joining_user_id: string }
+        Returns: Json
+      }
       update_session_activity: {
         Args: {
           cursor_pos?: Json
@@ -963,6 +971,10 @@ export type Database = {
           session_user_id: string
         }
         Returns: undefined
+      }
+      validate_and_use_invite_code: {
+        Args: { invite_code_input: string }
+        Returns: Json
       }
     }
     Enums: {
