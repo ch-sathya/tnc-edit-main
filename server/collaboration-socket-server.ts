@@ -1,5 +1,16 @@
 import { Server, Socket } from 'socket.io';
 import { SupabaseClient } from '@supabase/supabase-js';
+import { RateLimiter } from './rate-limiter';
+
+interface RateLimiters {
+  connection: RateLimiter;
+  roomJoin: RateLimiter;
+  cursorUpdate: RateLimiter;
+  selectionUpdate: RateLimiter;
+  typing: RateLimiter;
+  fileSwitch: RateLimiter;
+  activity: RateLimiter;
+}
 
 interface CollaborationUser {
   id: string;
@@ -50,6 +61,7 @@ interface ServerToClientEvents {
   'connection-status': (status: 'connected' | 'disconnected') => void;
   'user-activity-updated': (data: { userId: string; lastActivity: Date }) => void;
   'auth-error': (message: string) => void;
+  'rate-limited': (message: string) => void;
 }
 
 interface AuthenticatedSocket extends Socket<ClientToServerEvents, ServerToClientEvents> {
@@ -64,14 +76,20 @@ type CollaborationSocket = AuthenticatedSocket;
 export class CollaborationSocketServer {
   private io: Server<ClientToServerEvents, ServerToClientEvents>;
   private supabase: SupabaseClient;
+  private rateLimiters: RateLimiters;
   private activeUsers: Map<string, CollaborationUser> = new Map();
   private userSessions: Map<string, { socketId: string; groupId: string }> = new Map();
   private typingUsers: Map<string, Set<string>> = new Map(); // fileId -> Set of userIds
   private activityTimers: Map<string, NodeJS.Timeout> = new Map();
 
-  constructor(io: Server<ClientToServerEvents, ServerToClientEvents>, supabase: SupabaseClient) {
+  constructor(
+    io: Server<ClientToServerEvents, ServerToClientEvents>, 
+    supabase: SupabaseClient,
+    rateLimiters: RateLimiters
+  ) {
     this.io = io;
     this.supabase = supabase;
+    this.rateLimiters = rateLimiters;
   }
 
   public initialize(): void {
@@ -81,6 +99,7 @@ export class CollaborationSocketServer {
 
       // Handle user joining collaboration room
       socket.on('join-collaboration', async (data) => {
+        if (!this.checkRateLimit(socket, this.rateLimiters.roomJoin, 'room join')) return;
         await this.handleJoinCollaboration(socket, data);
       });
 
@@ -91,30 +110,36 @@ export class CollaborationSocketServer {
 
       // Handle cursor position updates
       socket.on('cursor-update', (data) => {
+        if (!this.checkRateLimit(socket, this.rateLimiters.cursorUpdate, 'cursor update')) return;
         this.handleCursorUpdate(socket, data);
       });
 
       // Handle text selection updates
       socket.on('selection-update', (data) => {
+        if (!this.checkRateLimit(socket, this.rateLimiters.selectionUpdate, 'selection update')) return;
         this.handleSelectionUpdate(socket, data);
       });
 
       // Handle typing indicators
       socket.on('typing-start', (data) => {
+        if (!this.checkRateLimit(socket, this.rateLimiters.typing, 'typing')) return;
         this.handleTypingStart(socket, data);
       });
 
       socket.on('typing-stop', (data) => {
+        if (!this.checkRateLimit(socket, this.rateLimiters.typing, 'typing')) return;
         this.handleTypingStop(socket, data);
       });
 
       // Handle file switching
       socket.on('file-switch', (data) => {
+        if (!this.checkRateLimit(socket, this.rateLimiters.fileSwitch, 'file switch')) return;
         this.handleFileSwitch(socket, data);
       });
 
       // Handle user activity updates
       socket.on('user-activity', (data) => {
+        if (!this.checkRateLimit(socket, this.rateLimiters.activity, 'activity')) return;
         this.handleUserActivity(socket, data);
       });
 
@@ -126,6 +151,24 @@ export class CollaborationSocketServer {
       // Send connection confirmation
       socket.emit('connection-status', 'connected');
     });
+  }
+
+  /**
+   * Check rate limit for a user action
+   * @returns true if allowed, false if rate limited
+   */
+  private checkRateLimit(
+    socket: CollaborationSocket, 
+    limiter: RateLimiter, 
+    action: string
+  ): boolean {
+    const userId = socket.data.userId;
+    if (!limiter.isAllowed(userId)) {
+      console.log(`Rate limited ${action} for user: ${userId}`);
+      socket.emit('rate-limited', `Too many ${action} requests. Please slow down.`);
+      return false;
+    }
+    return true;
   }
 
   private async handleJoinCollaboration(

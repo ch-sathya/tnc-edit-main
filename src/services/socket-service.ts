@@ -29,6 +29,7 @@ interface ServerToClientEvents {
   'connection-status': (status: 'connected' | 'disconnected') => void;
   'user-activity-updated': (data: { userId: string; lastActivity: Date }) => void;
   'auth-error': (message: string) => void;
+  'rate-limited': (message: string) => void;
 }
 
 type CollaborationSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
@@ -123,6 +124,12 @@ export class SocketService {
     this.socket.on('auth-error', (message) => {
       console.error('Socket auth error:', message);
       this.emit('auth-error', message);
+    });
+
+    // Rate limiting notification from server
+    this.socket.on('rate-limited', (message) => {
+      console.warn('Socket rate limited:', message);
+      this.emit('rate-limited', message);
     });
 
     // Collaboration events

@@ -3,9 +3,15 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { createClient } from '@supabase/supabase-js';
 import { CollaborationSocketServer } from './collaboration-socket-server';
+import { rateLimiters, getClientIp } from './rate-limiter';
 
 const app = express();
 const server = createServer(app);
+
+// Health check endpoint for deployment platforms
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });
+});
 
 // Initialize Supabase client for authentication
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -27,7 +33,22 @@ const io = new Server(server, {
     methods: ["GET", "POST"],
     credentials: true
   },
-  transports: ['websocket', 'polling']
+  transports: ['websocket', 'polling'],
+  // Connection timeout settings
+  pingTimeout: 60000,
+  pingInterval: 25000
+});
+
+// Rate limiting middleware - check connection rate before auth
+io.use((socket, next) => {
+  const clientIp = getClientIp(socket);
+  
+  if (!rateLimiters.connection.isAllowed(clientIp)) {
+    console.log(`Rate limited connection attempt from IP: ${clientIp}`);
+    return next(new Error('Too many connection attempts. Please try again later.'));
+  }
+  
+  next();
 });
 
 // Authentication middleware - validates JWT token before allowing connection
@@ -60,15 +81,26 @@ io.use(async (socket, next) => {
   }
 });
 
-// Initialize collaboration socket server with Supabase client
-const collaborationServer = new CollaborationSocketServer(io, supabase);
+// Initialize collaboration socket server with Supabase client and rate limiters
+const collaborationServer = new CollaborationSocketServer(io, supabase, rateLimiters);
 collaborationServer.initialize();
 
-const PORT = process.env.SOCKET_PORT || 3001;
+const PORT = process.env.PORT || process.env.SOCKET_PORT || 3001;
 
 server.listen(PORT, () => {
   console.log(`Socket.IO server running on port ${PORT}`);
   console.log('Authentication: ENABLED');
+  console.log('Rate Limiting: ENABLED');
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
 });
 
 export { io };
