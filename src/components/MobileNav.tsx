@@ -13,7 +13,8 @@ import {
   Menu, 
   Settings, 
   Bell,
-  Search
+  Search,
+  Sparkles
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
@@ -48,6 +49,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({ unreadNotifications = 0 })
     { path: '/collaborate', label: 'Collaborate', icon: Users },
     { path: '/community', label: 'Community', icon: MessageSquare },
     { path: '/news', label: 'News', icon: Newspaper },
+    { path: '/vibe-code', label: 'Vibe Code', icon: Sparkles },
     ...(user ? [{ path: '/notifications', label: 'Notifications', icon: Bell }] : []),
     { path: '/settings', label: 'Settings', icon: Settings },
   ];

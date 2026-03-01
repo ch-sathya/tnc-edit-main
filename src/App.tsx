@@ -24,6 +24,7 @@ import Settings from "./pages/Settings";
 import ResetPassword from "./pages/ResetPassword";
 import JoinRoom from "./pages/JoinRoom";
 import Pricing from "./pages/Pricing";
+import VibeCode from "./pages/VibeCode";
 import NotFound from "./pages/NotFound";
 import UserProfile from "./pages/UserProfile";
 import SharedSnippet from "./pages/SharedSnippet";
@@ -72,6 +73,7 @@ const AnimatedRoutes = () => {
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/pricing" element={<Pricing />} />
+            <Route path="/vibe-code" element={<VibeCode />} />
             <Route path="/snippet/:shortCode" element={<SharedSnippet />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Home, FolderOpen, User, Users, MessageSquare, Newspaper } from 'lucide-react';
+import { Home, FolderOpen, User, Users, MessageSquare, Newspaper, Sparkles } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { MobileNav } from '@/components/MobileNav';
 import { NotificationBell } from '@/components/NotificationBell';
@@ -20,6 +20,7 @@ const Navigation: React.FC = () => {
     { path: '/collaborate', label: 'Collaborate', icon: Users },
     { path: '/community', label: 'Community', icon: MessageSquare },
     { path: '/news', label: 'News', icon: Newspaper },
+    { path: '/vibe-code', label: 'Vibe Code', icon: Sparkles },
   ];
 
   return (
