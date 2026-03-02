@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
-import { cn } from '@/lib/utils';
 
 interface PageTransitionProps {
   children: React.ReactNode;
@@ -8,29 +8,18 @@ interface PageTransitionProps {
 
 export const PageTransition = ({ children }: PageTransitionProps) => {
   const location = useLocation();
-  const [isVisible, setIsVisible] = useState(true);
-  const [displayChildren, setDisplayChildren] = useState(children);
-
-  useEffect(() => {
-    // When location changes, trigger fade out then fade in
-    setIsVisible(false);
-    
-    const timeout = setTimeout(() => {
-      setDisplayChildren(children);
-      setIsVisible(true);
-    }, 150);
-
-    return () => clearTimeout(timeout);
-  }, [location.pathname, children]);
 
   return (
-    <div
-      className={cn(
-        'transition-all duration-200 ease-out',
-        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
-      )}
-    >
-      {displayChildren}
-    </div>
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={location.pathname}
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -8 }}
+        transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+      >
+        {children}
+      </motion.div>
+    </AnimatePresence>
   );
 };
