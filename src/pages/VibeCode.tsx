@@ -1,27 +1,16 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Navigation from '@/components/Navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Send,
-  Loader2,
-  Sparkles,
-  Code,
-  Zap,
-  Crown,
-  Copy,
-  Check,
-  Trash2,
-  Plus,
-  Bot,
-  User,
+  Send, Loader2, Sparkles, Code, Zap, Crown, Copy, Check, Trash2, Bot, User,
 } from 'lucide-react';
 
 interface ChatMessage {
@@ -53,16 +42,20 @@ const VibeCode = () => {
 
   const fetchCredits = async () => {
     if (!user) return;
-    const [creditsRes, subRes] = await Promise.all([
-      supabase.from('user_credits').select('credits_remaining').eq('user_id', user.id).single(),
-      supabase
-        .from('user_subscriptions')
-        .select('plan_id, plan_tiers(name, display_name)')
-        .eq('user_id', user.id)
-        .single(),
-    ]);
-    if (creditsRes.data) setCredits(creditsRes.data.credits_remaining);
-    if (subRes.data) setPlanName((subRes.data as any).plan_tiers?.display_name || 'Free');
+    try {
+      const [creditsRes, subRes] = await Promise.all([
+        supabase.from('user_credits').select('credits_remaining').eq('user_id', user.id).single(),
+        supabase
+          .from('user_subscriptions')
+          .select('plan_id, plan_tiers(name, display_name)')
+          .eq('user_id', user.id)
+          .single(),
+      ]);
+      if (creditsRes.data) setCredits(creditsRes.data.credits_remaining);
+      if (subRes.data) setPlanName((subRes.data as any).plan_tiers?.display_name || 'Free');
+    } catch (error) {
+      console.error('Error fetching credits:', error);
+    }
   };
 
   const sendMessage = async () => {
@@ -76,14 +69,11 @@ const VibeCode = () => {
 
     try {
       const { data, error } = await supabase.functions.invoke('ai-chat', {
-        body: {
-          messages: newMessages,
-          sessionId,
-        },
+        body: { messages: newMessages, sessionId },
       });
 
       if (error) throw error;
-      if (data.error) {
+      if (data?.error) {
         if (data.error.includes('No credits')) {
           toast({ title: 'No Credits', description: 'Upgrade your plan for more AI credits.', variant: 'destructive' });
         }
@@ -121,37 +111,36 @@ const VibeCode = () => {
 
   const renderMessage = (msg: ChatMessage, index: number) => {
     const isUser = msg.role === 'user';
-
-    // Parse code blocks
     const parts = msg.content.split(/(```[\s\S]*?```)/g);
 
     return (
-      <div key={index} className={`flex gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}>
+      <motion.div
+        key={index}
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className={`flex gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}
+      >
         {!isUser && (
-          <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-1">
-            <Bot className="h-4 w-4 text-primary" />
+          <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0 mt-1">
+            <Bot className="h-4 w-4 text-foreground" />
           </div>
         )}
-        <div className={`max-w-[85%] rounded-xl px-4 py-3 ${isUser ? 'bg-primary text-primary-foreground' : 'bg-secondary/50 text-foreground'}`}>
+        <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${isUser ? 'bg-foreground text-background' : 'bg-secondary/80 text-foreground'}`}>
           {parts.map((part, i) => {
             if (part.startsWith('```') && part.endsWith('```')) {
               const lines = part.slice(3, -3).split('\n');
               const lang = lines[0]?.trim() || '';
               const code = lines.slice(1).join('\n').trim();
               return (
-                <div key={i} className="my-2 rounded-lg overflow-hidden border border-border">
-                  <div className="flex items-center justify-between px-3 py-1.5 bg-muted/80 text-xs text-muted-foreground">
-                    <span>{lang || 'code'}</span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 px-2"
-                      onClick={() => copyCode(code, index * 100 + i)}
-                    >
+                <div key={i} className="my-2 rounded-xl overflow-hidden border border-border">
+                  <div className="flex items-center justify-between px-3 py-1.5 bg-card text-xs text-muted-foreground">
+                    <span className="font-mono">{lang || 'code'}</span>
+                    <Button variant="ghost" size="sm" className="h-6 px-2" onClick={() => copyCode(code, index * 100 + i)}>
                       {copiedIndex === index * 100 + i ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
                     </Button>
                   </div>
-                  <pre className="p-3 overflow-x-auto text-sm bg-card">
+                  <pre className="p-3 overflow-x-auto text-sm bg-card/80 font-mono">
                     <code>{code}</code>
                   </pre>
                 </div>
@@ -161,11 +150,11 @@ const VibeCode = () => {
           })}
         </div>
         {isUser && (
-          <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0 mt-1">
-            <User className="h-4 w-4 text-muted-foreground" />
+          <div className="h-8 w-8 rounded-full bg-foreground flex items-center justify-center flex-shrink-0 mt-1">
+            <User className="h-4 w-4 text-background" />
           </div>
         )}
-      </div>
+      </motion.div>
     );
   };
 
@@ -174,7 +163,7 @@ const VibeCode = () => {
       <>
         <Navigation />
         <div className="min-h-screen bg-background flex items-center justify-center">
-          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+          <Loader2 className="h-5 w-5 animate-spin text-foreground" />
         </div>
       </>
     );
@@ -185,16 +174,20 @@ const VibeCode = () => {
       <>
         <Navigation />
         <div className="min-h-screen bg-background flex items-center justify-center">
-          <Card className="max-w-md w-full mx-4">
-            <CardHeader className="text-center">
-              <Sparkles className="h-12 w-12 mx-auto mb-4 text-primary" />
-              <CardTitle className="text-2xl">Vibe Coding</CardTitle>
-              <p className="text-muted-foreground">Sign in to start coding with AI</p>
-            </CardHeader>
-            <CardContent>
-              <Button className="w-full" onClick={() => navigate('/auth')}>Sign In to Start</Button>
-            </CardContent>
-          </Card>
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }}>
+            <Card className="max-w-md w-full mx-4 border-border/50">
+              <CardHeader className="text-center">
+                <div className="h-16 w-16 mx-auto mb-4 rounded-2xl bg-secondary flex items-center justify-center">
+                  <Sparkles className="h-8 w-8 text-foreground" />
+                </div>
+                <CardTitle className="text-2xl">Vibe Coding</CardTitle>
+                <p className="text-muted-foreground">Sign in to start coding with AI</p>
+              </CardHeader>
+              <CardContent>
+                <Button className="w-full rounded-full" onClick={() => navigate('/auth')}>Sign In to Start</Button>
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
       </>
     );
@@ -205,27 +198,25 @@ const VibeCode = () => {
       <Navigation />
       <div className="h-[calc(100vh-64px)] bg-background flex flex-col">
         {/* Top bar */}
-        <div className="border-b border-border px-4 py-3 flex items-center justify-between bg-card/50 backdrop-blur-sm">
+        <div className="border-b border-border/50 px-4 py-3 flex items-center justify-between bg-card/30 backdrop-blur-sm">
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-              <h1 className="text-lg font-bold text-foreground">Vibe Code</h1>
-            </div>
-            <Badge variant="outline" className="gap-1">
+            <Sparkles className="h-5 w-5 text-foreground" />
+            <h1 className="text-lg font-bold text-foreground tracking-tight">Vibe Code</h1>
+            <Badge variant="outline" className="gap-1 text-xs">
               <Crown className="h-3 w-3" />
               {planName}
             </Badge>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <Badge variant="secondary" className="gap-1.5">
               <Zap className="h-3 w-3" />
               {credits !== null ? credits : '...'} credits
             </Badge>
-            <Button variant="outline" size="sm" onClick={() => navigate('/pricing')} className="gap-1.5">
+            <Button variant="outline" size="sm" onClick={() => navigate('/pricing')} className="gap-1.5 rounded-full">
               <Crown className="h-3.5 w-3.5" />
               Upgrade
             </Button>
-            <Button variant="ghost" size="sm" onClick={clearChat} className="gap-1.5">
+            <Button variant="ghost" size="sm" onClick={clearChat}>
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
           </div>
@@ -235,13 +226,18 @@ const VibeCode = () => {
         <div className="flex-1 overflow-hidden">
           <ScrollArea className="h-full p-4" ref={scrollRef}>
             {messages.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-center py-20">
-                <div className="h-20 w-20 rounded-2xl bg-primary/10 flex items-center justify-center mb-6">
-                  <Code className="h-10 w-10 text-primary" />
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5 }}
+                className="h-full flex flex-col items-center justify-center text-center py-20"
+              >
+                <div className="h-20 w-20 rounded-2xl bg-secondary flex items-center justify-center mb-6">
+                  <Code className="h-10 w-10 text-foreground" />
                 </div>
-                <h2 className="text-2xl font-bold text-foreground mb-2">Welcome to Vibe Code</h2>
-                <p className="text-muted-foreground max-w-md mb-8">
-                  Your AI-powered coding assistant. Ask me to write code, debug issues, explain concepts, or help with any coding task.
+                <h2 className="text-3xl font-bold text-foreground mb-2 tracking-tight">Welcome to Vibe Code</h2>
+                <p className="text-muted-foreground max-w-md mb-10">
+                  Your AI coding assistant. Ask me to write code, debug issues, or explain concepts.
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg w-full">
                   {[
@@ -253,33 +249,32 @@ const VibeCode = () => {
                     <Button
                       key={prompt}
                       variant="outline"
-                      className="h-auto py-3 px-4 text-left text-sm justify-start"
-                      onClick={() => {
-                        setInput(prompt);
-                        inputRef.current?.focus();
-                      }}
+                      className="h-auto py-3 px-4 text-left text-sm justify-start rounded-xl border-border/50"
+                      onClick={() => { setInput(prompt); inputRef.current?.focus(); }}
                     >
-                      <Sparkles className="h-4 w-4 mr-2 flex-shrink-0 text-primary" />
+                      <Sparkles className="h-4 w-4 mr-2 flex-shrink-0 text-muted-foreground" />
                       <span className="truncate">{prompt}</span>
                     </Button>
                   ))}
                 </div>
-              </div>
+              </motion.div>
             ) : (
               <div className="space-y-4 pb-4 max-w-4xl mx-auto">
-                {messages.map((msg, i) => renderMessage(msg, i))}
+                <AnimatePresence>
+                  {messages.map((msg, i) => renderMessage(msg, i))}
+                </AnimatePresence>
                 {sending && (
-                  <div className="flex gap-3">
-                    <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                      <Bot className="h-4 w-4 text-primary" />
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-3">
+                    <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
+                      <Bot className="h-4 w-4 text-foreground" />
                     </div>
-                    <div className="bg-secondary/50 rounded-xl px-4 py-3">
+                    <div className="bg-secondary/80 rounded-2xl px-4 py-3">
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Loader2 className="h-4 w-4 animate-spin" />
                         <span className="text-sm">Thinking...</span>
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 )}
               </div>
             )}
@@ -287,7 +282,7 @@ const VibeCode = () => {
         </div>
 
         {/* Input area */}
-        <div className="border-t border-border p-4 bg-card/50 backdrop-blur-sm">
+        <div className="border-t border-border/50 p-4 bg-card/30 backdrop-blur-sm">
           <div className="max-w-4xl mx-auto flex gap-3">
             <textarea
               ref={inputRef}
@@ -295,7 +290,7 @@ const VibeCode = () => {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Ask me anything about code..."
-              className="flex-1 min-h-[44px] max-h-[120px] resize-none rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              className="flex-1 min-h-[44px] max-h-[120px] resize-none rounded-xl border border-border/50 bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-shadow"
               rows={1}
               disabled={sending}
             />
@@ -308,8 +303,8 @@ const VibeCode = () => {
               {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground text-center mt-2">
-            Powered by Lovable AI Gateway · {credits !== null ? `${credits} credits remaining` : 'Loading...'}
+          <p className="text-xs text-muted-foreground/60 text-center mt-2">
+            Powered by AI · {credits !== null ? `${credits} credits remaining` : 'Loading...'}
           </p>
         </div>
       </div>

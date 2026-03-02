@@ -23,9 +23,14 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    
     const supabase = createClient(supabaseUrl, supabaseKey, {
       global: { headers: { Authorization: authHeader } },
     });
+    
+    // Use service role for credit operations to bypass RLS
+    const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
@@ -35,16 +40,61 @@ serve(async (req) => {
       });
     }
 
-    const { messages, sessionId, model = "google/gemini-3-flash-preview" } = await req.json();
+    const { messages, sessionId, model = "google/gemini-2.0-flash" } = await req.json();
 
-    // Check user credits
-    const { data: credits } = await supabase
+    // Check user credits - auto-provision if not exists
+    let { data: credits } = await adminClient
       .from("user_credits")
-      .select("credits_remaining")
+      .select("credits_remaining, credits_used")
       .eq("user_id", user.id)
       .single();
 
-    if (!credits || credits.credits_remaining <= 0) {
+    if (!credits) {
+      // Auto-provision credits for existing users
+      const { data: newCredits, error: insertError } = await adminClient
+        .from("user_credits")
+        .insert({
+          user_id: user.id,
+          credits_remaining: 10,
+          credits_used: 0,
+        })
+        .select("credits_remaining, credits_used")
+        .single();
+
+      if (insertError) {
+        console.error("Failed to provision credits:", insertError);
+        return new Response(JSON.stringify({ error: "Failed to initialize credits" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      credits = newCredits;
+    }
+
+    // Also auto-provision subscription if not exists
+    const { data: existingSub } = await adminClient
+      .from("user_subscriptions")
+      .select("id")
+      .eq("user_id", user.id)
+      .single();
+
+    if (!existingSub) {
+      const { data: freePlan } = await adminClient
+        .from("plan_tiers")
+        .select("id")
+        .eq("name", "free")
+        .single();
+
+      if (freePlan) {
+        await adminClient.from("user_subscriptions").insert({
+          user_id: user.id,
+          plan_id: freePlan.id,
+          status: "active",
+        });
+      }
+    }
+
+    if (credits.credits_remaining <= 0) {
       return new Response(JSON.stringify({ error: "No credits remaining. Please upgrade your plan." }), {
         status: 402,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -53,6 +103,7 @@ serve(async (req) => {
 
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!apiKey) {
+      console.error("LOVABLE_API_KEY not found");
       return new Response(JSON.stringify({ error: "AI service not configured" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -69,6 +120,8 @@ serve(async (req) => {
       })),
     ];
 
+    console.log("Calling AI Gateway with model:", model);
+    
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -84,8 +137,8 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("AI Gateway error:", errorText);
-      return new Response(JSON.stringify({ error: "AI service error" }), {
+      console.error("AI Gateway error:", response.status, errorText);
+      return new Response(JSON.stringify({ error: "AI service error. Please try again." }), {
         status: 502,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -95,20 +148,20 @@ serve(async (req) => {
     const assistantMessage = data.choices?.[0]?.message?.content || "No response generated.";
     const tokensUsed = data.usage?.total_tokens || 0;
 
-    // Deduct credit and save chat history
+    // Deduct credit and save chat history using admin client
     await Promise.all([
-      supabase
+      adminClient
         .from("user_credits")
         .update({
           credits_remaining: credits.credits_remaining - 1,
-          credits_used: (credits as any).credits_used + 1,
+          credits_used: credits.credits_used + 1,
           updated_at: new Date().toISOString(),
         })
         .eq("user_id", user.id),
-      supabase.from("ai_chat_history").insert([
+      adminClient.from("ai_chat_history").insert([
         {
           user_id: user.id,
-          session_id: sessionId,
+          session_id: sessionId || crypto.randomUUID(),
           role: "user",
           content: messages[messages.length - 1].content,
           model,
@@ -116,7 +169,7 @@ serve(async (req) => {
         },
         {
           user_id: user.id,
-          session_id: sessionId,
+          session_id: sessionId || crypto.randomUUID(),
           role: "assistant",
           content: assistantMessage,
           model,
