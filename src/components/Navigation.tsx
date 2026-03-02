@@ -7,7 +7,6 @@ import { NotificationBell } from '@/components/NotificationBell';
 import { GlobalSearch } from '@/components/GlobalSearch';
 import ProfileDropdown from '@/components/ProfileDropdown';
 import { useAuth } from '@/hooks/useAuth';
-import { motion } from 'framer-motion';
 
 const Navigation: React.FC = () => {
   const navigate = useNavigate();
@@ -25,42 +24,39 @@ const Navigation: React.FC = () => {
   ];
 
   return (
-    <motion.nav
-      initial={{ y: -20, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-      className="sticky top-0 z-50 border-b border-border/30 bg-background/80 backdrop-blur-xl"
-    >
+    <nav className="glass sticky top-0 z-50 border-b border-border/50 backdrop-blur-xl">
       <div className="flex items-center justify-between h-16 w-full">
-        {/* Left side */}
-        <div className="flex items-center gap-2 pl-3">
+        {/* Left side - Title and Mobile Nav */}
+        <div className="flex items-center gap-2 pl-2">
           <MobileNav />
           <h1 
-            className="text-lg font-bold text-foreground cursor-pointer tracking-tight"
+            className="text-xl md:text-2xl font-bold text-foreground cursor-pointer"
             onClick={() => navigate('/')}
           >
             The Night Club
           </h1>
         </div>
         
-        {/* Right side */}
-        <div className="flex items-center space-x-1 md:space-x-2 pr-3">
+        {/* Right side - Navigation and User */}
+        <div className="flex items-center space-x-2 md:space-x-4 pr-2">
+          {/* Global Search */}
           <GlobalSearch />
           
+          {/* Navigation Items */}
           <div className="hidden lg:block">
-            <div className="flex items-center space-x-0.5">
+            <div className="flex items-baseline space-x-1">
               {navItems.map(item => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.path;
                 return (
                   <Button 
                     key={item.path} 
-                    variant={isActive ? "secondary" : "ghost"} 
+                    variant={isActive ? "default" : "ghost"} 
                     size="sm"
                     onClick={() => navigate(item.path)}
-                    className="flex items-center gap-1.5 text-xs rounded-full"
+                    className="flex items-center gap-1.5"
                   >
-                    <Icon className="h-3.5 w-3.5" />
+                    <Icon className="h-4 w-4" />
                     <span className="hidden xl:inline">{item.label}</span>
                   </Button>
                 );
@@ -68,11 +64,14 @@ const Navigation: React.FC = () => {
             </div>
           </div>
           
+          {/* Notifications - Only show if logged in */}
           {user && <NotificationBell />}
+          
+          {/* Profile Dropdown */}
           <ProfileDropdown />
         </div>
       </div>
-    </motion.nav>
+    </nav>
   );
 };
 
