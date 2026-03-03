@@ -36,7 +36,7 @@ export default function Auth() {
   const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
-    // If user is already authenticated, check their profile setup
+    // If user is already authenticated, redirect appropriately
     if (user && !authLoading) {
       checkUserProfileSetup();
     }
@@ -70,20 +70,26 @@ export default function Auth() {
     if (!user) return;
 
     try {
-      const { data: profile } = await supabase
+      const { data: profile, error } = await supabase
         .from('profiles')
         .select('username, is_username_set')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error checking profile:', error);
+        navigate('/portfolio');
+        return;
+      }
 
       if (!profile || !profile.is_username_set || !profile.username) {
         navigate('/setup-username');
       } else {
-        navigate(`/@${profile.username}`);
+        navigate('/portfolio');
       }
     } catch (error) {
-      // If no profile exists, redirect to username setup
-      navigate('/setup-username');
+      console.error('Error checking profile:', error);
+      navigate('/portfolio');
     }
   };
 

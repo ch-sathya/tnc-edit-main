@@ -38,22 +38,25 @@ export const RoomChat: React.FC<RoomChatProps> = ({ roomId, isOpen, onClose }) =
     if (!roomId || !isOpen) return;
 
     const fetchMessages = async () => {
-      const { data } = await supabase
+      const { data: messagesData } = await supabase
         .from('room_messages')
-        .select(`
-          *,
-          profile:user_id (
-            display_name,
-            username,
-            avatar_url
-          )
-        `)
+        .select('*')
         .eq('room_id', roomId)
         .order('created_at', { ascending: true })
         .limit(100);
 
-      if (data) {
-        setMessages(data as any);
+      if (messagesData && messagesData.length > 0) {
+        const userIds = [...new Set(messagesData.map(m => m.user_id))];
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('user_id, display_name, username, avatar_url')
+          .in('user_id', userIds);
+
+        const messagesWithProfiles = messagesData.map(msg => ({
+          ...msg,
+          profile: profiles?.find(p => p.user_id === msg.user_id),
+        }));
+        setMessages(messagesWithProfiles as any);
       }
     };
 
