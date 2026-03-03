@@ -204,7 +204,8 @@ const CollaborationRoom = () => {
   // Editor refs
   const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<typeof Monaco | null>(null);
-  const isRemoteChange = useRef(false);
+  const localSyncedFiles = useRef<Set<string>>(new Set());
+  const presenceChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   // Get user display name
@@ -391,6 +392,7 @@ const CollaborationRoom = () => {
 
     // Presence channel for online users and typing indicators
     const presenceChannel = supabase.channel(`room-presence-${roomId}`);
+    presenceChannelRef.current = presenceChannel;
     
     presenceChannel
       .on('presence', { event: 'sync' }, () => {
@@ -471,30 +473,29 @@ const CollaborationRoom = () => {
             });
           } else if (payload.eventType === 'UPDATE') {
             const updatedFile = payload.new as any;
-            // Only update if this wasn't our own change
-            if (updatedFile.created_by !== user.id || isRemoteChange.current) {
-              isRemoteChange.current = true;
-              setFiles(prev =>
-                prev.map(f => f.id === updatedFile.id ? {
-                  ...f,
-                  content: updatedFile.content || '',
-                  language: updatedFile.language || f.language,
-                } : f)
-              );
-              setOpenFiles(prev =>
-                prev.map(f => f.id === updatedFile.id ? {
-                  ...f,
-                  content: updatedFile.content || '',
-                } : f)
-              );
-              setActiveFile(prev => 
-                prev?.id === updatedFile.id ? {
-                  ...prev,
-                  content: updatedFile.content || '',
-                } : prev
-              );
-              setTimeout(() => { isRemoteChange.current = false; }, 100);
+            // Skip updates for files we just synced locally
+            if (localSyncedFiles.current.has(updatedFile.id)) {
+              return;
             }
+            setFiles(prev =>
+              prev.map(f => f.id === updatedFile.id ? {
+                ...f,
+                content: updatedFile.content || '',
+                language: updatedFile.language || f.language,
+              } : f)
+            );
+            setOpenFiles(prev =>
+              prev.map(f => f.id === updatedFile.id ? {
+                ...f,
+                content: updatedFile.content || '',
+              } : f)
+            );
+            setActiveFile(prev => 
+              prev?.id === updatedFile.id ? {
+                ...prev,
+                content: updatedFile.content || '',
+              } : prev
+            );
           } else if (payload.eventType === 'DELETE') {
             const deletedId = (payload.old as any).id;
             setFiles(prev => prev.filter(f => f.id !== deletedId));
@@ -541,6 +542,7 @@ const CollaborationRoom = () => {
       .subscribe();
 
     return () => {
+      presenceChannelRef.current = null;
       supabase.removeChannel(presenceChannel);
       supabase.removeChannel(filesChannel);
       supabase.removeChannel(participantsChannel);
@@ -549,10 +551,9 @@ const CollaborationRoom = () => {
 
   // Broadcast typing status
   const broadcastTyping = useCallback(async (isTyping: boolean) => {
-    if (!roomId || !user) return;
+    if (!roomId || !user || !presenceChannelRef.current) return;
     
-    const channel = supabase.channel(`room-presence-${roomId}`);
-    await channel.track({
+    await presenceChannelRef.current.track({
       user_id: user.id,
       user_name: userName,
       online_at: new Date().toISOString(),
@@ -686,7 +687,7 @@ const CollaborationRoom = () => {
 
   // Handle code change with real-time sync
   const handleCodeChange = useCallback((value: string | undefined) => {
-    if (!activeFile || value === undefined || isRemoteChange.current) return;
+    if (!activeFile || value === undefined) return;
     
     // Update local state immediately
     setFiles(prevFiles =>
@@ -710,7 +711,10 @@ const CollaborationRoom = () => {
     }
 
     debounceRef.current = setTimeout(async () => {
-      if (!roomId || !user) return;
+      if (!roomId || !user || !activeFile) return;
+
+      const fileId = activeFile.id;
+      localSyncedFiles.current.add(fileId);
 
       try {
         await supabase
@@ -719,10 +723,15 @@ const CollaborationRoom = () => {
             content: value,
             updated_at: new Date().toISOString(),
           })
-          .eq('id', activeFile.id);
+          .eq('id', fileId);
       } catch (error) {
         console.error('Error syncing code:', error);
       }
+
+      // Clear the local sync flag after 1s
+      setTimeout(() => {
+        localSyncedFiles.current.delete(fileId);
+      }, 1000);
 
       // Stop typing indicator
       broadcastTyping(false);
@@ -1020,8 +1029,8 @@ const CollaborationRoom = () => {
 
           <div className="h-4 w-px bg-[#3c3c3c]" />
 
-          {/* Share button for private rooms */}
-          {room.is_private && (
+          {/* Share button */}
+          {room.created_by === user?.id && (
             <Button
               variant="ghost"
               size="sm"

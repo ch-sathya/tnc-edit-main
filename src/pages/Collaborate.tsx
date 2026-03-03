@@ -150,7 +150,7 @@ const Collaborate = () => {
 
       // Add creator as participant
       await supabase
-        .from('room_participants' as any)
+        .from('room_participants')
         .insert([
           {
             room_id: data.id,
@@ -190,13 +190,13 @@ const Collaborate = () => {
     try {
       // First delete participants
       await supabase
-        .from('room_participants' as any)
+        .from('room_participants')
         .delete()
         .eq('room_id', roomToDelete.id);
 
       // Then delete the room code
       await supabase
-        .from('collaboration_code' as any)
+        .from('collaboration_code')
         .delete()
         .eq('room_id', roomToDelete.id);
 
@@ -286,7 +286,7 @@ const Collaborate = () => {
 
   const handleJoinByCode = () => {
     if (joinCode.length === 8) {
-      navigate(`/collaborate/join?code=${joinCode.toUpperCase()}`);
+      navigate(`/collaborate/join?code=${joinCode.trim()}`);
     }
   };
 
