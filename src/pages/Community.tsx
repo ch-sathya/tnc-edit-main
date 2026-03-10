@@ -62,7 +62,7 @@ const Community = () => {
     return (
       <>
         <Navigation />
-        <CommunityErrorBoundary feature="community">
+        <CommunityErrorBoundary feature="groups">
           <div className="min-h-screen bg-background">
             {/* Group header banner */}
             <div className="border-b bg-card">
