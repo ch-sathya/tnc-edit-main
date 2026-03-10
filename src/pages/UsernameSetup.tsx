@@ -58,6 +58,27 @@ export default function UsernameSetup() {
     return () => clearTimeout(timeoutId);
   };
 
+  const handleSkip = async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ is_username_set: true })
+        .eq('user_id', user.id);
+      if (error) throw error;
+      navigate('/portfolio');
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -65,39 +86,16 @@ export default function UsernameSetup() {
 
     setLoading(true);
     try {
-      // Check if user already has a profile
-      const { data: existingProfile } = await supabase
+      const { error } = await supabase
         .from('profiles')
-        .select('id, username, is_username_set')
-        .eq('user_id', user.id)
-        .single();
+        .update({ 
+          username: username.toLowerCase(),
+          is_username_set: true,
+          display_name: user.user_metadata?.full_name || username,
+        })
+        .eq('user_id', user.id);
 
-      if (existingProfile && existingProfile.is_username_set) {
-        // Update existing profile
-        const { error } = await supabase
-          .from('profiles')
-          .update({ 
-            username: username.toLowerCase(),
-            is_username_set: true 
-          })
-          .eq('user_id', user.id);
-
-        if (error) throw error;
-      } else {
-        // Create new profile or update incomplete one
-        const { error } = await supabase
-          .from('profiles')
-          .upsert([
-            {
-              user_id: user.id,
-              username: username.toLowerCase(),
-              is_username_set: true,
-              display_name: user.user_metadata?.full_name || username,
-            }
-          ]);
-
-        if (error) throw error;
-      }
+      if (error) throw error;
 
       toast({
         title: 'Username set successfully!',
