@@ -177,6 +177,16 @@ export default function UsernameSetup() {
             >
               {loading ? 'Setting up...' : 'Create Portfolio'}
             </Button>
+
+            <Button 
+              type="button"
+              variant="ghost"
+              className="w-full"
+              onClick={handleSkip}
+              disabled={loading}
+            >
+              Skip for now
+            </Button>
           </form>
         </CardContent>
       </Card>
