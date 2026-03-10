@@ -319,6 +319,69 @@ export type Database = {
         }
         Relationships: []
       }
+      community_posts: {
+        Row: {
+          comment_count: number
+          content: string | null
+          created_at: string
+          downvotes: number
+          flair_id: string | null
+          group_id: string
+          id: string
+          is_locked: boolean
+          is_pinned: boolean
+          title: string
+          updated_at: string
+          upvotes: number
+          user_id: string
+        }
+        Insert: {
+          comment_count?: number
+          content?: string | null
+          created_at?: string
+          downvotes?: number
+          flair_id?: string | null
+          group_id: string
+          id?: string
+          is_locked?: boolean
+          is_pinned?: boolean
+          title: string
+          updated_at?: string
+          upvotes?: number
+          user_id: string
+        }
+        Update: {
+          comment_count?: number
+          content?: string | null
+          created_at?: string
+          downvotes?: number
+          flair_id?: string | null
+          group_id?: string
+          id?: string
+          is_locked?: boolean
+          is_pinned?: boolean
+          title?: string
+          updated_at?: string
+          upvotes?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_posts_flair_id_fkey"
+            columns: ["flair_id"]
+            isOneToOne: false
+            referencedRelation: "post_flairs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_posts_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "community_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       direct_messages: {
         Row: {
           content: string
@@ -406,6 +469,41 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "group_messages_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "community_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_rules: {
+        Row: {
+          created_at: string
+          description: string | null
+          group_id: string
+          id: string
+          rule_number: number
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          group_id: string
+          id?: string
+          rule_number: number
+          title: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          group_id?: string
+          id?: string
+          rule_number?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_rules_group_id_fkey"
             columns: ["group_id"]
             isOneToOne: false
             referencedRelation: "community_groups"
@@ -535,6 +633,131 @@ export type Database = {
           price_cents?: number
         }
         Relationships: []
+      }
+      post_comments: {
+        Row: {
+          content: string
+          created_at: string
+          downvotes: number
+          id: string
+          parent_id: string | null
+          post_id: string
+          updated_at: string
+          upvotes: number
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          downvotes?: number
+          id?: string
+          parent_id?: string | null
+          post_id: string
+          updated_at?: string
+          upvotes?: number
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          downvotes?: number
+          id?: string
+          parent_id?: string | null
+          post_id?: string
+          updated_at?: string
+          upvotes?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "post_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_flairs: {
+        Row: {
+          color: string
+          created_at: string
+          group_id: string
+          id: string
+          name: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          group_id: string
+          id?: string
+          name: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          group_id?: string
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_flairs_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "community_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_votes: {
+        Row: {
+          comment_id: string | null
+          created_at: string
+          id: string
+          post_id: string | null
+          user_id: string
+          vote_type: number
+        }
+        Insert: {
+          comment_id?: string | null
+          created_at?: string
+          id?: string
+          post_id?: string | null
+          user_id: string
+          vote_type: number
+        }
+        Update: {
+          comment_id?: string | null
+          created_at?: string
+          id?: string
+          post_id?: string | null
+          user_id?: string
+          vote_type?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_votes_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "post_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_votes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
