@@ -98,6 +98,12 @@ const Portfolio = () => {
   const { profile, loading: profileLoading } = useProfile();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/auth');
+    }
+  }, [user, authLoading, navigate]);
   
   // Data states
   const [projects, setProjects] = useState<Project[]>([]);

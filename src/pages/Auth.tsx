@@ -82,7 +82,7 @@ export default function Auth() {
         return;
       }
 
-      if (!profile || !profile.is_username_set || !profile.username) {
+      if (!profile || !profile.is_username_set) {
         navigate('/setup-username');
       } else {
         navigate('/portfolio');
