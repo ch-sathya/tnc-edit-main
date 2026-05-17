@@ -1,22 +1,60 @@
-import React, { lazy, Suspense } from 'react';
-import { FluidGradientOrb, GridPattern } from './FluidBackground';
+import React, { lazy, Suspense, useMemo } from 'react';
+import { motion } from 'framer-motion';
+import { GridPattern } from './FluidBackground';
+import { useAmbientTheme, intensityConfig, themeColors } from '@/contexts/AmbientThemeContext';
 
 const FloatingScene = lazy(() => import('@/components/three/FloatingScene'));
 
+const ThemedOrb: React.FC<{
+  className?: string;
+  size?: string;
+  delay?: number;
+  duration?: number;
+  color: string;
+  opacity: number;
+}> = ({ className = '', size = 'w-96 h-96', delay = 0, duration = 28, color, opacity }) => {
+  return (
+    <motion.div
+      className={`absolute rounded-full blur-3xl ${size} ${className}`}
+      style={{
+        background: `radial-gradient(circle, ${color}, transparent)`,
+        opacity,
+      }}
+      animate={{
+        x: [0, 40, -20, 0],
+        y: [0, -30, 20, 0],
+        scale: [1, 1.15, 0.95, 1],
+      }}
+      transition={{ duration, delay, repeat: Infinity, ease: 'easeInOut' }}
+    />
+  );
+};
+
 /**
- * Global ambient layer rendered once behind the entire app.
- * Provides the fluid-glass / claygarden atmosphere across every page:
- * - drifting gradient orbs
- * - subtle grid texture
- * - very low-opacity 3D scene (desktop only) for depth
+ * Global ambient layer — themed and configurable.
+ * Reads preferences from AmbientThemeContext.
  */
 export const AmbientBackground: React.FC = () => {
+  const { theme, intensity, enable3D } = useAmbientTheme();
+  const cfg = intensityConfig[intensity];
+  const colors = themeColors[theme];
+
+  const reducedMotion = useMemo(
+    () =>
+      typeof window !== 'undefined' &&
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches,
+    []
+  );
+
+  const show3D =
+    enable3D &&
+    cfg.show3D &&
+    !reducedMotion &&
+    typeof window !== 'undefined' &&
+    window.matchMedia?.('(min-width: 1280px)').matches;
+
   return (
-    <div
-      aria-hidden
-      className="fixed inset-0 -z-10 pointer-events-none overflow-hidden"
-    >
-      {/* Base wash */}
+    <div aria-hidden className="fixed inset-0 -z-10 pointer-events-none overflow-hidden">
       <div className="absolute inset-0 bg-background" />
 
       {/* Soft radial vignette */}
@@ -24,24 +62,44 @@ export const AmbientBackground: React.FC = () => {
         className="absolute inset-0"
         style={{
           background:
-            'radial-gradient(ellipse at 50% 0%, hsl(var(--foreground) / 0.06), transparent 60%)',
+            'radial-gradient(ellipse at 50% 0%, hsl(var(--foreground) / 0.05), transparent 60%)',
         }}
       />
 
-      {/* Subtle grid */}
       <GridPattern />
 
-      {/* Fluid drifting orbs */}
-      <FluidGradientOrb className="top-[-10%] left-[-10%]" size="w-[40rem] h-[40rem]" duration={28} />
-      <FluidGradientOrb className="top-[30%] right-[-15%]" size="w-[36rem] h-[36rem]" delay={4} duration={32} />
-      <FluidGradientOrb className="bottom-[-15%] left-[20%]" size="w-[44rem] h-[44rem]" delay={8} duration={36} />
+      <ThemedOrb
+        className="top-[-10%] left-[-10%]"
+        size="w-[36rem] h-[36rem]"
+        duration={32}
+        color={colors.orb}
+        opacity={cfg.orbOpacity}
+      />
+      <ThemedOrb
+        className="bottom-[-15%] right-[-10%]"
+        size="w-[40rem] h-[40rem]"
+        delay={6}
+        duration={38}
+        color={colors.orb}
+        opacity={cfg.orbOpacity * 0.85}
+      />
 
-      {/* Lightweight 3D layer — desktop only, very low opacity */}
-      <div className="hidden lg:block absolute inset-0 opacity-40">
-        <Suspense fallback={null}>
-          <FloatingScene />
-        </Suspense>
-      </div>
+      {show3D && (
+        <div
+          className="absolute inset-0"
+          style={{
+            opacity: cfg.sceneOpacity,
+            maskImage:
+              'radial-gradient(ellipse at center, black 35%, transparent 80%)',
+            WebkitMaskImage:
+              'radial-gradient(ellipse at center, black 35%, transparent 80%)',
+          }}
+        >
+          <Suspense fallback={null}>
+            <FloatingScene particleCount={cfg.particleCount} />
+          </Suspense>
+        </div>
+      )}
     </div>
   );
 };
