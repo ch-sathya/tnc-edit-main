@@ -8,6 +8,7 @@ import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { TopLoadingBar } from "@/components/TopLoadingBar";
 import { NoiseOverlay, SmoothCursor } from "@/components/animations/FluidBackground";
+import { AmbientBackground } from "@/components/animations/AmbientBackground";
 import Index from "./pages/Index";
 import Home from "./pages/Home";
 import Portfolio from "./pages/Portfolio";
@@ -106,6 +107,7 @@ const App = () => {
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <AmbientBackground />
           <NoiseOverlay />
           <SmoothCursor />
           <AnimatedRoutes />
