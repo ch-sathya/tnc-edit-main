@@ -86,14 +86,34 @@ export const GridPattern: React.FC<{ className?: string }> = ({ className = '' }
 
 export const SmoothCursor: React.FC = () => {
   const [mousePos, setMousePos] = React.useState({ x: 0, y: 0 });
+  const [enabled] = React.useState(() => {
+    if (typeof window === 'undefined') return false;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return false;
+    return window.matchMedia?.('(min-width: 1024px)').matches ?? false;
+  });
 
   React.useEffect(() => {
+    if (!enabled) return;
+    let rafId = 0;
+    let nextX = 0, nextY = 0;
     const handleMouseMove = (e: MouseEvent) => {
-      setMousePos({ x: e.clientX, y: e.clientY });
+      nextX = e.clientX;
+      nextY = e.clientY;
+      if (!rafId) {
+        rafId = requestAnimationFrame(() => {
+          setMousePos({ x: nextX, y: nextY });
+          rafId = 0;
+        });
+      }
     };
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
+    window.addEventListener('mousemove', handleMouseMove, { passive: true });
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      if (rafId) cancelAnimationFrame(rafId);
+    };
+  }, [enabled]);
+
+  if (!enabled) return null;
 
   return (
     <motion.div
