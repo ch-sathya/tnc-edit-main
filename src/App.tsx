@@ -3,40 +3,46 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
-import { useEffect, Suspense } from "react";
+import { useEffect, Suspense, lazy } from "react";
 import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { TopLoadingBar } from "@/components/TopLoadingBar";
 import { NoiseOverlay, SmoothCursor } from "@/components/animations/FluidBackground";
 import { AmbientBackground } from "@/components/animations/AmbientBackground";
+import { AmbientThemeProvider } from "@/contexts/AmbientThemeContext";
+import { AmbientThemeSwitcher } from "@/components/AmbientThemeSwitcher";
+
+// Eager (light, frequently-used)
 import Index from "./pages/Index";
 import Home from "./pages/Home";
-import Portfolio from "./pages/Portfolio";
-import Projects from "./pages/Projects";
-import ProjectDetail from "./pages/ProjectDetail";
-import Editor from "./pages/Editor";
-import Collaborate from "./pages/Collaborate";
-import CollaborationRoom from "./pages/CollaborationRoom";
-import Community from "./pages/Community";
-import Connections from "./pages/Connections";
-import News from "./pages/News";
-import NewsArticle from "./components/NewsArticle";
 import Auth from "./pages/Auth";
-import UsernameSetup from "./pages/UsernameSetup";
-import Settings from "./pages/Settings";
-import ResetPassword from "./pages/ResetPassword";
-import JoinRoom from "./pages/JoinRoom";
-import Pricing from "./pages/Pricing";
-import VibeCode from "./pages/VibeCode";
 import NotFound from "./pages/NotFound";
-import UserProfile from "./pages/UserProfile";
-import SharedSnippet from "./pages/SharedSnippet";
-import Notifications from "./pages/Notifications";
+
+// Lazy (heavy or less-frequent)
+const Portfolio = lazy(() => import("./pages/Portfolio"));
+const Projects = lazy(() => import("./pages/Projects"));
+const ProjectDetail = lazy(() => import("./pages/ProjectDetail"));
+const Editor = lazy(() => import("./pages/Editor"));
+const Collaborate = lazy(() => import("./pages/Collaborate"));
+const CollaborationRoom = lazy(() => import("./pages/CollaborationRoom"));
+const Community = lazy(() => import("./pages/Community"));
+const Connections = lazy(() => import("./pages/Connections"));
+const News = lazy(() => import("./pages/News"));
+const NewsArticle = lazy(() => import("./components/NewsArticle"));
+const UsernameSetup = lazy(() => import("./pages/UsernameSetup"));
+const Settings = lazy(() => import("./pages/Settings"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const JoinRoom = lazy(() => import("./pages/JoinRoom"));
+const Pricing = lazy(() => import("./pages/Pricing"));
+const VibeCode = lazy(() => import("./pages/VibeCode"));
+const UserProfile = lazy(() => import("./pages/UserProfile"));
+const SharedSnippet = lazy(() => import("./pages/SharedSnippet"));
+const Notifications = lazy(() => import("./pages/Notifications"));
 
 const queryClient = new QueryClient();
 
 const PageLoader = () => (
-  <div className="min-h-screen bg-background flex items-center justify-center">
+  <div className="min-h-screen bg-transparent flex items-center justify-center">
     <motion.div
       className="flex items-center gap-3 text-muted-foreground"
       initial={{ opacity: 0 }}
@@ -103,16 +109,19 @@ const App = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AmbientBackground />
-          <NoiseOverlay />
-          <SmoothCursor />
-          <AnimatedRoutes />
-        </BrowserRouter>
-      </TooltipProvider>
+      <AmbientThemeProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AmbientBackground />
+            <NoiseOverlay />
+            <SmoothCursor />
+            <AnimatedRoutes />
+            <AmbientThemeSwitcher />
+          </BrowserRouter>
+        </TooltipProvider>
+      </AmbientThemeProvider>
     </QueryClientProvider>
   );
 };
