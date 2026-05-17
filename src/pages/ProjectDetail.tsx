@@ -155,7 +155,7 @@ const ProjectDetail = () => {
     return (
       <>
         <Navigation />
-        <div className="min-h-screen bg-background">
+        <div className="min-h-screen bg-transparent">
           <div className="container mx-auto py-8 px-4 max-w-4xl">
             <Skeleton className="h-8 w-32 mb-6" />
             <Skeleton className="aspect-video w-full rounded-lg mb-6" />
@@ -181,7 +181,7 @@ const ProjectDetail = () => {
   return (
     <>
       <Navigation />
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-transparent">
         <div className="container mx-auto py-8 px-4 max-w-4xl">
           {/* Back Button */}
           <Button variant="ghost" asChild className="mb-6">

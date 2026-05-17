@@ -63,7 +63,7 @@ const Community = () => {
       <>
         <Navigation />
         <CommunityErrorBoundary feature="groups">
-          <div className="min-h-screen bg-background">
+          <div className="min-h-screen bg-transparent">
             {/* Group header banner */}
             <div className="border-b bg-card">
               <div className="max-w-6xl mx-auto px-3 sm:px-6 py-4">
@@ -247,7 +247,7 @@ const Community = () => {
     <>
       <Navigation />
       <CommunityErrorBoundary feature="groups">
-        <main className="min-h-screen bg-background p-3 sm:p-6">
+        <main className="min-h-screen bg-transparent p-3 sm:p-6">
           <div className="max-w-7xl mx-auto">
             <header className="mb-6">
               <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Community</h1>

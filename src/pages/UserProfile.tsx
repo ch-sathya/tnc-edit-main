@@ -256,7 +256,7 @@ const UserProfile = () => {
     return (
       <>
         <Navigation />
-        <div className="min-h-screen bg-background">
+        <div className="min-h-screen bg-transparent">
           <div className="container mx-auto py-16 px-4 max-w-5xl flex items-center justify-center text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin text-primary mr-2" aria-hidden="true" />
             <span className="text-sm">Loading profile…</span>
@@ -270,7 +270,7 @@ const UserProfile = () => {
     return (
       <>
         <Navigation />
-        <div className="min-h-screen bg-background">
+        <div className="min-h-screen bg-transparent">
           <div className="container mx-auto py-8 px-4 max-w-5xl">
             <Card>
               <CardContent className="py-12 text-center">
@@ -288,7 +288,7 @@ const UserProfile = () => {
   return (
     <>
       <Navigation />
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-transparent">
         <div className="container mx-auto py-8 px-4 max-w-5xl">
           {/* Profile Header */}
           
