@@ -142,7 +142,7 @@ const Settings = () => {
   return (
     <>
       <Navigation />
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-transparent">
         <div className="container mx-auto py-8 px-4 max-w-4xl">
           <h1 className="text-3xl font-bold text-foreground mb-8">Settings</h1>
 

@@ -285,7 +285,7 @@ const Portfolio = () => {
     return (
       <>
         <Navigation />
-        <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="min-h-screen bg-transparent flex items-center justify-center">
           <Loader2 className="h-5 w-5 animate-spin text-primary" />
         </div>
       </>
@@ -296,7 +296,7 @@ const Portfolio = () => {
     return (
       <>
         <Navigation />
-        <div className="min-h-screen bg-background">
+        <div className="min-h-screen bg-transparent">
           <div className="container mx-auto py-8 px-4 max-w-7xl">
             <Card>
               <CardHeader>
@@ -325,7 +325,7 @@ const Portfolio = () => {
   return (
     <>
       <Navigation />
-      <div className="min-h-screen bg-background flex flex-col">
+      <div className="min-h-screen bg-transparent flex flex-col">
         <div className="flex-1">
           <div className="container mx-auto py-8 px-4 max-w-7xl">
             {/* Welcome Banner */}

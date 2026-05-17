@@ -262,7 +262,7 @@ const Connections = () => {
     return (
       <>
         <Navigation />
-        <div className="min-h-screen bg-background">
+        <div className="min-h-screen bg-transparent">
           <div className="container mx-auto py-8 px-4 max-w-4xl">
             <Skeleton className="h-10 w-48 mb-8" />
             {renderSkeletons()}
@@ -275,7 +275,7 @@ const Connections = () => {
   return (
     <>
       <Navigation />
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-transparent">
         <div className="container mx-auto py-8 px-4 max-w-4xl">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">

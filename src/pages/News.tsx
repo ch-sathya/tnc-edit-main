@@ -10,7 +10,7 @@ const News = () => {
   return <>
       <Navigation />
       <NewsErrorBoundary feature="feed">
-        <main className="min-h-screen bg-background p-3 sm:p-6" role="main">
+        <main className="min-h-screen bg-transparent p-3 sm:p-6" role="main">
         <div className="max-w-7xl mx-auto">
           
           

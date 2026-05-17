@@ -173,7 +173,7 @@ const VibeCode = () => {
     return (
       <>
         <Navigation />
-        <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="min-h-screen bg-transparent flex items-center justify-center">
           <Loader2 className="h-5 w-5 animate-spin text-primary" />
         </div>
       </>
@@ -184,7 +184,7 @@ const VibeCode = () => {
     return (
       <>
         <Navigation />
-        <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="min-h-screen bg-transparent flex items-center justify-center">
           <Card className="max-w-md w-full mx-4">
             <CardHeader className="text-center">
               <Sparkles className="h-12 w-12 mx-auto mb-4 text-primary" />
