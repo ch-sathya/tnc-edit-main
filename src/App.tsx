@@ -10,6 +10,7 @@ import { NoiseOverlay } from "@/components/animations/FluidBackground";
 import { AmbientBackground } from "@/components/animations/AmbientBackground";
 import { AmbientThemeProvider } from "@/contexts/AmbientThemeContext";
 import { AmbientThemeSwitcher } from "@/components/AmbientThemeSwitcher";
+import { RouteHead } from "@/components/RouteHead";
 
 // Eager (light, frequently-used)
 import Index from "./pages/Index";
