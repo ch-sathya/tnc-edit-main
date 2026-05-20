@@ -111,7 +111,6 @@ const App = () => {
           <BrowserRouter>
             <AmbientBackground />
             <NoiseOverlay />
-            <SmoothCursor />
             <AnimatedRoutes />
             <AmbientThemeSwitcher />
           </BrowserRouter>
