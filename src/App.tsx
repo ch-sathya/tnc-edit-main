@@ -56,6 +56,7 @@ const AnimatedRoutes = () => {
   return (
     <>
       <TopLoadingBar />
+      <RouteHead />
       <div
         key={location.pathname}
         className="min-h-screen animate-fade-in"
