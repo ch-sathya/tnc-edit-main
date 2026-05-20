@@ -17,7 +17,7 @@ const STORAGE_KEY = 'ambient-theme-prefs-v1';
 const defaults: Omit<AmbientThemeState, 'setTheme' | 'setIntensity' | 'setEnable3D'> = {
   theme: 'mono',
   intensity: 'subtle',
-  enable3D: true,
+  enable3D: false,
 };
 
 const AmbientThemeContext = createContext<AmbientThemeState | null>(null);
