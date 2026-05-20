@@ -25,31 +25,26 @@ const Navigation: React.FC = () => {
   ];
 
   return (
-    <motion.nav
-      initial={{ y: -20, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.5, ease: [0.25, 0.4, 0, 1] }}
-      className="sticky top-0 z-50 border-b border-border/30"
+    <nav
+      className="sticky top-0 z-50 border-b border-border/40"
       style={{
-        background: 'rgba(0, 0, 0, 0.6)',
-        backdropFilter: 'blur(20px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+        background: 'rgba(10, 10, 12, 0.72)',
+        backdropFilter: 'blur(16px) saturate(160%)',
+        WebkitBackdropFilter: 'blur(16px) saturate(160%)',
       }}
     >
-      <div className="flex items-center justify-between h-16 w-full">
+      <div className="flex items-center justify-between h-14 w-full">
         <div className="flex items-center gap-2 pl-3">
           <MobileNav />
-          <motion.h1
-            className="text-xl md:text-2xl font-bold text-foreground cursor-pointer tracking-tight"
+          <h1
+            className="text-lg md:text-xl font-bold text-foreground cursor-pointer tracking-tight"
             onClick={() => navigate('/')}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
           >
             The Night Club
-          </motion.h1>
+          </h1>
         </div>
 
-        <div className="flex items-center space-x-2 md:space-x-3 pr-3">
+        <div className="flex items-center space-x-1 md:space-x-2 pr-3">
           <GlobalSearch />
           <div className="hidden lg:block">
             <div className="flex items-baseline space-x-0.5">
@@ -59,20 +54,13 @@ const Navigation: React.FC = () => {
                 return (
                   <Button
                     key={item.path}
-                    variant={isActive ? "default" : "ghost"}
+                    variant={isActive ? "secondary" : "ghost"}
                     size="sm"
                     onClick={() => navigate(item.path)}
-                    className="flex items-center gap-1.5 relative"
+                    className="flex items-center gap-1.5 relative h-8"
                   >
                     <Icon className="h-4 w-4" />
                     <span className="hidden xl:inline">{item.label}</span>
-                    {isActive && (
-                      <motion.div
-                        layoutId="nav-indicator"
-                        className="absolute -bottom-[1px] left-2 right-2 h-[2px] bg-foreground rounded-full"
-                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                      />
-                    )}
                   </Button>
                 );
               })}
@@ -82,7 +70,7 @@ const Navigation: React.FC = () => {
           <ProfileDropdown />
         </div>
       </div>
-    </motion.nav>
+    </nav>
   );
 };
 
