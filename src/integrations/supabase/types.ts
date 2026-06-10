@@ -589,6 +589,30 @@ export type Database = {
         }
         Relationships: []
       }
+      pinned_repositories: {
+        Row: {
+          created_at: string
+          id: string
+          repository_id: string
+          sort_order: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          repository_id: string
+          sort_order?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          repository_id?: string
+          sort_order?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       plan_tiers: {
         Row: {
           billing_period: string
@@ -761,13 +785,17 @@ export type Database = {
       }
       profiles: {
         Row: {
+          availability: string | null
           avatar_url: string | null
+          banner_url: string | null
           bio: string | null
           created_at: string
           description: string | null
           display_name: string | null
           github_url: string | null
+          headline: string | null
           id: string
+          is_public: boolean
           is_username_set: boolean | null
           linkedin_url: string | null
           location: string | null
@@ -779,13 +807,17 @@ export type Database = {
           website: string | null
         }
         Insert: {
+          availability?: string | null
           avatar_url?: string | null
+          banner_url?: string | null
           bio?: string | null
           created_at?: string
           description?: string | null
           display_name?: string | null
           github_url?: string | null
+          headline?: string | null
           id?: string
+          is_public?: boolean
           is_username_set?: boolean | null
           linkedin_url?: string | null
           location?: string | null
@@ -797,13 +829,17 @@ export type Database = {
           website?: string | null
         }
         Update: {
+          availability?: string | null
           avatar_url?: string | null
+          banner_url?: string | null
           bio?: string | null
           created_at?: string
           description?: string | null
           display_name?: string | null
           github_url?: string | null
+          headline?: string | null
           id?: string
+          is_public?: boolean
           is_username_set?: boolean | null
           linkedin_url?: string | null
           location?: string | null
@@ -1173,6 +1209,30 @@ export type Database = {
         }
         Relationships: []
       }
+      skill_endorsements: {
+        Row: {
+          created_at: string
+          endorser_id: string
+          id: string
+          profile_user_id: string
+          skill: string
+        }
+        Insert: {
+          created_at?: string
+          endorser_id: string
+          id?: string
+          profile_user_id: string
+          skill: string
+        }
+        Update: {
+          created_at?: string
+          endorser_id?: string
+          id?: string
+          profile_user_id?: string
+          skill?: string
+        }
+        Relationships: []
+      }
       user_connections: {
         Row: {
           addressee_id: string
@@ -1225,6 +1285,54 @@ export type Database = {
           credits_used?: number
           id?: string
           last_reset_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_experience: {
+        Row: {
+          created_at: string
+          description: string | null
+          end_date: string | null
+          id: string
+          is_current: boolean
+          kind: string
+          location: string | null
+          organization: string | null
+          sort_order: number
+          start_date: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          is_current?: boolean
+          kind: string
+          location?: string | null
+          organization?: string | null
+          sort_order?: number
+          start_date?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          is_current?: boolean
+          kind?: string
+          location?: string | null
+          organization?: string | null
+          sort_order?: number
+          start_date?: string | null
+          title?: string
           updated_at?: string
           user_id?: string
         }
