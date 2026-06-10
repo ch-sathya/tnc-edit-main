@@ -25,6 +25,12 @@ import {
   Loader2,
 } from 'lucide-react';
 import { DirectMessageModal } from '@/components/DirectMessageModal';
+import { AvailabilityBadge } from '@/components/profile/AvailabilityBadge';
+import { EndorsableSkills } from '@/components/profile/EndorsableSkills';
+import { ExperienceSection } from '@/components/profile/ExperienceSection';
+import { PinnedRepositories } from '@/components/profile/PinnedRepositories';
+import { ProfileEditModal } from '@/components/ProfileEditModal';
+import { Lock } from 'lucide-react';
 
 interface UserProfileData {
   id: string;
@@ -32,6 +38,10 @@ interface UserProfileData {
   username: string | null;
   display_name: string | null;
   avatar_url: string | null;
+  banner_url: string | null;
+  headline: string | null;
+  availability: string | null;
+  is_public: boolean | null;
   bio: string | null;
   location: string | null;
   website: string | null;
