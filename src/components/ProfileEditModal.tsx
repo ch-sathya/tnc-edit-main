@@ -112,7 +112,7 @@ export const ProfileEditModal = ({ open, onOpenChange, profile, userId, onSucces
           avatar_url: avatarUrl,
           banner_url: bannerUrl,
           updated_at: new Date().toISOString(),
-        } as any)
+        })
         .eq('user_id', userId);
 
       if (error) throw error;
