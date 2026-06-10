@@ -25,6 +25,12 @@ import {
   Loader2,
 } from 'lucide-react';
 import { DirectMessageModal } from '@/components/DirectMessageModal';
+import { AvailabilityBadge } from '@/components/profile/AvailabilityBadge';
+import { EndorsableSkills } from '@/components/profile/EndorsableSkills';
+import { ExperienceSection } from '@/components/profile/ExperienceSection';
+import { PinnedRepositories } from '@/components/profile/PinnedRepositories';
+import { ProfileEditModal } from '@/components/ProfileEditModal';
+import { Lock } from 'lucide-react';
 
 interface UserProfileData {
   id: string;
@@ -32,6 +38,10 @@ interface UserProfileData {
   username: string | null;
   display_name: string | null;
   avatar_url: string | null;
+  banner_url: string | null;
+  headline: string | null;
+  availability: string | null;
+  is_public: boolean | null;
   bio: string | null;
   location: string | null;
   website: string | null;
@@ -75,6 +85,7 @@ const UserProfile = () => {
   const [connectionStatus, setConnectionStatus] = useState<'none' | 'pending_sent' | 'pending_received' | 'connected'>('none');
   const [sendingRequest, setSendingRequest] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
   useEffect(() => {
     if (userId) {
@@ -285,106 +296,117 @@ const UserProfile = () => {
     );
   }
 
+  // Private profile (and viewer is not the owner)
+  if (profile.is_public === false && !isOwnProfile) {
+    return (
+      <>
+        <Navigation />
+        <div className="min-h-screen bg-transparent">
+          <div className="container mx-auto py-16 px-4 max-w-3xl">
+            <Card>
+              <CardContent className="py-16 text-center">
+                <Lock className="h-10 w-10 mx-auto mb-4 text-muted-foreground" />
+                <h2 className="text-xl font-semibold mb-2">This profile is private</h2>
+                <p className="text-muted-foreground">The owner has chosen to hide their profile from the public.</p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
       <Navigation />
       <div className="min-h-screen bg-transparent">
         <div className="container mx-auto py-8 px-4 max-w-5xl">
-          {/* Profile Header */}
-          
-          <Card className="mb-8">
-            <CardContent className="pt-6">
-              <div className="flex flex-col md:flex-row gap-6">
-                <Avatar className="h-32 w-32">
+          {/* Profile Header with banner */}
+          <Card className="mb-8 overflow-hidden">
+            <div className="relative h-40 md:h-56 w-full bg-gradient-to-br from-secondary via-secondary/60 to-card">
+              {profile.banner_url && (
+                <img src={profile.banner_url} alt="" className="w-full h-full object-cover" />
+              )}
+            </div>
+            <CardContent className="pt-0 -mt-14">
+              <div className="flex flex-col md:flex-row gap-6 md:items-end">
+                <Avatar className="h-28 w-28 border-4 border-card shadow-lg">
                   <AvatarImage src={profile.avatar_url || undefined} alt={profile.display_name || 'User'} />
-                  <AvatarFallback className="text-4xl">
+                  <AvatarFallback className="text-3xl">
                     {(profile.display_name || profile.username || 'U')[0].toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
 
-                <div className="flex-1">
-                  <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
-                    <div>
-                      <h1 className="text-3xl font-bold text-foreground">
-                        {profile.display_name || profile.username || 'User'}
-                      </h1>
+                <div className="flex-1 pt-2 md:pt-0">
+                  <div className="flex flex-wrap items-start justify-between gap-4 mb-3">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+                          {profile.display_name || profile.username || 'User'}
+                        </h1>
+                        <AvailabilityBadge value={profile.availability} />
+                      </div>
                       {profile.username && (
                         <p className="text-muted-foreground">@{profile.username}</p>
                       )}
+                      {profile.headline && (
+                        <p className="text-foreground/90 mt-1 font-medium">{profile.headline}</p>
+                      )}
                     </div>
 
-                    {/* Connection Actions */}
                     {!isOwnProfile && user && (
                       <div className="flex gap-2">
                         {connectionStatus === 'connected' ? (
                           <>
                             <Badge variant="secondary" className="gap-1 py-2 px-3">
-                              <Check className="h-3 w-3" />
-                              Connected
+                              <Check className="h-3 w-3" /> Connected
                             </Badge>
                             <Button onClick={() => setChatOpen(true)}>
-                              <MessageCircle className="h-4 w-4 mr-2" />
-                              Message
+                              <MessageCircle className="h-4 w-4 mr-2" /> Message
                             </Button>
                           </>
                         ) : connectionStatus === 'pending_sent' ? (
                           <Badge variant="outline" className="gap-1 py-2 px-3">
-                            <Clock className="h-3 w-3" />
-                            Request Pending
+                            <Clock className="h-3 w-3" /> Request Pending
                           </Badge>
                         ) : connectionStatus === 'pending_received' ? (
                           <div className="flex gap-2">
-                            <Button 
-                              onClick={() => handleConnectionAction('accept')}
-                              disabled={sendingRequest}
-                            >
-                              <Check className="h-4 w-4 mr-2" />
-                              Accept
+                            <Button onClick={() => handleConnectionAction('accept')} disabled={sendingRequest}>
+                              <Check className="h-4 w-4 mr-2" /> Accept
                             </Button>
-                            <Button 
-                              variant="outline"
-                              onClick={() => handleConnectionAction('decline')}
-                              disabled={sendingRequest}
-                            >
+                            <Button variant="outline" onClick={() => handleConnectionAction('decline')} disabled={sendingRequest}>
                               Decline
                             </Button>
                           </div>
                         ) : (
-                          <Button 
-                            onClick={sendConnectionRequest}
-                            disabled={sendingRequest}
-                          >
-                            <UserPlus className="h-4 w-4 mr-2" />
-                            Connect
+                          <Button onClick={sendConnectionRequest} disabled={sendingRequest}>
+                            <UserPlus className="h-4 w-4 mr-2" /> Connect
                           </Button>
                         )}
                       </div>
                     )}
 
                     {isOwnProfile && (
-                      <Button onClick={() => navigate('/portfolio')}>
+                      <Button onClick={() => setEditOpen(true)}>
                         Edit Profile
                       </Button>
                     )}
                   </div>
-                  
+
                   {profile.bio && (
-                    <p className="text-foreground mb-4">{profile.bio}</p>
+                    <p className="text-foreground/90 mb-3 whitespace-pre-wrap">{profile.bio}</p>
                   )}
 
                   {profile.location && (
-                    <div className="flex items-center gap-2 text-muted-foreground mb-4">
+                    <div className="flex items-center gap-2 text-muted-foreground mb-3 text-sm">
                       <MapPin className="h-4 w-4" />
                       <span>{profile.location}</span>
                     </div>
                   )}
 
-                  {/* Skills */}
                   {profile.skills && profile.skills.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {profile.skills.map((skill, index) => (
-                        <Badge key={index} variant="secondary">{skill}</Badge>
-                      ))}
+                    <div className="mb-4">
+                      <EndorsableSkills profileUserId={profile.user_id} skills={profile.skills} />
                     </div>
                   )}
 
@@ -458,6 +480,12 @@ const UserProfile = () => {
                 <div className="text-2xl font-bold">{totalStars}</div>
               </CardContent>
             </Card>
+          </div>
+
+          {/* Pinned repos + Experience */}
+          <div className="space-y-6 mb-8">
+            <PinnedRepositories userId={profile.user_id} isOwner={isOwnProfile} />
+            <ExperienceSection userId={profile.user_id} isOwner={isOwnProfile} />
           </div>
 
           {/* Content Tabs */}
@@ -586,6 +614,16 @@ const UserProfile = () => {
             display_name: profile.display_name,
             avatar_url: profile.avatar_url
           }}
+        />
+      )}
+
+      {isOwnProfile && profile && (
+        <ProfileEditModal
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          profile={profile as any}
+          userId={profile.user_id}
+          onSuccess={fetchUserProfile}
         />
       )}
     </>

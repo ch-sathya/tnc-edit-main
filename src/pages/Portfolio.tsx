@@ -39,6 +39,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ProfileEditModal } from '@/components/ProfileEditModal';
+import { ProfileCompleteness } from '@/components/profile/ProfileCompleteness';
 import { QuickProjectModal } from '@/components/QuickProjectModal';
 import { DirectMessageModal } from '@/components/DirectMessageModal';
 import { ProjectFavorites } from '@/components/ProjectFavorites';
@@ -95,7 +96,7 @@ const ProjectFormModal = lazy(() =>
 
 const Portfolio = () => {
   const { user, loading: authLoading } = useAuth();
-  const { profile, loading: profileLoading } = useProfile();
+  const { profile, loading: profileLoading, refresh: refreshProfile } = useProfile();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -270,7 +271,7 @@ const Portfolio = () => {
     }
   };
   const handleProjectCreated = (projectId: string) => navigate(`/editor/${projectId}`);
-  const refreshData = () => setDataFetched(false);
+  const refreshData = () => { setDataFetched(false); refreshProfile(); };
 
   const getActivityIcon = (action: string) => {
     switch (action) {
@@ -351,6 +352,10 @@ const Portfolio = () => {
                 </Button>
               </div>
             </div>
+
+            {profile && (
+              <ProfileCompleteness profile={profile as any} onEdit={() => setEditProfileOpen(true)} />
+            )}
 
             {/* Quick Actions */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8" data-tour="portfolio">
