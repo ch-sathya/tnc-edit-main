@@ -96,7 +96,7 @@ const ProjectFormModal = lazy(() =>
 
 const Portfolio = () => {
   const { user, loading: authLoading } = useAuth();
-  const { profile, loading: profileLoading } = useProfile();
+  const { profile, loading: profileLoading, refresh: refreshProfile } = useProfile();
   const { toast } = useToast();
   const navigate = useNavigate();
 
