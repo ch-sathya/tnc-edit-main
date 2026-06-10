@@ -85,6 +85,7 @@ const UserProfile = () => {
   const [connectionStatus, setConnectionStatus] = useState<'none' | 'pending_sent' | 'pending_received' | 'connected'>('none');
   const [sendingRequest, setSendingRequest] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
   useEffect(() => {
     if (userId) {
