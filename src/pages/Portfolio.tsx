@@ -271,7 +271,7 @@ const Portfolio = () => {
     }
   };
   const handleProjectCreated = (projectId: string) => navigate(`/editor/${projectId}`);
-  const refreshData = () => setDataFetched(false);
+  const refreshData = () => { setDataFetched(false); refreshProfile(); };
 
   const getActivityIcon = (action: string) => {
     switch (action) {
