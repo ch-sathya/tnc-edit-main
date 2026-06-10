@@ -482,6 +482,12 @@ const UserProfile = () => {
             </Card>
           </div>
 
+          {/* Pinned repos + Experience */}
+          <div className="space-y-6 mb-8">
+            <PinnedRepositories userId={profile.user_id} isOwner={isOwnProfile} />
+            <ExperienceSection userId={profile.user_id} isOwner={isOwnProfile} />
+          </div>
+
           {/* Content Tabs */}
           
           <Tabs defaultValue="projects" className="w-full">
