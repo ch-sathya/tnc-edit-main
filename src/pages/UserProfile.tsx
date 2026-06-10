@@ -616,6 +616,16 @@ const UserProfile = () => {
           }}
         />
       )}
+
+      {isOwnProfile && profile && (
+        <ProfileEditModal
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          profile={profile as any}
+          userId={profile.user_id}
+          onSuccess={fetchUserProfile}
+        />
+      )}
     </>
   );
 };
