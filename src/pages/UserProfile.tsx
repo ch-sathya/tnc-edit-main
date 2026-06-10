@@ -296,6 +296,26 @@ const UserProfile = () => {
     );
   }
 
+  // Private profile (and viewer is not the owner)
+  if (profile.is_public === false && !isOwnProfile) {
+    return (
+      <>
+        <Navigation />
+        <div className="min-h-screen bg-transparent">
+          <div className="container mx-auto py-16 px-4 max-w-3xl">
+            <Card>
+              <CardContent className="py-16 text-center">
+                <Lock className="h-10 w-10 mx-auto mb-4 text-muted-foreground" />
+                <h2 className="text-xl font-semibold mb-2">This profile is private</h2>
+                <p className="text-muted-foreground">The owner has chosen to hide their profile from the public.</p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
       <Navigation />
