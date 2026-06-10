@@ -353,6 +353,10 @@ const Portfolio = () => {
               </div>
             </div>
 
+            {profile && (
+              <ProfileCompleteness profile={profile as any} onEdit={() => setEditProfileOpen(true)} />
+            )}
+
             {/* Quick Actions */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8" data-tour="portfolio">
               {quickActions.map((action) => (
