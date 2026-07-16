@@ -501,8 +501,8 @@ const UserProfile = () => {
 
           {/* Pinned repos + Experience */}
           <div className="space-y-6 mb-8">
-            <PinnedRepositories resolvedUserId={profile.user_id} isOwner={isOwnProfile} />
-            <ExperienceSection resolvedUserId={profile.user_id} isOwner={isOwnProfile} />
+            <PinnedRepositories userId={profile.user_id} isOwner={isOwnProfile} />
+            <ExperienceSection userId={profile.user_id} isOwner={isOwnProfile} />
           </div>
 
           {/* Content Tabs */}
