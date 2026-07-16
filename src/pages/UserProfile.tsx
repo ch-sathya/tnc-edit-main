@@ -284,7 +284,7 @@ const UserProfile = () => {
     );
   }
 
-  if (!profile) {
+  if (notFound || !profile) {
     return (
       <>
         <Navigation />
@@ -292,8 +292,8 @@ const UserProfile = () => {
           <div className="container mx-auto py-8 px-4 max-w-5xl">
             <Card>
               <CardContent className="py-12 text-center">
-                <h2 className="text-xl font-semibold mb-2">User Not Found</h2>
-                <p className="text-muted-foreground mb-4">This profile doesn't exist.</p>
+                <h2 className="text-xl font-semibold mb-2">Profile Not Found</h2>
+                <p className="text-muted-foreground mb-4">This profile doesn't exist or has been removed.</p>
                 <Button onClick={() => navigate('/')}>Go Home</Button>
               </CardContent>
             </Card>
@@ -302,6 +302,7 @@ const UserProfile = () => {
       </>
     );
   }
+
 
   // Private profile (and viewer is not the owner)
   if (profile.is_public === false && !isOwnProfile) {
@@ -393,11 +394,20 @@ const UserProfile = () => {
                       </div>
                     )}
 
+                    {!isOwnProfile && !user && (
+                      <div className="flex gap-2">
+                        <Button onClick={requireAuth}>
+                          <UserPlus className="h-4 w-4 mr-2" /> Sign in to connect
+                        </Button>
+                      </div>
+                    )}
+
                     {isOwnProfile && (
                       <Button onClick={() => setEditOpen(true)}>
                         Edit Profile
                       </Button>
                     )}
+
                   </div>
 
                   {profile.bio && (
