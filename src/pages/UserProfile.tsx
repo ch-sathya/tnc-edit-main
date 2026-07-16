@@ -73,7 +73,7 @@ interface Repository {
 }
 
 const UserProfile = () => {
-  const { userId: routeUserId, username: routeUsername } = useParams<{ userId?: string; username?: string }>();
+  const { resolvedUserId: routeUserId, username: routeUsername } = useParams<{ resolvedUserId?: string; username?: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -179,7 +179,7 @@ const UserProfile = () => {
 
 
   const sendConnectionRequest = async () => {
-    if (!user || !userId) return;
+    if (!user || !resolvedUserId) return;
 
     try {
       setSendingRequest(true);
@@ -188,7 +188,7 @@ const UserProfile = () => {
         .from('user_connections')
         .insert({
           requester_id: user.id,
-          addressee_id: userId,
+          addressee_id: resolvedUserId,
           status: 'pending'
         });
 
@@ -212,7 +212,7 @@ const UserProfile = () => {
   };
 
   const handleConnectionAction = async (action: 'accept' | 'decline') => {
-    if (!user || !userId) return;
+    if (!user || !resolvedUserId) return;
 
     try {
       setSendingRequest(true);
@@ -221,7 +221,7 @@ const UserProfile = () => {
       const { data: connections } = await supabase
         .from('user_connections')
         .select('id')
-        .eq('requester_id', userId)
+        .eq('requester_id', resolvedUserId)
         .eq('addressee_id', user.id)
         .eq('status', 'pending')
         .maybeSingle();
@@ -267,7 +267,7 @@ const UserProfile = () => {
     }
   };
 
-  const isOwnProfile = user?.id === userId;
+  const isOwnProfile = user?.id === resolvedUserId;
   const totalStars = repositories.reduce((sum, repo) => sum + (repo.star_count || 0), 0);
 
   if (loading) {
@@ -491,8 +491,8 @@ const UserProfile = () => {
 
           {/* Pinned repos + Experience */}
           <div className="space-y-6 mb-8">
-            <PinnedRepositories userId={profile.user_id} isOwner={isOwnProfile} />
-            <ExperienceSection userId={profile.user_id} isOwner={isOwnProfile} />
+            <PinnedRepositories resolvedUserId={profile.user_id} isOwner={isOwnProfile} />
+            <ExperienceSection resolvedUserId={profile.user_id} isOwner={isOwnProfile} />
           </div>
 
           {/* Content Tabs */}
@@ -629,7 +629,7 @@ const UserProfile = () => {
           open={editOpen}
           onOpenChange={setEditOpen}
           profile={profile as any}
-          userId={profile.user_id}
+          resolvedUserId={profile.user_id}
           onSuccess={fetchUserProfile}
         />
       )}
