@@ -73,80 +73,84 @@ interface Repository {
 }
 
 const UserProfile = () => {
-  const { userId } = useParams<{ userId: string }>();
+  const { resolvedUserId: routeUserId, username: routeUsername } = useParams<{ resolvedUserId?: string; username?: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
-  
+
   const [profile, setProfile] = useState<UserProfileData | null>(null);
+  const [resolvedUserId, setResolvedUserId] = useState<string | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [repositories, setRepositories] = useState<Repository[]>([]);
   const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'none' | 'pending_sent' | 'pending_received' | 'connected'>('none');
   const [sendingRequest, setSendingRequest] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
 
   useEffect(() => {
-    if (userId) {
-      fetchUserProfile();
-    }
-  }, [userId, user]);
+    fetchUserProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeUserId, routeUsername, user?.id]);
+
+  const requireAuth = () => {
+    const next = window.location.pathname + window.location.search;
+    navigate(`/auth?redirect=${encodeURIComponent(next)}`);
+  };
 
   const fetchUserProfile = async () => {
-    if (!userId) return;
+    if (!routeUserId && !routeUsername) return;
 
     try {
       setLoading(true);
+      setNotFound(false);
 
-      // Fetch profile
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', userId)
-        .maybeSingle();
+      // Resolve profile by user_id OR by username
+      let query = supabase.from('profiles').select('*');
+      if (routeUserId) {
+        query = query.eq('user_id', routeUserId);
+      } else if (routeUsername) {
+        query = query.eq('username', routeUsername);
+      }
+      const { data: profileData, error: profileError } = await query.maybeSingle();
 
       if (profileError) throw profileError;
       if (!profileData) {
-        toast({
-          title: "Not Found",
-          description: "User profile not found",
-          variant: "destructive"
-        });
-        navigate('/');
+        setNotFound(true);
         return;
       }
 
       setProfile(profileData);
+      const uid = profileData.user_id;
+      setResolvedUserId(uid);
 
       // Fetch public projects
       const { data: projectsData } = await supabase
         .from('projects')
         .select('id, title, description, technologies, github_url, live_url, image_url, status')
-        .eq('user_id', userId)
+        .eq('user_id', uid)
         .eq('status', 'published')
         .order('created_at', { ascending: false })
         .limit(20);
-
       setProjects(projectsData || []);
 
       // Fetch public repositories
       const { data: reposData } = await supabase
         .from('repositories')
         .select('id, name, description, star_count, visibility, tags')
-        .eq('user_id', userId)
+        .eq('user_id', uid)
         .eq('visibility', 'public')
         .order('created_at', { ascending: false })
         .limit(20);
-
       setRepositories(reposData || []);
 
-      // Check connection status if logged in
-      if (user && user.id !== userId) {
+      // Connection status only when signed in and viewing someone else
+      if (user && user.id !== uid) {
         const { data: connections } = await supabase
           .from('user_connections')
           .select('requester_id, addressee_id, status')
-          .or(`and(requester_id.eq.${user.id},addressee_id.eq.${userId}),and(requester_id.eq.${userId},addressee_id.eq.${user.id})`);
+          .or(`and(requester_id.eq.${user.id},addressee_id.eq.${uid}),and(requester_id.eq.${uid},addressee_id.eq.${user.id})`);
 
         const connection = connections?.[0];
         if (connection) {
@@ -158,6 +162,8 @@ const UserProfile = () => {
         } else {
           setConnectionStatus('none');
         }
+      } else {
+        setConnectionStatus('none');
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -171,8 +177,9 @@ const UserProfile = () => {
     }
   };
 
+
   const sendConnectionRequest = async () => {
-    if (!user || !userId) return;
+    if (!user || !resolvedUserId) return;
 
     try {
       setSendingRequest(true);
@@ -181,7 +188,7 @@ const UserProfile = () => {
         .from('user_connections')
         .insert({
           requester_id: user.id,
-          addressee_id: userId,
+          addressee_id: resolvedUserId,
           status: 'pending'
         });
 
@@ -205,7 +212,7 @@ const UserProfile = () => {
   };
 
   const handleConnectionAction = async (action: 'accept' | 'decline') => {
-    if (!user || !userId) return;
+    if (!user || !resolvedUserId) return;
 
     try {
       setSendingRequest(true);
@@ -214,7 +221,7 @@ const UserProfile = () => {
       const { data: connections } = await supabase
         .from('user_connections')
         .select('id')
-        .eq('requester_id', userId)
+        .eq('requester_id', resolvedUserId)
         .eq('addressee_id', user.id)
         .eq('status', 'pending')
         .maybeSingle();
@@ -260,7 +267,7 @@ const UserProfile = () => {
     }
   };
 
-  const isOwnProfile = user?.id === userId;
+  const isOwnProfile = user?.id === resolvedUserId;
   const totalStars = repositories.reduce((sum, repo) => sum + (repo.star_count || 0), 0);
 
   if (loading) {
@@ -277,7 +284,7 @@ const UserProfile = () => {
     );
   }
 
-  if (!profile) {
+  if (notFound || !profile) {
     return (
       <>
         <Navigation />
@@ -285,8 +292,8 @@ const UserProfile = () => {
           <div className="container mx-auto py-8 px-4 max-w-5xl">
             <Card>
               <CardContent className="py-12 text-center">
-                <h2 className="text-xl font-semibold mb-2">User Not Found</h2>
-                <p className="text-muted-foreground mb-4">This profile doesn't exist.</p>
+                <h2 className="text-xl font-semibold mb-2">Profile Not Found</h2>
+                <p className="text-muted-foreground mb-4">This profile doesn't exist or has been removed.</p>
                 <Button onClick={() => navigate('/')}>Go Home</Button>
               </CardContent>
             </Card>
@@ -295,6 +302,7 @@ const UserProfile = () => {
       </>
     );
   }
+
 
   // Private profile (and viewer is not the owner)
   if (profile.is_public === false && !isOwnProfile) {
@@ -386,11 +394,20 @@ const UserProfile = () => {
                       </div>
                     )}
 
+                    {!isOwnProfile && !user && (
+                      <div className="flex gap-2">
+                        <Button onClick={requireAuth}>
+                          <UserPlus className="h-4 w-4 mr-2" /> Sign in to connect
+                        </Button>
+                      </div>
+                    )}
+
                     {isOwnProfile && (
                       <Button onClick={() => setEditOpen(true)}>
                         Edit Profile
                       </Button>
                     )}
+
                   </div>
 
                   {profile.bio && (
