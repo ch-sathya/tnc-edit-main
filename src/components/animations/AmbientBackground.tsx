@@ -36,8 +36,8 @@ export const AmbientBackground: React.FC = () => {
       <FluidGradientOrb className="top-[30%] right-[-15%]" size="w-[36rem] h-[36rem]" delay={4} duration={32} />
       <FluidGradientOrb className="bottom-[-15%] left-[20%]" size="w-[44rem] h-[44rem]" delay={8} duration={36} />
 
-      {/* Lightweight 3D layer — desktop only, very low opacity */}
-      <div className="hidden lg:block absolute inset-0 opacity-40">
+      {/* Monochrome glass 3D layer — desktop only, subtle */}
+      <div className="hidden lg:block absolute inset-0 opacity-25">
         <Suspense fallback={null}>
           <FloatingScene />
         </Suspense>
