@@ -639,7 +639,7 @@ const UserProfile = () => {
           open={editOpen}
           onOpenChange={setEditOpen}
           profile={profile as any}
-          resolvedUserId={profile.user_id}
+          userId={profile.user_id}
           onSuccess={fetchUserProfile}
         />
       )}
