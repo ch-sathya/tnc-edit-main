@@ -73,80 +73,84 @@ interface Repository {
 }
 
 const UserProfile = () => {
-  const { userId } = useParams<{ userId: string }>();
+  const { userId: routeUserId, username: routeUsername } = useParams<{ userId?: string; username?: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
-  
+
   const [profile, setProfile] = useState<UserProfileData | null>(null);
+  const [resolvedUserId, setResolvedUserId] = useState<string | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [repositories, setRepositories] = useState<Repository[]>([]);
   const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'none' | 'pending_sent' | 'pending_received' | 'connected'>('none');
   const [sendingRequest, setSendingRequest] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
 
   useEffect(() => {
-    if (userId) {
-      fetchUserProfile();
-    }
-  }, [userId, user]);
+    fetchUserProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeUserId, routeUsername, user?.id]);
+
+  const requireAuth = () => {
+    const next = window.location.pathname + window.location.search;
+    navigate(`/auth?redirect=${encodeURIComponent(next)}`);
+  };
 
   const fetchUserProfile = async () => {
-    if (!userId) return;
+    if (!routeUserId && !routeUsername) return;
 
     try {
       setLoading(true);
+      setNotFound(false);
 
-      // Fetch profile
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', userId)
-        .maybeSingle();
+      // Resolve profile by user_id OR by username
+      let query = supabase.from('profiles').select('*');
+      if (routeUserId) {
+        query = query.eq('user_id', routeUserId);
+      } else if (routeUsername) {
+        query = query.eq('username', routeUsername);
+      }
+      const { data: profileData, error: profileError } = await query.maybeSingle();
 
       if (profileError) throw profileError;
       if (!profileData) {
-        toast({
-          title: "Not Found",
-          description: "User profile not found",
-          variant: "destructive"
-        });
-        navigate('/');
+        setNotFound(true);
         return;
       }
 
       setProfile(profileData);
+      const uid = profileData.user_id;
+      setResolvedUserId(uid);
 
       // Fetch public projects
       const { data: projectsData } = await supabase
         .from('projects')
         .select('id, title, description, technologies, github_url, live_url, image_url, status')
-        .eq('user_id', userId)
+        .eq('user_id', uid)
         .eq('status', 'published')
         .order('created_at', { ascending: false })
         .limit(20);
-
       setProjects(projectsData || []);
 
       // Fetch public repositories
       const { data: reposData } = await supabase
         .from('repositories')
         .select('id, name, description, star_count, visibility, tags')
-        .eq('user_id', userId)
+        .eq('user_id', uid)
         .eq('visibility', 'public')
         .order('created_at', { ascending: false })
         .limit(20);
-
       setRepositories(reposData || []);
 
-      // Check connection status if logged in
-      if (user && user.id !== userId) {
+      // Connection status only when signed in and viewing someone else
+      if (user && user.id !== uid) {
         const { data: connections } = await supabase
           .from('user_connections')
           .select('requester_id, addressee_id, status')
-          .or(`and(requester_id.eq.${user.id},addressee_id.eq.${userId}),and(requester_id.eq.${userId},addressee_id.eq.${user.id})`);
+          .or(`and(requester_id.eq.${user.id},addressee_id.eq.${uid}),and(requester_id.eq.${uid},addressee_id.eq.${user.id})`);
 
         const connection = connections?.[0];
         if (connection) {
@@ -158,6 +162,8 @@ const UserProfile = () => {
         } else {
           setConnectionStatus('none');
         }
+      } else {
+        setConnectionStatus('none');
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -170,6 +176,7 @@ const UserProfile = () => {
       setLoading(false);
     }
   };
+
 
   const sendConnectionRequest = async () => {
     if (!user || !userId) return;
