@@ -142,20 +142,6 @@ const Home: React.FC = () => {
               </div>
             </ScrollReveal>
 
-            {/* Scroll indicator */}
-            <motion.div
-              className="absolute bottom-8 left-1/2 -translate-x-1/2"
-              animate={{ y: [0, 10, 0] }}
-              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-            >
-              <div className="w-6 h-10 rounded-full border-2 border-muted-foreground/30 flex justify-center pt-2">
-                <motion.div
-                  className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50"
-                  animate={{ y: [0, 12, 0], opacity: [1, 0.3, 1] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                />
-              </div>
-            </motion.div>
           </div>
         </section>
 
