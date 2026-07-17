@@ -74,11 +74,6 @@ const Home: React.FC = () => {
       <div className="min-h-screen bg-background overflow-hidden">
         {/* Hero Section */}
         <section className="relative min-h-[100vh] flex items-center justify-center px-4 overflow-hidden">
-          {/* 3D Background */}
-          <Suspense fallback={null}>
-            <FloatingScene className="opacity-60" />
-          </Suspense>
-          
           {/* Fluid gradient orbs */}
           <FluidGradientOrb className="top-1/4 left-1/4" delay={0} />
           <FluidGradientOrb className="bottom-1/4 right-1/4" size="w-[500px] h-[500px]" delay={5} />
