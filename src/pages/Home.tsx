@@ -1,4 +1,4 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -15,7 +15,7 @@ import { UserSearchModal } from '@/components/UserSearchModal';
 import { ScrollReveal, StaggerContainer, StaggerItem, TextReveal } from '@/components/animations/ScrollReveal';
 import { FluidGradientOrb, GlassPanel, GridPattern } from '@/components/animations/FluidBackground';
 
-const FloatingScene = lazy(() => import('@/components/three/FloatingScene'));
+
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -74,11 +74,6 @@ const Home: React.FC = () => {
       <div className="min-h-screen bg-background overflow-hidden">
         {/* Hero Section */}
         <section className="relative min-h-[100vh] flex items-center justify-center px-4 overflow-hidden">
-          {/* 3D Background */}
-          <Suspense fallback={null}>
-            <FloatingScene className="opacity-60" />
-          </Suspense>
-          
           {/* Fluid gradient orbs */}
           <FluidGradientOrb className="top-1/4 left-1/4" delay={0} />
           <FluidGradientOrb className="bottom-1/4 right-1/4" size="w-[500px] h-[500px]" delay={5} />
@@ -147,20 +142,6 @@ const Home: React.FC = () => {
               </div>
             </ScrollReveal>
 
-            {/* Scroll indicator */}
-            <motion.div
-              className="absolute bottom-8 left-1/2 -translate-x-1/2"
-              animate={{ y: [0, 10, 0] }}
-              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-            >
-              <div className="w-6 h-10 rounded-full border-2 border-muted-foreground/30 flex justify-center pt-2">
-                <motion.div
-                  className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50"
-                  animate={{ y: [0, 12, 0], opacity: [1, 0.3, 1] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                />
-              </div>
-            </motion.div>
           </div>
         </section>
 

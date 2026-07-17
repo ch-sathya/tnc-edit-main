@@ -35,7 +35,7 @@ export const RoomChat: React.FC<RoomChatProps> = ({ roomId, isOpen, onClose }) =
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!roomId || !isOpen) return;
+    if (!roomId) return;
 
     const fetchMessages = async () => {
       const { data: messagesData } = await supabase
@@ -62,7 +62,7 @@ export const RoomChat: React.FC<RoomChatProps> = ({ roomId, isOpen, onClose }) =
 
     fetchMessages();
 
-    // Subscribe to new messages
+    // Always subscribe while mounted so messages don't get missed when panel is closed
     const channel = supabase
       .channel(`room-chat-${roomId}`)
       .on(
@@ -75,14 +75,16 @@ export const RoomChat: React.FC<RoomChatProps> = ({ roomId, isOpen, onClose }) =
         },
         async (payload) => {
           const newMsg = payload.new as RoomMessage;
-          // Fetch profile for the new message
           const { data: profile } = await supabase
             .from('profiles')
             .select('display_name, username, avatar_url')
             .eq('user_id', newMsg.user_id)
             .single();
 
-          setMessages((prev) => [...prev, { ...newMsg, profile: profile as any }]);
+          setMessages((prev) => {
+            if (prev.some((m) => m.id === newMsg.id)) return prev;
+            return [...prev, { ...newMsg, profile: profile as any }];
+          });
         }
       )
       .subscribe();
@@ -90,7 +92,7 @@ export const RoomChat: React.FC<RoomChatProps> = ({ roomId, isOpen, onClose }) =
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [roomId, isOpen]);
+  }, [roomId]);
 
   useEffect(() => {
     // Scroll to bottom on new messages

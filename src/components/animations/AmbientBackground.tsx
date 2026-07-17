@@ -1,14 +1,9 @@
-import React, { lazy, Suspense } from 'react';
+import React from 'react';
 import { FluidGradientOrb, GridPattern } from './FluidBackground';
-
-const FloatingScene = lazy(() => import('@/components/three/FloatingScene'));
 
 /**
  * Global ambient layer rendered once behind the entire app.
- * Provides the fluid-glass / claygarden atmosphere across every page:
- * - drifting gradient orbs
- * - subtle grid texture
- * - very low-opacity 3D scene (desktop only) for depth
+ * Pure 2D fluid glass atmosphere — no 3D.
  */
 export const AmbientBackground: React.FC = () => {
   return (
@@ -16,10 +11,7 @@ export const AmbientBackground: React.FC = () => {
       aria-hidden
       className="fixed inset-0 -z-10 pointer-events-none overflow-hidden"
     >
-      {/* Base wash */}
       <div className="absolute inset-0 bg-background" />
-
-      {/* Soft radial vignette */}
       <div
         className="absolute inset-0"
         style={{
@@ -27,21 +19,10 @@ export const AmbientBackground: React.FC = () => {
             'radial-gradient(ellipse at 50% 0%, hsl(var(--foreground) / 0.06), transparent 60%)',
         }}
       />
-
-      {/* Subtle grid */}
       <GridPattern />
-
-      {/* Fluid drifting orbs */}
       <FluidGradientOrb className="top-[-10%] left-[-10%]" size="w-[40rem] h-[40rem]" duration={28} />
       <FluidGradientOrb className="top-[30%] right-[-15%]" size="w-[36rem] h-[36rem]" delay={4} duration={32} />
       <FluidGradientOrb className="bottom-[-15%] left-[20%]" size="w-[44rem] h-[44rem]" delay={8} duration={36} />
-
-      {/* Monochrome glass 3D layer — desktop only, subtle */}
-      <div className="hidden lg:block absolute inset-0 opacity-25">
-        <Suspense fallback={null}>
-          <FloatingScene />
-        </Suspense>
-      </div>
     </div>
   );
 };
