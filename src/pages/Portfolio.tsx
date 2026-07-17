@@ -349,27 +349,67 @@ const Portfolio = () => {
       <div className="min-h-screen bg-transparent flex flex-col">
         <div className="flex-1">
           <div className="container mx-auto py-8 px-4 max-w-7xl">
-            {/* Welcome Banner */}
-            <div className="mb-8 p-6 rounded-xl bg-gradient-to-r from-secondary via-secondary/80 to-card border border-border">
-              <div className="flex items-center gap-4">
-                <Avatar className="h-16 w-16 border-2 border-border">
-                  <AvatarImage src={profile?.avatar_url ?? undefined} />
-                  <AvatarFallback className="text-xl">
-                    {(profile?.display_name?.charAt(0) || 'U').toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-                    Welcome back, {profile?.display_name || 'Developer'}
-                  </h1>
-                  <p className="text-muted-foreground">
-                    Here's your portfolio dashboard
-                  </p>
+            {/* Profile Cover */}
+            <div className="mb-8 rounded-2xl overflow-hidden border border-border/60 bg-card/40 backdrop-blur-xl shadow-[0_20px_60px_-30px_rgba(0,0,0,0.6)]">
+              <div className="relative h-40 md:h-56 w-full">
+                {profile?.banner_url ? (
+                  <img
+                    src={profile.banner_url}
+                    alt=""
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                ) : (
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      background:
+                        'radial-gradient(120% 120% at 0% 0%, hsl(var(--foreground) / 0.18), transparent 55%), radial-gradient(120% 120% at 100% 100%, hsl(var(--foreground) / 0.10), transparent 60%), linear-gradient(135deg, hsl(var(--secondary)), hsl(var(--background)))',
+                    }}
+                  />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-background/95 via-background/40 to-transparent" />
+              </div>
+
+              <div className="relative px-5 md:px-8 pb-6 -mt-12 md:-mt-16">
+                <div className="flex flex-col md:flex-row md:items-end gap-4 md:gap-6">
+                  <Avatar className="h-24 w-24 md:h-28 md:w-28 border-4 border-background shadow-xl">
+                    <AvatarImage src={profile?.avatar_url ?? undefined} />
+                    <AvatarFallback className="text-2xl bg-secondary">
+                      {(profile?.display_name?.charAt(0) || 'U').toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+
+                  <div className="flex-1 min-w-0">
+                    <h1 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight truncate">
+                      {profile?.display_name || 'Developer'}
+                    </h1>
+                    <p className="text-sm text-muted-foreground truncate">
+                      {profile?.headline ||
+                        (profile?.username ? `@${profile.username}` : "Here's your portfolio dashboard")}
+                    </p>
+                  </div>
+
+                  <div className="flex gap-2 md:self-end">
+                    <Button
+                      onClick={handleShareProfile}
+                      variant="outline"
+                      className="gap-2 backdrop-blur-md bg-background/60"
+                    >
+                      {shareCopied ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
+                      <span className="hidden sm:inline">
+                        {shareCopied ? 'Copied' : 'Share'}
+                      </span>
+                    </Button>
+                    <Button
+                      onClick={() => setEditProfileOpen(true)}
+                      variant="default"
+                      className="gap-2"
+                    >
+                      <Edit className="h-4 w-4" />
+                      <span className="hidden sm:inline">Edit Profile</span>
+                    </Button>
+                  </div>
                 </div>
-                <Button onClick={() => setEditProfileOpen(true)} variant="outline" className="hidden md:flex gap-2">
-                  <Edit className="h-4 w-4" />
-                  Edit Profile
-                </Button>
               </div>
             </div>
 
