@@ -408,6 +408,25 @@ const UserProfile = () => {
                       </Button>
                     )}
 
+                    <Button
+                      variant="outline"
+                      className="gap-2"
+                      onClick={async () => {
+                        const url = window.location.href;
+                        try {
+                          if (navigator.share) {
+                            await navigator.share({ title: `${profile.display_name || profile.username || 'Profile'}`, url });
+                          } else {
+                            await navigator.clipboard.writeText(url);
+                            toast({ title: 'Link copied', description: 'Profile link is on your clipboard.' });
+                          }
+                        } catch {}
+                      }}
+                    >
+                      <Share2 className="h-4 w-4" />
+                      <span className="hidden sm:inline">Share</span>
+                    </Button>
+
                   </div>
 
                   {profile.bio && (
