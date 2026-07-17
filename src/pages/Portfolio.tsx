@@ -36,7 +36,6 @@ import {
   Heart,
   UserPlus,
   MessageSquare,
-  MessageSquare,
   Share2,
   Check,
 } from 'lucide-react';
