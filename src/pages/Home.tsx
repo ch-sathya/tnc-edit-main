@@ -15,7 +15,7 @@ import { UserSearchModal } from '@/components/UserSearchModal';
 import { ScrollReveal, StaggerContainer, StaggerItem, TextReveal } from '@/components/animations/ScrollReveal';
 import { FluidGradientOrb, GlassPanel, GridPattern } from '@/components/animations/FluidBackground';
 
-const FloatingScene = lazy(() => import('@/components/three/FloatingScene'));
+
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
