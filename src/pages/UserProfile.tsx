@@ -30,7 +30,7 @@ import { EndorsableSkills } from '@/components/profile/EndorsableSkills';
 import { ExperienceSection } from '@/components/profile/ExperienceSection';
 import { PinnedRepositories } from '@/components/profile/PinnedRepositories';
 import { ProfileEditModal } from '@/components/ProfileEditModal';
-import { Lock } from 'lucide-react';
+import { Lock, Share2 } from 'lucide-react';
 
 interface UserProfileData {
   id: string;
