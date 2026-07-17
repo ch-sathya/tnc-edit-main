@@ -36,6 +36,9 @@ import {
   Heart,
   UserPlus,
   MessageSquare,
+  MessageSquare,
+  Share2,
+  Check,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ProfileEditModal } from '@/components/ProfileEditModal';
