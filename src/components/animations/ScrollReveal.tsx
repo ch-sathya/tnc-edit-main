@@ -141,18 +141,16 @@ export const TextReveal: React.FC<{
   className?: string;
   delay?: number;
 }> = ({ children, className = '', delay = 0 }) => {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: '-50px' });
   const words = children.split(' ');
 
   return (
-    <span ref={ref} className={className}>
+    <span className={className}>
       {words.map((word, i) => (
         <motion.span
           key={i}
           className="inline-block mr-[0.3em]"
           initial={{ opacity: 0, y: 30, filter: 'blur(8px)' }}
-          animate={isInView ? { opacity: 1, y: 0, filter: 'blur(0px)' } : {}}
+          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
           transition={{
             duration: 0.5,
             delay: delay + i * 0.05,
