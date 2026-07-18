@@ -1,30 +1,63 @@
-## Plan
+# Full Project Completion — Phased Plan
 
-### 1. Remove all 3D effects
-- Delete `src/components/three/FloatingScene.tsx` and its import from `AmbientBackground.tsx`. Keep the fluid gradient orbs + grid (2D) so the glass aesthetic remains.
-- Remove `three`, `@react-three/fiber`, `@react-three/drei` from `package.json`.
-- Remove any remaining `three`-related imports if lint flags them.
+"Everything" is too big for one migration+edit pass, so I'll ship it as sequenced sub-plans. Each phase ends in a working, verifiable state before the next starts. I'll re-issue the next phase as its own `plan--create` when the previous one is approved.
 
-### 2. Remove the persistent scroll-indicator button on Home
-- Delete the animated "mouse/scroll" indicator block in `src/pages/Home.tsx` (lines ~150–163). No replacement.
+## Phase A — Stabilization & Bug Audit (this plan)
 
-### 3. Fix collaboration room realtime
-Root causes observed:
-- **REPLICA IDENTITY** is not set to FULL on `room_messages`, `collaboration_files`, `room_participants`, so `postgres_changes` UPDATE/DELETE payloads arrive without full rows and the UI silently misses updates. Migration: `ALTER TABLE ... REPLICA IDENTITY FULL` for those three tables (already in `supabase_realtime` publication).
-- **`RoomChat` subscription is gated by `isOpen`** — new messages that arrive while the panel is closed are dropped, and reopening refetches only once. Change effect to always subscribe while mounted (independent of `isOpen`), keep fetch behind `isOpen` for the first open.
-- **Presence/participants merge**: currently `participants` list comes only from DB refetch on postgres_changes; if realtime hiccups, list goes stale. Add a lightweight refetch on presence `sync` too, and re-run participant fetch on `join`/`leave` presence events so member list reflects reality immediately.
-- **Cursor decorations**: `useRealtimeCursors` broadcasts on a channel scoped by `roomId+fileId`. Ensure the channel is (re)subscribed whenever `currentFileId` changes and that remote cursors from the same file are rendered with a labeled Monaco decoration showing the user's name + colored caret. Fix any missing cleanup that currently requires a refresh to see other users' cursors.
-- **Status indicators**: presence already tracks `online/away/offline`; wire the participant row rendering to prefer the live `onlineUsers` map over DB `last_seen`, so status dots update instantly.
+Goal: zero runtime errors, all core flows verified end-to-end before adding scope.
 
-### 4. Verification
-- Reload check: open room in two browsers, confirm without refresh — new chat messages appear, new participants appear, file edits stream, other user's cursor + name label shows in the editor, presence dot flips online/away.
+1. **Runtime audit**
+   - Read console + network logs on Home, Auth, Portfolio, UserProfile, Community, CollaborationRoom, Settings.
+   - Drive Playwright through: sign-in → /portfolio, share link (anon view), create community post + comment + vote, create room + join via code + edit file with 2 tabs (verify realtime cursors/messages/participants without refresh).
+   - Log every failure with file:line.
 
-### Files touched
-- `src/components/animations/AmbientBackground.tsx` (drop 3D layer)
-- `src/components/three/FloatingScene.tsx` (delete)
-- `package.json` (drop three deps)
-- `src/pages/Home.tsx` (drop scroll indicator)
-- `src/pages/CollaborationRoom.tsx` (participant refetch on presence, status from presence map)
-- `src/components/RoomChat.tsx` (subscribe always, fetch on open)
-- `src/hooks/useRealtimeCursors.ts` (resubscribe on file change, ensure decoration render + cleanup)
-- New migration: `REPLICA IDENTITY FULL` for `room_messages`, `collaboration_files`, `room_participants`.
+2. **Fix categories** (each fixed at the category level, not the instance):
+   - Auth/redirect edge cases (session refresh, `/setup-username` skip persistence).
+   - Realtime subscription leaks / missing cleanup in collab room, chat, presence.
+   - Broken empty states (profile-not-found, no-posts, no-rooms).
+   - Mobile layout breakage on Community, Portfolio, CollaborationRoom.
+   - Loading flicker (skeletons for Portfolio, UserProfile, Community feed).
+
+3. **Verification**
+   - `tsgo` clean, build clean, Playwright screenshots for each flow saved under `/tmp/browser/`.
+
+## Phase B — Public Profile & Sharing polish
+
+- SEO: per-profile `<title>` / `<meta description>` / OG tags via react-helmet-async on `/@:username`.
+- JSON-LD `Person` schema on public profiles.
+- Copy-link toast + QR modal for share button.
+- Ensure fully anon-viewable (RLS already public where `is_public=true`); add "Sign in to connect" CTA consistency.
+
+## Phase C — Repositories v2 (GitHub-like)
+
+- Schema: `repository_branches`, `repository_issues`, `issue_comments`, `repository_readme` (or use existing `repository_files` for `README.md`).
+- UI: repo detail page with tabs Code / Issues / Stars / Activity, file tree, README render (react-markdown + rehype-highlight), issue create/comment.
+- Pinned repos already exist — wire to real repo pages.
+
+## Phase D — Collaboration v2 (Yjs CRDT)
+
+- Add `yjs` + `y-monaco` + `y-supabase` (or custom Supabase awareness provider) for real CRDT sync instead of debounced overwrites.
+- Multi-cursor with user color from presence.
+- Terminal: keep `execute-code` edge fn; add stdin already noted in memory.
+
+## Phase E — Social Feed & Notifications
+
+- Home feed (following + joined groups) with infinite scroll.
+- Notification center: mark-as-read, filter tabs, realtime badge.
+
+## Phase F — Final polish & publish
+
+- Accessibility pass (focus rings, aria-labels, keyboard nav).
+- Lighthouse ≥ 90 on Home, Portfolio, UserProfile.
+- Re-run security scan, resolve any new findings.
+- Publish to `the-night-club.lovable.app`.
+
+## What happens next
+
+On approval I start **Phase A only**: run the audit, fix what I find, verify with Playwright, and report back. When Phase A is green I'll issue Phase B as a fresh plan for approval. This keeps each change reviewable instead of dumping a 20-file mega-diff.
+
+## Technical notes
+
+- No new deps in Phase A. Phases C–E add: `react-markdown`, `rehype-highlight`, `react-helmet-async`, `yjs`, `y-monaco`.
+- All schema changes go through `supabase--migration` with GRANTs + RLS in the same migration.
+- Realtime tables already have `REPLICA IDENTITY FULL` from previous work — new tables in Phase C/E will get the same treatment.
