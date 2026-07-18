@@ -73,7 +73,10 @@ interface Repository {
 }
 
 const UserProfile = () => {
-  const { resolvedUserId: routeUserId, username: routeUsername } = useParams<{ resolvedUserId?: string; username?: string }>();
+  const params = useParams<{ userId?: string; username?: string; handle?: string }>();
+  const routeUserId = params.userId;
+  // Support both /@:username and /:handle (where handle begins with '@')
+  const routeUsername = params.username ?? (params.handle?.startsWith('@') ? params.handle.slice(1) : undefined);
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -89,10 +92,27 @@ const UserProfile = () => {
   const [chatOpen, setChatOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
 
+  // If /:handle was matched with a non-@ handle, delegate to the 404 route
+  const invalidHandle = params.handle !== undefined && !params.handle.startsWith('@');
+
   useEffect(() => {
+    if (invalidHandle) return;
     fetchUserProfile();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routeUserId, routeUsername, user?.id]);
+
+  if (invalidHandle) {
+    // Render the same shell the * route would; keep it minimal to avoid a flash
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <h1 className="text-4xl font-bold">404</h1>
+          <p className="text-muted-foreground">Page not found</p>
+          <Button variant="outline" onClick={() => navigate('/')}>Return home</Button>
+        </div>
+      </div>
+    );
+  }
 
   const requireAuth = () => {
     const next = window.location.pathname + window.location.search;
