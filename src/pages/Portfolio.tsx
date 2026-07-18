@@ -124,7 +124,11 @@ const Portfolio = () => {
 
   const handleShareProfile = async () => {
     const path = profile?.username ? `/@${profile.username}` : `/user/${user?.id}`;
-    const url = `${window.location.origin}${path}`;
+    // Preview hosts (id-preview--*.lovable.app) require Lovable login; use published domain instead.
+    const origin = window.location.hostname.startsWith('id-preview--')
+      ? 'https://the-night-club.lovable.app'
+      : window.location.origin;
+    const url = `${origin}${path}`;
     try {
       if (navigator.share) {
         await navigator.share({ title: `${profile?.display_name || 'My'} portfolio`, url });
