@@ -94,6 +94,9 @@ const AnimatedRoutes = () => {
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/vibe-code" element={<VibeCode />} />
             <Route path="/snippet/:shortCode" element={<SharedSnippet />} />
+            {/* Fallback: catches /@username style URLs since React Router v6 requires
+                dynamic params to occupy a whole segment. */}
+            <Route path="/:handle" element={<UserProfile />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
