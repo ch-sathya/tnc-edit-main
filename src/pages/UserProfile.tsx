@@ -412,7 +412,10 @@ const UserProfile = () => {
                       variant="outline"
                       className="gap-2"
                       onClick={async () => {
-                        const url = window.location.href;
+                        const origin = window.location.hostname.startsWith('id-preview--')
+                          ? 'https://the-night-club.lovable.app'
+                          : window.location.origin;
+                        const url = `${origin}${window.location.pathname}`;
                         try {
                           if (navigator.share) {
                             await navigator.share({ title: `${profile.display_name || profile.username || 'Profile'}`, url });
