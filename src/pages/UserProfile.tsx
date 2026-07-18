@@ -73,7 +73,10 @@ interface Repository {
 }
 
 const UserProfile = () => {
-  const { resolvedUserId: routeUserId, username: routeUsername } = useParams<{ resolvedUserId?: string; username?: string }>();
+  const params = useParams<{ userId?: string; username?: string; handle?: string }>();
+  const routeUserId = params.userId;
+  // Support both /@:username and /:handle (where handle begins with '@')
+  const routeUsername = params.username ?? (params.handle?.startsWith('@') ? params.handle.slice(1) : undefined);
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
