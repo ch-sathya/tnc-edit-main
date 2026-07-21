@@ -11,6 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
+import { ShareModal, buildShareUrl } from '@/components/ShareModal';
 import {
   Github,
   Linkedin,
@@ -120,28 +121,11 @@ const Portfolio = () => {
   
   // Modal states
   const [editProfileOpen, setEditProfileOpen] = useState(false);
-  const [shareCopied, setShareCopied] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
 
-  const handleShareProfile = async () => {
-    const path = profile?.username ? `/@${profile.username}` : `/user/${user?.id}`;
-    // Preview hosts (id-preview--*.lovable.app) require Lovable login; use published domain instead.
-    const origin = window.location.hostname.startsWith('id-preview--')
-      ? 'https://the-night-club.lovable.app'
-      : window.location.origin;
-    const url = `${origin}${path}`;
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: `${profile?.display_name || 'My'} portfolio`, url });
-      } else {
-        await navigator.clipboard.writeText(url);
-        setShareCopied(true);
-        toast({ title: 'Link copied', description: 'Public portfolio link is on your clipboard.' });
-        setTimeout(() => setShareCopied(false), 2000);
-      }
-    } catch (e) {
-      // user cancelled or clipboard blocked
-    }
-  };
+  const sharePath = profile?.username ? `/@${profile.username}` : `/user/${user?.id}`;
+  const shareUrl = buildShareUrl(sharePath);
+  const handleShareProfile = () => setShareOpen(true);
   const [projectModalOpen, setProjectModalOpen] = useState(false);
   const [quickProjectOpen, setQuickProjectOpen] = useState(false);
   const [chatWithUser, setChatWithUser] = useState<Connection['profile'] | null>(null);
@@ -399,10 +383,8 @@ const Portfolio = () => {
                       variant="outline"
                       className="gap-2 backdrop-blur-md bg-background/60"
                     >
-                      {shareCopied ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
-                      <span className="hidden sm:inline">
-                        {shareCopied ? 'Copied' : 'Share'}
-                      </span>
+                      <Share2 className="h-4 w-4" />
+                      <span className="hidden sm:inline">Share</span>
                     </Button>
                     <Button
                       onClick={() => setEditProfileOpen(true)}
