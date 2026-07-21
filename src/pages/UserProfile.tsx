@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import Navigation from '@/components/Navigation';
+import { ShareModal, buildShareUrl } from '@/components/ShareModal';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -91,6 +93,7 @@ const UserProfile = () => {
   const [sendingRequest, setSendingRequest] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
 
   // If /:handle was matched with a non-@ handle, delegate to the 404 route
   const invalidHandle = params.handle !== undefined && !params.handle.startsWith('@');
@@ -344,8 +347,49 @@ const UserProfile = () => {
     );
   }
 
+  const displayName = profile.display_name || profile.username || 'Developer';
+  const shareTitle = `${displayName} on The Night Club`;
+  const shareDescription = profile.headline || profile.bio?.slice(0, 155) || `View ${displayName}'s developer portfolio.`;
+  const sharePath = profile.username ? `/@${profile.username}` : `/user/${profile.user_id}`;
+  const shareUrl = buildShareUrl(sharePath);
+  const socialSameAs = [profile.github_url, profile.linkedin_url, profile.twitter_url, profile.website].filter(Boolean);
+  const personSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Person',
+    name: displayName,
+    ...(profile.headline ? { jobTitle: profile.headline } : {}),
+    ...(profile.bio ? { description: profile.bio } : {}),
+    ...(profile.avatar_url ? { image: profile.avatar_url } : {}),
+    url: shareUrl,
+    ...(socialSameAs.length ? { sameAs: socialSameAs } : {}),
+    ...(profile.skills?.length ? { knowsAbout: profile.skills } : {}),
+    ...(profile.location ? { address: { '@type': 'PostalAddress', addressLocality: profile.location } } : {}),
+  };
+
   return (
     <>
+      <Helmet>
+        <title>{shareTitle}</title>
+        <meta name="description" content={shareDescription} />
+        <link rel="canonical" href={shareUrl} />
+        <meta property="og:type" content="profile" />
+        <meta property="og:title" content={shareTitle} />
+        <meta property="og:description" content={shareDescription} />
+        <meta property="og:url" content={shareUrl} />
+        {profile.avatar_url && <meta property="og:image" content={profile.avatar_url} />}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={shareTitle} />
+        <meta name="twitter:description" content={shareDescription} />
+        {profile.avatar_url && <meta name="twitter:image" content={profile.avatar_url} />}
+        <script type="application/ld+json">{JSON.stringify(personSchema)}</script>
+      </Helmet>
+      <ShareModal
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        url={shareUrl}
+        title={`Share ${displayName}'s profile`}
+        description={shareDescription}
+      />
       <Navigation />
       <div className="min-h-screen bg-transparent">
         <div className="container mx-auto py-8 px-4 max-w-5xl">
@@ -431,20 +475,7 @@ const UserProfile = () => {
                     <Button
                       variant="outline"
                       className="gap-2"
-                      onClick={async () => {
-                        const origin = window.location.hostname.startsWith('id-preview--')
-                          ? 'https://the-night-club.lovable.app'
-                          : window.location.origin;
-                        const url = `${origin}${window.location.pathname}`;
-                        try {
-                          if (navigator.share) {
-                            await navigator.share({ title: `${profile.display_name || profile.username || 'Profile'}`, url });
-                          } else {
-                            await navigator.clipboard.writeText(url);
-                            toast({ title: 'Link copied', description: 'Profile link is on your clipboard.' });
-                          }
-                        } catch {}
-                      }}
+                      onClick={() => setShareOpen(true)}
                     >
                       <Share2 className="h-4 w-4" />
                       <span className="hidden sm:inline">Share</span>
