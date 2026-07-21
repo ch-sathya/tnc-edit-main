@@ -347,8 +347,49 @@ const UserProfile = () => {
     );
   }
 
+  const displayName = profile.display_name || profile.username || 'Developer';
+  const shareTitle = `${displayName} on The Night Club`;
+  const shareDescription = profile.headline || profile.bio?.slice(0, 155) || `View ${displayName}'s developer portfolio.`;
+  const sharePath = profile.username ? `/@${profile.username}` : `/user/${profile.user_id}`;
+  const shareUrl = buildShareUrl(sharePath);
+  const socialSameAs = [profile.github_url, profile.linkedin_url, profile.twitter_url, profile.website].filter(Boolean);
+  const personSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Person',
+    name: displayName,
+    ...(profile.headline ? { jobTitle: profile.headline } : {}),
+    ...(profile.bio ? { description: profile.bio } : {}),
+    ...(profile.avatar_url ? { image: profile.avatar_url } : {}),
+    url: shareUrl,
+    ...(socialSameAs.length ? { sameAs: socialSameAs } : {}),
+    ...(profile.skills?.length ? { knowsAbout: profile.skills } : {}),
+    ...(profile.location ? { address: { '@type': 'PostalAddress', addressLocality: profile.location } } : {}),
+  };
+
   return (
     <>
+      <Helmet>
+        <title>{shareTitle}</title>
+        <meta name="description" content={shareDescription} />
+        <link rel="canonical" href={shareUrl} />
+        <meta property="og:type" content="profile" />
+        <meta property="og:title" content={shareTitle} />
+        <meta property="og:description" content={shareDescription} />
+        <meta property="og:url" content={shareUrl} />
+        {profile.avatar_url && <meta property="og:image" content={profile.avatar_url} />}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={shareTitle} />
+        <meta name="twitter:description" content={shareDescription} />
+        {profile.avatar_url && <meta name="twitter:image" content={profile.avatar_url} />}
+        <script type="application/ld+json">{JSON.stringify(personSchema)}</script>
+      </Helmet>
+      <ShareModal
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        url={shareUrl}
+        title={`Share ${displayName}'s profile`}
+        description={shareDescription}
+      />
       <Navigation />
       <div className="min-h-screen bg-transparent">
         <div className="container mx-auto py-8 px-4 max-w-5xl">
