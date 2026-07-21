@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import Navigation from '@/components/Navigation';
+import { ShareModal, buildShareUrl } from '@/components/ShareModal';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -91,6 +93,7 @@ const UserProfile = () => {
   const [sendingRequest, setSendingRequest] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
 
   // If /:handle was matched with a non-@ handle, delegate to the 404 route
   const invalidHandle = params.handle !== undefined && !params.handle.startsWith('@');
@@ -431,20 +434,7 @@ const UserProfile = () => {
                     <Button
                       variant="outline"
                       className="gap-2"
-                      onClick={async () => {
-                        const origin = window.location.hostname.startsWith('id-preview--')
-                          ? 'https://the-night-club.lovable.app'
-                          : window.location.origin;
-                        const url = `${origin}${window.location.pathname}`;
-                        try {
-                          if (navigator.share) {
-                            await navigator.share({ title: `${profile.display_name || profile.username || 'Profile'}`, url });
-                          } else {
-                            await navigator.clipboard.writeText(url);
-                            toast({ title: 'Link copied', description: 'Profile link is on your clipboard.' });
-                          }
-                        } catch {}
-                      }}
+                      onClick={() => setShareOpen(true)}
                     >
                       <Share2 className="h-4 w-4" />
                       <span className="hidden sm:inline">Share</span>
