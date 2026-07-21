@@ -1,63 +1,61 @@
-# Full Project Completion — Phased Plan
+# Complete the Project — Phases B–F
 
-"Everything" is too big for one migration+edit pass, so I'll ship it as sequenced sub-plans. Each phase ends in a working, verifiable state before the next starts. I'll re-issue the next phase as its own `plan--create` when the previous one is approved.
+Phase A (stabilization) is done. This plan finishes everything else in sequenced, verifiable phases. Each phase ends in a working state before the next begins.
 
-## Phase A — Stabilization & Bug Audit (this plan)
+## Phase B — Public Profile & Sharing Polish
 
-Goal: zero runtime errors, all core flows verified end-to-end before adding scope.
-
-1. **Runtime audit**
-   - Read console + network logs on Home, Auth, Portfolio, UserProfile, Community, CollaborationRoom, Settings.
-   - Drive Playwright through: sign-in → /portfolio, share link (anon view), create community post + comment + vote, create room + join via code + edit file with 2 tabs (verify realtime cursors/messages/participants without refresh).
-   - Log every failure with file:line.
-
-2. **Fix categories** (each fixed at the category level, not the instance):
-   - Auth/redirect edge cases (session refresh, `/setup-username` skip persistence).
-   - Realtime subscription leaks / missing cleanup in collab room, chat, presence.
-   - Broken empty states (profile-not-found, no-posts, no-rooms).
-   - Mobile layout breakage on Community, Portfolio, CollaborationRoom.
-   - Loading flicker (skeletons for Portfolio, UserProfile, Community feed).
-
-3. **Verification**
-   - `tsgo` clean, build clean, Playwright screenshots for each flow saved under `/tmp/browser/`.
-
-## Phase B — Public Profile & Sharing polish
-
-- SEO: per-profile `<title>` / `<meta description>` / OG tags via react-helmet-async on `/@:username`.
-- JSON-LD `Person` schema on public profiles.
-- Copy-link toast + QR modal for share button.
-- Ensure fully anon-viewable (RLS already public where `is_public=true`); add "Sign in to connect" CTA consistency.
+- Install `react-helmet-async`; wrap app in `HelmetProvider` in `src/main.tsx`.
+- Add per-route `<Helmet>` to `UserProfile` (`/@:username`): title, description, canonical, `og:*`, `twitter:*` derived from profile.
+- Add JSON-LD `Person` schema on public profiles (name, headline, url, image, sameAs from social links).
+- Replace the plain toast on Share with a modal: copy link, QR code (via `qrcode.react`), and native share fallback. Same modal reused in `Portfolio` and `UserProfile`.
+- Consistent "Sign in to connect" CTAs for anonymous viewers on profile/community/project pages.
+- Update sitewide `index.html` head defaults (title/description/OG) to real brand copy.
 
 ## Phase C — Repositories v2 (GitHub-like)
 
-- Schema: `repository_branches`, `repository_issues`, `issue_comments`, `repository_readme` (or use existing `repository_files` for `README.md`).
-- UI: repo detail page with tabs Code / Issues / Stars / Activity, file tree, README render (react-markdown + rehype-highlight), issue create/comment.
-- Pinned repos already exist — wire to real repo pages.
+- Migration: extend existing `repositories` and `repository_files`; add `repository_issues`, `issue_comments`. GRANTs + RLS + `REPLICA IDENTITY FULL` in the same migration.
+- New page `/repo/:owner/:name` with tabs: **Code**, **Issues**, **Stars**, **Activity**.
+- Code tab: file tree from `repository_files`, README auto-render via `react-markdown` + `rehype-highlight` + `remark-gfm`.
+- Issues tab: create/list/detail with threaded `issue_comments`, open/closed status, realtime updates.
+- Wire pinned repositories on profile to these real repo pages.
+- Star button uses existing `repository_stars` + trigger.
 
 ## Phase D — Collaboration v2 (Yjs CRDT)
 
-- Add `yjs` + `y-monaco` + `y-supabase` (or custom Supabase awareness provider) for real CRDT sync instead of debounced overwrites.
-- Multi-cursor with user color from presence.
-- Terminal: keep `execute-code` edge fn; add stdin already noted in memory.
+- Add `yjs`, `y-monaco`, and a Supabase awareness/persistence provider (custom thin wrapper over broadcast + `collaboration_files.content` snapshot).
+- Replace debounced overwrite sync in `CollaborationRoom` with Yjs doc bound to Monaco; keep DB snapshot every N seconds for persistence.
+- Multi-cursor colors from presence; keep existing `useRealtimeCursors` styling but drive from Yjs awareness.
+- Keep `execute-code` edge function and stdin support unchanged.
+- Preserve room chat, participants, and file list realtime behavior verified in Phase A.
 
 ## Phase E — Social Feed & Notifications
 
-- Home feed (following + joined groups) with infinite scroll.
-- Notification center: mark-as-read, filter tabs, realtime badge.
+- Home feed: posts from followed users + joined groups, infinite scroll (react-query `useInfiniteQuery`), skeletons.
+- Notification center page already exists — add: mark-as-read, mark-all-read, filter tabs (mentions/follows/votes/messages), realtime badge count in `NotificationBell`.
+- Ensure DB triggers write notifications on: new follower, post upvote milestone, comment reply, DM, group invite.
 
-## Phase F — Final polish & publish
+## Phase F — Final Polish & Publish
 
-- Accessibility pass (focus rings, aria-labels, keyboard nav).
-- Lighthouse ≥ 90 on Home, Portfolio, UserProfile.
-- Re-run security scan, resolve any new findings.
+- Accessibility: focus rings, aria-labels on icon buttons, keyboard nav on modals, color-contrast pass.
+- Loading skeletons everywhere still using spinners (Portfolio, UserProfile, Community, Repo pages).
+- Mobile responsiveness sweep: Community, CollaborationRoom, Repo pages.
+- Lighthouse target ≥ 90 on Home, Portfolio, UserProfile.
+- Re-run security scan; resolve new findings.
 - Publish to `the-night-club.lovable.app`.
 
-## What happens next
+## Verification per Phase
 
-On approval I start **Phase A only**: run the audit, fix what I find, verify with Playwright, and report back. When Phase A is green I'll issue Phase B as a fresh plan for approval. This keeps each change reviewable instead of dumping a 20-file mega-diff.
+- `tsgo` + build clean.
+- Playwright script per phase under `/tmp/browser/phase-<x>/` capturing screenshots of the new/changed flows.
+- Manual signals: console + network snapshot showing zero errors on the touched routes.
 
-## Technical notes
+## Technical Notes
 
-- No new deps in Phase A. Phases C–E add: `react-markdown`, `rehype-highlight`, `react-helmet-async`, `yjs`, `y-monaco`.
-- All schema changes go through `supabase--migration` with GRANTs + RLS in the same migration.
-- Realtime tables already have `REPLICA IDENTITY FULL` from previous work — new tables in Phase C/E will get the same treatment.
+- New deps: `react-helmet-async`, `qrcode.react`, `react-markdown`, `rehype-highlight`, `remark-gfm`, `yjs`, `y-monaco`.
+- All schema changes via `supabase--migration` with GRANTs, RLS, and `REPLICA IDENTITY FULL` in the same migration.
+- No changes to auth flow, existing RLS helper functions, or the black/white glass aesthetic.
+- Phases ship sequentially; each is independently revertible.
+
+## What Happens Next
+
+On approval I start **Phase B** immediately, verify, and report back. Phases C–F follow in order without re-approval unless a phase requires a scope decision (e.g., Yjs provider choice) — I'll ask then.
