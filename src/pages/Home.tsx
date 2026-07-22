@@ -92,9 +92,14 @@ const Home: React.FC = () => {
             <h1 className="text-5xl md:text-7xl lg:text-[5.5rem] font-bold text-foreground mb-8 tracking-tighter leading-[0.95]">
               <TextReveal delay={0.2}>Build Your</TextReveal>
               <br />
-              <span className="gradient-text">
-                <TextReveal delay={0.4}>Developer Portfolio</TextReveal>
-              </span>
+              <motion.span
+                className="gradient-text inline-block"
+                initial={{ opacity: 0, y: 24, filter: 'blur(10px)' }}
+                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                transition={{ duration: 0.8, delay: 0.5, ease: [0.25, 0.4, 0, 1] }}
+              >
+                Developer Portfolio
+              </motion.span>
             </h1>
 
             <ScrollReveal delay={0.6}>

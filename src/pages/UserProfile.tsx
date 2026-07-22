@@ -350,7 +350,7 @@ const UserProfile = () => {
   const displayName = profile.display_name || profile.username || 'Developer';
   const shareTitle = `${displayName} on The Night Club`;
   const shareDescription = profile.headline || profile.bio?.slice(0, 155) || `View ${displayName}'s developer portfolio.`;
-  const sharePath = profile.username ? `/@${profile.username}` : `/user/${profile.user_id}`;
+  const sharePath = profile.username ? `/in/${profile.username}` : `/user/${profile.user_id}`;
   const shareUrl = buildShareUrl(sharePath);
   const socialSameAs = [profile.github_url, profile.linkedin_url, profile.twitter_url, profile.website].filter(Boolean);
   const personSchema = {
@@ -394,15 +394,16 @@ const UserProfile = () => {
       <div className="min-h-screen bg-transparent">
         <div className="container mx-auto py-8 px-4 max-w-5xl">
           {/* Profile Header with banner */}
-          <Card className="mb-8 overflow-hidden">
-            <div className="relative h-40 md:h-56 w-full bg-gradient-to-br from-secondary via-secondary/60 to-card">
+          <Card className="mb-8 overflow-hidden border-border/60 shadow-xl">
+            <div className="relative h-44 md:h-64 w-full bg-gradient-to-br from-secondary via-secondary/60 to-card">
               {profile.banner_url && (
                 <img src={profile.banner_url} alt="" className="w-full h-full object-cover" />
               )}
+              <div className="absolute inset-0 bg-gradient-to-t from-card/80 via-card/10 to-transparent pointer-events-none" />
             </div>
-            <CardContent className="pt-0 -mt-14">
+            <CardContent className="pt-0 -mt-16 pb-8">
               <div className="flex flex-col md:flex-row gap-6 md:items-end">
-                <Avatar className="h-28 w-28 border-4 border-card shadow-lg">
+                <Avatar className="h-32 w-32 border-4 border-card shadow-2xl ring-1 ring-border/40">
                   <AvatarImage src={profile.avatar_url || undefined} alt={profile.display_name || 'User'} />
                   <AvatarFallback className="text-3xl">
                     {(profile.display_name || profile.username || 'U')[0].toUpperCase()}
