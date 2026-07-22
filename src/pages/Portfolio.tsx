@@ -123,7 +123,7 @@ const Portfolio = () => {
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
 
-  const sharePath = profile?.username ? `/in/${profile.username}` : `/user/${user?.id}`;
+  const sharePath = profile?.username ? `/in/${profile.username}/` : `/user/${user?.id}/`;
   const shareUrl = buildShareUrl(sharePath);
   const handleShareProfile = () => setShareOpen(true);
   const [projectModalOpen, setProjectModalOpen] = useState(false);
