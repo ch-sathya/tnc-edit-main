@@ -350,7 +350,7 @@ const UserProfile = () => {
   const displayName = profile.display_name || profile.username || 'Developer';
   const shareTitle = `${displayName} on The Night Club`;
   const shareDescription = profile.headline || profile.bio?.slice(0, 155) || `View ${displayName}'s developer portfolio.`;
-  const sharePath = profile.username ? `/in/${profile.username}` : `/user/${profile.user_id}`;
+  const sharePath = profile.username ? `/in/${profile.username}/` : `/user/${profile.user_id}/`;
   const shareUrl = buildShareUrl(sharePath);
   const socialSameAs = [profile.github_url, profile.linkedin_url, profile.twitter_url, profile.website].filter(Boolean);
   const personSchema = {
