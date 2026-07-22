@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, Suspense, lazy } from 'react';
 import Navigation from '@/components/Navigation';
-import Footer from '@/components/Footer';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -123,7 +123,7 @@ const Portfolio = () => {
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
 
-  const sharePath = profile?.username ? `/in/${profile.username}` : `/user/${user?.id}`;
+  const sharePath = profile?.username ? `/in/${profile.username}/` : `/user/${user?.id}/`;
   const shareUrl = buildShareUrl(sharePath);
   const handleShareProfile = () => setShareOpen(true);
   const [projectModalOpen, setProjectModalOpen] = useState(false);
@@ -726,7 +726,7 @@ const Portfolio = () => {
             </Tabs>
           </div>
         </div>
-        <Footer />
+        
       </div>
 
       {/* Onboarding Tour */}
