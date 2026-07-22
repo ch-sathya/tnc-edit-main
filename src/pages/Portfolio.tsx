@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, Suspense, lazy } from 'react';
 import Navigation from '@/components/Navigation';
-import Footer from '@/components/Footer';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
