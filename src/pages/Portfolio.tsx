@@ -726,7 +726,7 @@ const Portfolio = () => {
             </Tabs>
           </div>
         </div>
-        <Footer />
+        
       </div>
 
       {/* Onboarding Tour */}
