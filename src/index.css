@@ -55,6 +55,8 @@ All colors MUST be HSL.
     --input: 0 0% 90%;
     --ring: 0 0% 0%;
     --radius: 0.75rem;
+    --ember: 14 78% 57%;
+    --ember-foreground: 0 0% 100%;
   }
 
   .dark {
@@ -86,7 +88,11 @@ All colors MUST be HSL.
     --border: 0 0% 20%;
     --input: 0 0% 10%;
     --ring: 0 0% 100%;
-    
+
+    /* Ember accent — warm highlight for the portfolio direction */
+    --ember: 14 78% 57%;
+    --ember-foreground: 0 0% 100%;
+
     /* Editor specific */
     --editor-bg: 0 0% 0%;
     --editor-sidebar: 0 0% 8%;
@@ -106,9 +112,15 @@ All colors MUST be HSL.
     background: transparent;
     overflow-y: scroll;
     scrollbar-gutter: stable;
+    font-family: '"DM Sans"', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+  }
+
+  h1, h2, h3, h4, h5, h6, .font-display {
+    font-family: '"Space Grotesk"', system-ui, sans-serif;
+    letter-spacing: -0.02em;
   }
 
   html {

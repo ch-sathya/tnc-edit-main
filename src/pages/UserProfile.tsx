@@ -391,308 +391,309 @@ const UserProfile = () => {
         description={shareDescription}
       />
       <Navigation />
+
       <div className="min-h-screen bg-transparent">
-        <div className="container mx-auto py-8 px-4 max-w-5xl">
-          {/* Profile Header with banner */}
-          <Card className="mb-8 overflow-hidden border-border/60 shadow-xl">
-            <div className="relative h-44 md:h-64 w-full bg-gradient-to-br from-secondary via-secondary/60 to-card">
-              {profile.banner_url && (
-                <img src={profile.banner_url} alt="" className="w-full h-full object-cover" />
-              )}
-              <div className="absolute inset-0 bg-gradient-to-t from-card/80 via-card/10 to-transparent pointer-events-none" />
+        {/* ── MAGAZINE HERO ─────────────────────────────────────────── */}
+        <header className="relative w-full overflow-hidden border-b border-border/60">
+          <div className="absolute inset-0">
+            {profile.banner_url ? (
+              <img
+                src={profile.banner_url}
+                alt=""
+                className="w-full h-full object-cover opacity-40"
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-secondary via-background to-background" />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/85 to-background/40" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,hsl(var(--ember)/0.18),transparent_60%)]" />
+          </div>
+
+          <div className="relative container mx-auto max-w-6xl px-4 pt-16 pb-20 md:pt-24 md:pb-28">
+            <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-muted-foreground mb-8">
+              <span className="h-px w-8 bg-ember" />
+              <span>Portfolio</span>
+              {profile.username && <span className="text-foreground/60">· @{profile.username}</span>}
             </div>
-            <CardContent className="pt-0 -mt-16 pb-8">
-              <div className="flex flex-col md:flex-row gap-6 md:items-end">
-                <Avatar className="h-32 w-32 border-4 border-card shadow-2xl ring-1 ring-border/40">
-                  <AvatarImage src={profile.avatar_url || undefined} alt={profile.display_name || 'User'} />
-                  <AvatarFallback className="text-3xl">
-                    {(profile.display_name || profile.username || 'U')[0].toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
 
-                <div className="flex-1 pt-2 md:pt-0">
-                  <div className="flex flex-wrap items-start justify-between gap-4 mb-3">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-3">
-                        <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-                          {profile.display_name || profile.username || 'User'}
-                        </h1>
-                        <AvailabilityBadge value={profile.availability} />
+            <div className="grid md:grid-cols-[auto,1fr] gap-8 md:gap-12 items-end">
+              <Avatar className="h-28 w-28 md:h-40 md:w-40 border border-border ring-1 ring-ember/30 shadow-2xl">
+                <AvatarImage src={profile.avatar_url || undefined} alt={displayName} />
+                <AvatarFallback className="text-4xl font-display">
+                  {(profile.display_name || profile.username || 'U')[0].toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+
+              <div className="min-w-0">
+                <h1 className="font-display text-4xl md:text-6xl font-bold leading-[1.05] tracking-tight text-foreground">
+                  {displayName}
+                </h1>
+                {profile.headline && (
+                  <p className="mt-4 text-lg md:text-2xl text-foreground/85 font-light max-w-2xl">
+                    {profile.headline}
+                  </p>
+                )}
+                <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
+                  <AvailabilityBadge value={profile.availability} />
+                  {profile.location && (
+                    <span className="inline-flex items-center gap-1.5">
+                      <MapPin className="h-3.5 w-3.5" /> {profile.location}
+                    </span>
+                  )}
+                  <span className="inline-flex items-center gap-1.5">
+                    <FolderOpen className="h-3.5 w-3.5" /> {projects.length} projects
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <Github className="h-3.5 w-3.5" /> {repositories.length} repos
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <Star className="h-3.5 w-3.5 text-ember" /> {totalStars} stars
+                  </span>
+                </div>
+
+                {/* Action row */}
+                <div className="mt-8 flex flex-wrap gap-2">
+                  {!isOwnProfile && user && connectionStatus === 'connected' && (
+                    <>
+                      <Badge variant="secondary" className="gap-1 py-2 px-3">
+                        <Check className="h-3 w-3" /> Connected
+                      </Badge>
+                      <Button onClick={() => setChatOpen(true)}>
+                        <MessageCircle className="h-4 w-4 mr-2" /> Message
+                      </Button>
+                    </>
+                  )}
+                  {!isOwnProfile && user && connectionStatus === 'pending_sent' && (
+                    <Badge variant="outline" className="gap-1 py-2 px-3">
+                      <Clock className="h-3 w-3" /> Request Pending
+                    </Badge>
+                  )}
+                  {!isOwnProfile && user && connectionStatus === 'pending_received' && (
+                    <>
+                      <Button onClick={() => handleConnectionAction('accept')} disabled={sendingRequest}>
+                        <Check className="h-4 w-4 mr-2" /> Accept
+                      </Button>
+                      <Button variant="outline" onClick={() => handleConnectionAction('decline')} disabled={sendingRequest}>
+                        Decline
+                      </Button>
+                    </>
+                  )}
+                  {!isOwnProfile && user && connectionStatus === 'none' && (
+                    <Button onClick={sendConnectionRequest} disabled={sendingRequest}>
+                      <UserPlus className="h-4 w-4 mr-2" /> Connect
+                    </Button>
+                  )}
+                  {!isOwnProfile && !user && (
+                    <Button onClick={requireAuth}>
+                      <UserPlus className="h-4 w-4 mr-2" /> Sign in to connect
+                    </Button>
+                  )}
+                  {isOwnProfile && (
+                    <Button onClick={() => setEditOpen(true)} variant="secondary">Edit Profile</Button>
+                  )}
+                  <Button variant="outline" className="gap-2" onClick={() => setShareOpen(true)}>
+                    <Share2 className="h-4 w-4" /> Share
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* ── MAIN GRID ─────────────────────────────────────────────── */}
+        <main className="container mx-auto max-w-6xl px-4 py-14 md:py-20 space-y-16">
+          {/* About + Contact */}
+          <section className="grid md:grid-cols-[2fr,1fr] gap-10 md:gap-14">
+            <div>
+              <div className="flex items-baseline gap-3 mb-5">
+                <span className="text-xs uppercase tracking-[0.25em] text-ember">01</span>
+                <h2 className="font-display text-2xl md:text-3xl font-semibold">About</h2>
+              </div>
+              {profile.bio ? (
+                <p className="text-base md:text-lg text-foreground/85 leading-relaxed whitespace-pre-wrap max-w-2xl">
+                  {profile.bio}
+                </p>
+              ) : (
+                <p className="text-muted-foreground italic">No bio yet.</p>
+              )}
+
+              {profile.skills && profile.skills.length > 0 && (
+                <div className="mt-8">
+                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-3">Skills</p>
+                  <EndorsableSkills profileUserId={profile.user_id} skills={profile.skills} />
+                </div>
+              )}
+            </div>
+
+            <aside className="md:border-l md:border-border/60 md:pl-10">
+              <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground mb-4">Elsewhere</p>
+              <div className="flex flex-col gap-2">
+                {profile.github_url && (
+                  <a href={profile.github_url} target="_blank" rel="noopener noreferrer"
+                     className="group flex items-center justify-between py-3 border-b border-border/50 hover:border-ember/70 transition-colors">
+                    <span className="inline-flex items-center gap-3 text-sm"><Github className="h-4 w-4" /> GitHub</span>
+                    <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-ember transition-colors" />
+                  </a>
+                )}
+                {profile.linkedin_url && (
+                  <a href={profile.linkedin_url} target="_blank" rel="noopener noreferrer"
+                     className="group flex items-center justify-between py-3 border-b border-border/50 hover:border-ember/70 transition-colors">
+                    <span className="inline-flex items-center gap-3 text-sm"><Linkedin className="h-4 w-4" /> LinkedIn</span>
+                    <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-ember transition-colors" />
+                  </a>
+                )}
+                {profile.twitter_url && (
+                  <a href={profile.twitter_url} target="_blank" rel="noopener noreferrer"
+                     className="group flex items-center justify-between py-3 border-b border-border/50 hover:border-ember/70 transition-colors">
+                    <span className="inline-flex items-center gap-3 text-sm"><Twitter className="h-4 w-4" /> Twitter</span>
+                    <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-ember transition-colors" />
+                  </a>
+                )}
+                {profile.website && (
+                  <a href={profile.website} target="_blank" rel="noopener noreferrer"
+                     className="group flex items-center justify-between py-3 border-b border-border/50 hover:border-ember/70 transition-colors">
+                    <span className="inline-flex items-center gap-3 text-sm"><Globe className="h-4 w-4" /> Website</span>
+                    <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-ember transition-colors" />
+                  </a>
+                )}
+                {!profile.github_url && !profile.linkedin_url && !profile.twitter_url && !profile.website && (
+                  <p className="text-sm text-muted-foreground italic">No links added.</p>
+                )}
+              </div>
+            </aside>
+          </section>
+
+          {/* Pinned repositories */}
+          <section>
+            <div className="flex items-baseline gap-3 mb-6">
+              <span className="text-xs uppercase tracking-[0.25em] text-ember">02</span>
+              <h2 className="font-display text-2xl md:text-3xl font-semibold">Featured Work</h2>
+            </div>
+            <PinnedRepositories userId={profile.user_id} isOwner={isOwnProfile} />
+          </section>
+
+          {/* Experience */}
+          <section>
+            <div className="flex items-baseline gap-3 mb-6">
+              <span className="text-xs uppercase tracking-[0.25em] text-ember">03</span>
+              <h2 className="font-display text-2xl md:text-3xl font-semibold">Experience</h2>
+            </div>
+            <ExperienceSection userId={profile.user_id} isOwner={isOwnProfile} />
+          </section>
+
+          {/* Projects */}
+          <section>
+            <div className="flex items-baseline gap-3 mb-6">
+              <span className="text-xs uppercase tracking-[0.25em] text-ember">04</span>
+              <h2 className="font-display text-2xl md:text-3xl font-semibold">Projects</h2>
+              <span className="ml-auto text-sm text-muted-foreground">{projects.length}</span>
+            </div>
+            {projects.length === 0 ? (
+              <div className="border border-dashed border-border/60 rounded-lg py-14 text-center">
+                <FolderOpen className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
+                <p className="text-muted-foreground">No published projects yet.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {projects.map((project) => (
+                  <article
+                    key={project.id}
+                    onClick={() => navigate(`/projects/${project.id}`)}
+                    className="group cursor-pointer border border-border/60 rounded-xl overflow-hidden bg-card/40 hover:bg-card/70 hover:border-ember/50 transition-all"
+                  >
+                    {project.image_url && (
+                      <div className="aspect-video w-full overflow-hidden">
+                        <img
+                          src={project.image_url}
+                          alt={project.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          loading="lazy"
+                        />
                       </div>
-                      {profile.username && (
-                        <p className="text-muted-foreground">@{profile.username}</p>
+                    )}
+                    <div className="p-5">
+                      <h3 className="font-display text-lg font-semibold mb-1.5 group-hover:text-ember transition-colors">
+                        {project.title}
+                      </h3>
+                      {project.description && (
+                        <p className="text-sm text-muted-foreground line-clamp-2 mb-4">{project.description}</p>
                       )}
-                      {profile.headline && (
-                        <p className="text-foreground/90 mt-1 font-medium">{profile.headline}</p>
+                      {project.technologies && project.technologies.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mb-4">
+                          {project.technologies.slice(0, 5).map((tech, index) => (
+                            <Badge key={index} variant="outline" className="text-[10px] font-normal">{tech}</Badge>
+                          ))}
+                        </div>
                       )}
-                    </div>
-
-                    {!isOwnProfile && user && (
                       <div className="flex gap-2">
-                        {connectionStatus === 'connected' ? (
-                          <>
-                            <Badge variant="secondary" className="gap-1 py-2 px-3">
-                              <Check className="h-3 w-3" /> Connected
-                            </Badge>
-                            <Button onClick={() => setChatOpen(true)}>
-                              <MessageCircle className="h-4 w-4 mr-2" /> Message
-                            </Button>
-                          </>
-                        ) : connectionStatus === 'pending_sent' ? (
-                          <Badge variant="outline" className="gap-1 py-2 px-3">
-                            <Clock className="h-3 w-3" /> Request Pending
-                          </Badge>
-                        ) : connectionStatus === 'pending_received' ? (
-                          <div className="flex gap-2">
-                            <Button onClick={() => handleConnectionAction('accept')} disabled={sendingRequest}>
-                              <Check className="h-4 w-4 mr-2" /> Accept
-                            </Button>
-                            <Button variant="outline" onClick={() => handleConnectionAction('decline')} disabled={sendingRequest}>
-                              Decline
-                            </Button>
-                          </div>
-                        ) : (
-                          <Button onClick={sendConnectionRequest} disabled={sendingRequest}>
-                            <UserPlus className="h-4 w-4 mr-2" /> Connect
+                        {project.github_url && (
+                          <Button variant="ghost" size="sm" asChild onClick={(e) => e.stopPropagation()}>
+                            <a href={project.github_url} target="_blank" rel="noopener noreferrer">
+                              <Github className="h-3.5 w-3.5 mr-1.5" /> Code
+                            </a>
+                          </Button>
+                        )}
+                        {project.live_url && (
+                          <Button variant="ghost" size="sm" asChild onClick={(e) => e.stopPropagation()}>
+                            <a href={project.live_url} target="_blank" rel="noopener noreferrer">
+                              <ExternalLink className="h-3.5 w-3.5 mr-1.5" /> Live
+                            </a>
                           </Button>
                         )}
                       </div>
-                    )}
-
-                    {!isOwnProfile && !user && (
-                      <div className="flex gap-2">
-                        <Button onClick={requireAuth}>
-                          <UserPlus className="h-4 w-4 mr-2" /> Sign in to connect
-                        </Button>
-                      </div>
-                    )}
-
-                    {isOwnProfile && (
-                      <Button onClick={() => setEditOpen(true)}>
-                        Edit Profile
-                      </Button>
-                    )}
-
-                    <Button
-                      variant="outline"
-                      className="gap-2"
-                      onClick={() => setShareOpen(true)}
-                    >
-                      <Share2 className="h-4 w-4" />
-                      <span className="hidden sm:inline">Share</span>
-                    </Button>
-
-                  </div>
-
-                  {profile.bio && (
-                    <p className="text-foreground/90 mb-3 whitespace-pre-wrap">{profile.bio}</p>
-                  )}
-
-                  {profile.location && (
-                    <div className="flex items-center gap-2 text-muted-foreground mb-3 text-sm">
-                      <MapPin className="h-4 w-4" />
-                      <span>{profile.location}</span>
                     </div>
-                  )}
-
-                  {profile.skills && profile.skills.length > 0 && (
-                    <div className="mb-4">
-                      <EndorsableSkills profileUserId={profile.user_id} skills={profile.skills} />
-                    </div>
-                  )}
-
-                  {/* Social Links */}
-                  <div className="flex flex-wrap gap-2">
-                    {profile.github_url && (
-                      <Button variant="outline" size="sm" asChild>
-                        <a href={profile.github_url} target="_blank" rel="noopener noreferrer">
-                          <Github className="h-4 w-4 mr-2" />
-                          GitHub
-                        </a>
-                      </Button>
-                    )}
-                    {profile.linkedin_url && (
-                      <Button variant="outline" size="sm" asChild>
-                        <a href={profile.linkedin_url} target="_blank" rel="noopener noreferrer">
-                          <Linkedin className="h-4 w-4 mr-2" />
-                          LinkedIn
-                        </a>
-                      </Button>
-                    )}
-                    {profile.twitter_url && (
-                      <Button variant="outline" size="sm" asChild>
-                        <a href={profile.twitter_url} target="_blank" rel="noopener noreferrer">
-                          <Twitter className="h-4 w-4 mr-2" />
-                          Twitter
-                        </a>
-                      </Button>
-                    )}
-                    {profile.website && (
-                      <Button variant="outline" size="sm" asChild>
-                        <a href={profile.website} target="_blank" rel="noopener noreferrer">
-                          <Globe className="h-4 w-4 mr-2" />
-                          Website
-                        </a>
-                      </Button>
-                    )}
-                  </div>
-                </div>
+                  </article>
+                ))}
               </div>
-            </CardContent>
-          </Card>
+            )}
+          </section>
 
-          {/* Stats */}
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Projects</CardTitle>
-                <FolderOpen className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{projects.length}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Repositories</CardTitle>
-                <Github className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{repositories.length}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Stars</CardTitle>
-                <Star className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{totalStars}</div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Pinned repos + Experience */}
-          <div className="space-y-6 mb-8">
-            <PinnedRepositories userId={profile.user_id} isOwner={isOwnProfile} />
-            <ExperienceSection userId={profile.user_id} isOwner={isOwnProfile} />
-          </div>
-
-          {/* Content Tabs */}
-          
-          <Tabs defaultValue="projects" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="projects">Projects</TabsTrigger>
-              <TabsTrigger value="repositories">Repositories</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="projects" className="mt-6">
-              {projects.length === 0 ? (
-                <Card>
-                  <CardContent className="py-12 text-center">
-                    <FolderOpen className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                    <h3 className="text-lg font-semibold mb-2">No public projects</h3>
-                    <p className="text-muted-foreground">This user hasn't published any projects yet.</p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {projects.map((project) => (
-                    <Card key={project.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate(`/projects/${project.id}`)}>
-                      {project.image_url && (
-                        <div className="aspect-video w-full overflow-hidden rounded-t-lg">
-                          <img 
-                            src={project.image_url} 
-                            alt={project.title}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                          />
+          {/* Repositories */}
+          <section>
+            <div className="flex items-baseline gap-3 mb-6">
+              <span className="text-xs uppercase tracking-[0.25em] text-ember">05</span>
+              <h2 className="font-display text-2xl md:text-3xl font-semibold">Repositories</h2>
+              <span className="ml-auto text-sm text-muted-foreground">{repositories.length}</span>
+            </div>
+            {repositories.length === 0 ? (
+              <div className="border border-dashed border-border/60 rounded-lg py-14 text-center">
+                <Github className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
+                <p className="text-muted-foreground">No public repositories yet.</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-border/60 border border-border/60 rounded-xl overflow-hidden">
+                {repositories.map((repo) => (
+                  <div key={repo.id} className="p-5 hover:bg-card/40 transition-colors">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-display font-semibold">{repo.name}</h3>
+                          <Badge variant="outline" className="text-[10px]">{repo.visibility}</Badge>
                         </div>
-                      )}
-                      <CardHeader>
-                        <CardTitle>{project.title}</CardTitle>
-                        <CardDescription>{project.description}</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        {project.technologies && project.technologies.length > 0 && (
-                          <div className="flex flex-wrap gap-2 mb-4">
-                            {project.technologies.slice(0, 5).map((tech, index) => (
-                              <Badge key={index} variant="outline">{tech}</Badge>
+                        {repo.description && (
+                          <p className="text-sm text-muted-foreground">{repo.description}</p>
+                        )}
+                        {repo.tags && repo.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 mt-3">
+                            {repo.tags.map((tag, index) => (
+                              <Badge key={index} variant="secondary" className="text-[10px] font-normal">{tag}</Badge>
                             ))}
                           </div>
                         )}
-                        <div className="flex gap-2">
-                          {project.github_url && (
-                            <Button variant="outline" size="sm" asChild onClick={(e) => e.stopPropagation()}>
-                              <a href={project.github_url} target="_blank" rel="noopener noreferrer">
-                                <Github className="h-4 w-4 mr-2" />
-                                Code
-                              </a>
-                            </Button>
-                          )}
-                          {project.live_url && (
-                            <Button variant="outline" size="sm" asChild onClick={(e) => e.stopPropagation()}>
-                              <a href={project.live_url} target="_blank" rel="noopener noreferrer">
-                                <ExternalLink className="h-4 w-4 mr-2" />
-                                Live
-                              </a>
-                            </Button>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="repositories" className="mt-6">
-              {repositories.length === 0 ? (
-                <Card>
-                  <CardContent className="py-12 text-center">
-                    <Github className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                    <h3 className="text-lg font-semibold mb-2">No public repositories</h3>
-                    <p className="text-muted-foreground">This user hasn't created any public repositories yet.</p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="space-y-4">
-                  {repositories.map((repo) => (
-                    <Card key={repo.id}>
-                      <CardHeader>
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <CardTitle className="flex items-center gap-2">
-                              {repo.name}
-                              <Badge variant="outline">{repo.visibility}</Badge>
-                            </CardTitle>
-                            <CardDescription>{repo.description}</CardDescription>
-                          </div>
-                          <div className="flex items-center gap-1 text-muted-foreground">
-                            <Star className="h-4 w-4" />
-                            <span>{repo.star_count || 0}</span>
-                          </div>
-                        </div>
-                      </CardHeader>
-                      {repo.tags && repo.tags.length > 0 && (
-                        <CardContent>
-                          <div className="flex flex-wrap gap-2">
-                            {repo.tags.map((tag, index) => (
-                              <Badge key={index} variant="secondary">{tag}</Badge>
-                            ))}
-                          </div>
-                        </CardContent>
-                      )}
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
-          
-        </div>
+                      </div>
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground shrink-0">
+                        <Star className="h-3.5 w-3.5 text-ember" />
+                        <span>{repo.star_count || 0}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        </main>
       </div>
+
 
       {/* Direct Message Modal */}
       {chatOpen && profile && (
