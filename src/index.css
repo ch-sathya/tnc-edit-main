@@ -112,9 +112,15 @@ All colors MUST be HSL.
     background: transparent;
     overflow-y: scroll;
     scrollbar-gutter: stable;
+    font-family: '"DM Sans"', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+  }
+
+  h1, h2, h3, h4, h5, h6, .font-display {
+    font-family: '"Space Grotesk"', system-ui, sans-serif;
+    letter-spacing: -0.02em;
   }
 
   html {
