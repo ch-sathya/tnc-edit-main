@@ -55,6 +55,8 @@ All colors MUST be HSL.
     --input: 0 0% 90%;
     --ring: 0 0% 0%;
     --radius: 0.75rem;
+    --ember: 14 78% 57%;
+    --ember-foreground: 0 0% 100%;
   }
 
   .dark {
