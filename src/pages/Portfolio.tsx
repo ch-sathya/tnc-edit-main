@@ -14,11 +14,6 @@ import { useNavigate } from 'react-router-dom';
 import { ShareModal, buildShareUrl } from '@/components/ShareModal';
 import {
   Github,
-  Linkedin,
-  Twitter,
-  Globe,
-  MapPin,
-  Mail,
   FolderOpen,
   Edit,
   Plus,
@@ -33,11 +28,9 @@ import {
   Clock,
   TrendingUp,
   ArrowRight,
-  Heart,
   UserPlus,
   MessageSquare,
   Share2,
-  Check,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ProfileEditModal } from '@/components/ProfileEditModal';
