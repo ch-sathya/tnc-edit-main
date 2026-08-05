@@ -3,11 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import Navigation from '@/components/Navigation';
 import { ShareModal, buildShareUrl } from '@/components/ShareModal';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -18,7 +17,6 @@ import {
   Globe,
   MapPin,
   FolderOpen,
-  Star,
   UserPlus,
   Check,
   Clock,
@@ -30,7 +28,6 @@ import { DirectMessageModal } from '@/components/DirectMessageModal';
 import { AvailabilityBadge } from '@/components/profile/AvailabilityBadge';
 import { EndorsableSkills } from '@/components/profile/EndorsableSkills';
 import { ExperienceSection } from '@/components/profile/ExperienceSection';
-import { PinnedRepositories } from '@/components/profile/PinnedRepositories';
 import { ProfileEditModal } from '@/components/ProfileEditModal';
 import { Lock, Share2 } from 'lucide-react';
 
@@ -65,15 +62,6 @@ interface Project {
   status: string | null;
 }
 
-interface Repository {
-  id: string;
-  name: string;
-  description: string | null;
-  star_count: number;
-  visibility: string;
-  tags: string[] | null;
-}
-
 const UserProfile = () => {
   const params = useParams<{ userId?: string; username?: string; handle?: string }>();
   const routeUserId = params.userId;
@@ -86,7 +74,6 @@ const UserProfile = () => {
   const [profile, setProfile] = useState<UserProfileData | null>(null);
   const [resolvedUserId, setResolvedUserId] = useState<string | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [repositories, setRepositories] = useState<Repository[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'none' | 'pending_sent' | 'pending_received' | 'connected'>('none');
@@ -157,16 +144,6 @@ const UserProfile = () => {
         .order('created_at', { ascending: false })
         .limit(20);
       setProjects(projectsData || []);
-
-      // Fetch public repositories
-      const { data: reposData } = await supabase
-        .from('repositories')
-        .select('id, name, description, star_count, visibility, tags')
-        .eq('user_id', uid)
-        .eq('visibility', 'public')
-        .order('created_at', { ascending: false })
-        .limit(20);
-      setRepositories(reposData || []);
 
       // Connection status only when signed in and viewing someone else
       if (user && user.id !== uid) {
@@ -291,7 +268,6 @@ const UserProfile = () => {
   };
 
   const isOwnProfile = user?.id === resolvedUserId;
-  const totalStars = repositories.reduce((sum, repo) => sum + (repo.star_count || 0), 0);
 
   if (loading) {
     return (
@@ -443,12 +419,6 @@ const UserProfile = () => {
                   <span className="inline-flex items-center gap-1.5">
                     <FolderOpen className="h-3.5 w-3.5" /> {projects.length} projects
                   </span>
-                  <span className="inline-flex items-center gap-1.5">
-                    <Github className="h-3.5 w-3.5" /> {repositories.length} repos
-                  </span>
-                  <span className="inline-flex items-center gap-1.5">
-                    <Star className="h-3.5 w-3.5 text-ember" /> {totalStars} stars
-                  </span>
                 </div>
 
                 {/* Action row */}
@@ -563,19 +533,10 @@ const UserProfile = () => {
             </aside>
           </section>
 
-          {/* Pinned repositories */}
-          <section>
-            <div className="flex items-baseline gap-3 mb-6">
-              <span className="text-xs uppercase tracking-[0.25em] text-ember">02</span>
-              <h2 className="font-display text-2xl md:text-3xl font-semibold">Featured Work</h2>
-            </div>
-            <PinnedRepositories userId={profile.user_id} isOwner={isOwnProfile} />
-          </section>
-
           {/* Experience */}
           <section>
             <div className="flex items-baseline gap-3 mb-6">
-              <span className="text-xs uppercase tracking-[0.25em] text-ember">03</span>
+              <span className="text-xs uppercase tracking-[0.25em] text-ember">02</span>
               <h2 className="font-display text-2xl md:text-3xl font-semibold">Experience</h2>
             </div>
             <ExperienceSection userId={profile.user_id} isOwner={isOwnProfile} />
@@ -584,8 +545,8 @@ const UserProfile = () => {
           {/* Projects */}
           <section>
             <div className="flex items-baseline gap-3 mb-6">
-              <span className="text-xs uppercase tracking-[0.25em] text-ember">04</span>
-              <h2 className="font-display text-2xl md:text-3xl font-semibold">Projects</h2>
+              <span className="text-xs uppercase tracking-[0.25em] text-ember">03</span>
+              <h2 className="font-display text-2xl md:text-3xl font-semibold">Selected Work</h2>
               <span className="ml-auto text-sm text-muted-foreground">{projects.length}</span>
             </div>
             {projects.length === 0 ? (
@@ -648,49 +609,6 @@ const UserProfile = () => {
             )}
           </section>
 
-          {/* Repositories */}
-          <section>
-            <div className="flex items-baseline gap-3 mb-6">
-              <span className="text-xs uppercase tracking-[0.25em] text-ember">05</span>
-              <h2 className="font-display text-2xl md:text-3xl font-semibold">Repositories</h2>
-              <span className="ml-auto text-sm text-muted-foreground">{repositories.length}</span>
-            </div>
-            {repositories.length === 0 ? (
-              <div className="border border-dashed border-border/60 rounded-lg py-14 text-center">
-                <Github className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
-                <p className="text-muted-foreground">No public repositories yet.</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-border/60 border border-border/60 rounded-xl overflow-hidden">
-                {repositories.map((repo) => (
-                  <div key={repo.id} className="p-5 hover:bg-card/40 transition-colors">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-display font-semibold">{repo.name}</h3>
-                          <Badge variant="outline" className="text-[10px]">{repo.visibility}</Badge>
-                        </div>
-                        {repo.description && (
-                          <p className="text-sm text-muted-foreground">{repo.description}</p>
-                        )}
-                        {repo.tags && repo.tags.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5 mt-3">
-                            {repo.tags.map((tag, index) => (
-                              <Badge key={index} variant="secondary" className="text-[10px] font-normal">{tag}</Badge>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground shrink-0">
-                        <Star className="h-3.5 w-3.5 text-ember" />
-                        <span>{repo.star_count || 0}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
         </main>
       </div>
 

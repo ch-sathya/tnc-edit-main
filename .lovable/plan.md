@@ -1,61 +1,71 @@
-# Complete the Project — Phases B–F
+# Product Scope — Collaborative Development Platform
 
-Phase A (stabilization) is done. This plan finishes everything else in sequenced, verifiable phases. Each phase ends in a working state before the next begins.
+The Night Club is a lightweight collaborative coding and professional portfolio platform. It does **not** host or manage repositories and does not reproduce GitHub features such as repository creation, stars, forks, issues, pull requests, or repository administration.
 
-## Phase B — Public Profile & Sharing Polish
+## Core Workflow
 
-- Install `react-helmet-async`; wrap app in `HelmetProvider` in `src/main.tsx`.
-- Add per-route `<Helmet>` to `UserProfile` (`/@:username`): title, description, canonical, `og:*`, `twitter:*` derived from profile.
-- Add JSON-LD `Person` schema on public profiles (name, headline, url, image, sameAs from social links).
-- Replace the plain toast on Share with a modal: copy link, QR code (via `qrcode.react`), and native share fallback. Same modal reused in `Portfolio` and `UserProfile`.
-- Consistent "Sign in to connect" CTAs for anonymous viewers on profile/community/project pages.
-- Update sitewide `index.html` head defaults (title/description/OG) to real brand copy.
+1. A user securely connects a supported Git provider.
+2. The user imports an existing repository by URL and chooses a branch.
+3. The platform creates a temporary collaborative workspace containing the imported files.
+4. Teammates edit together with realtime text sync, presence, cursors, chat, file awareness, and execution tools.
+5. An authorized user reviews the changed-file summary, writes a commit message, and pushes changes back to the original repository.
+6. The original Git provider remains the source of truth. The platform stores only workspace state and recovery snapshots required for collaboration.
 
-## Phase C — Repositories v2 (GitHub-like)
+## Phase 1 — Product Simplification & UX Foundation
 
-- Migration: extend existing `repositories` and `repository_files`; add `repository_issues`, `issue_comments`. GRANTs + RLS + `REPLICA IDENTITY FULL` in the same migration.
-- New page `/repo/:owner/:name` with tabs: **Code**, **Issues**, **Stars**, **Activity**.
-- Code tab: file tree from `repository_files`, README auto-render via `react-markdown` + `rehype-highlight` + `remark-gfm`.
-- Issues tab: create/list/detail with threaded `issue_comments`, open/closed status, realtime updates.
-- Wire pinned repositories on profile to these real repo pages.
-- Star button uses existing `repository_stars` + trigger.
+- Remove repository-hosting language, metrics, navigation, pinned repositories, and repository-management roadmap items.
+- Reframe Projects as portfolio case studies only; source links remain outbound references.
+- Make Collaboration the primary navigation action and home-page value proposition.
+- Redesign the authenticated portfolio as an editorial profile control center: identity preview, completion, featured work, collaboration activity, network, and clear editing/sharing actions.
+- Apply the selected Charcoal & Ember palette, Space Grotesk/DM Sans typography, and consistent compact glass surfaces across core screens.
+- Fix hero content visibility and reduce ornamental motion that delays or obscures content.
 
-## Phase D — Collaboration v2 (Yjs CRDT)
+## Phase 2 — Repository Import
 
-- Add `yjs`, `y-monaco`, and a Supabase awareness/persistence provider (custom thin wrapper over broadcast + `collaboration_files.content` snapshot).
-- Replace debounced overwrite sync in `CollaborationRoom` with Yjs doc bound to Monaco; keep DB snapshot every N seconds for persistence.
-- Multi-cursor colors from presence; keep existing `useRealtimeCursors` styling but drive from Yjs awareness.
-- Keep `execute-code` edge function and stdin support unchanged.
-- Preserve room chat, participants, and file list realtime behavior verified in Phase A.
+- Add secure Git-provider OAuth; never expose or persist provider tokens in browser storage.
+- Accept canonical HTTPS repository links, validate provider/owner/name, and reject malformed or unsupported URLs.
+- Let users select an accessible branch and import the file tree into a collaboration room.
+- Record source provider, owner, repository, branch, and base commit on the room—not as a hosted repository record.
+- Handle private repositories, large files, binary files, rate limits, deleted branches, and permission failures explicitly.
 
-## Phase E — Social Feed & Notifications
+## Phase 3 — Realtime Collaboration Reliability
 
-- Home feed: posts from followed users + joined groups, infinite scroll (react-query `useInfiniteQuery`), skeletons.
-- Notification center page already exists — add: mark-as-read, mark-all-read, filter tabs (mentions/follows/votes/messages), realtime badge count in `NotificationBell`.
-- Ensure DB triggers write notifications on: new follower, post upvote milestone, comment reply, DM, group invite.
+- Use Yjs CRDT with Monaco for conflict-safe multi-user editing.
+- Broadcast active file, cursor selection, display name, and online/away/offline state through awareness.
+- Keep room messages, members, files, and presence current without refresh.
+- Persist periodic file snapshots for recovery while the imported provider remains the source of truth.
+- Add reconnect state, unsynced-change indicators, collaborator permissions, and session recovery.
 
-## Phase F — Final Polish & Publish
+## Phase 4 — Review & Push Back
 
-- Accessibility: focus rings, aria-labels on icon buttons, keyboard nav on modals, color-contrast pass.
-- Loading skeletons everywhere still using spinners (Portfolio, UserProfile, Community, Repo pages).
-- Mobile responsiveness sweep: Community, CollaborationRoom, Repo pages.
-- Lighthouse target ≥ 90 on Home, Portfolio, UserProfile.
-- Re-run security scan; resolve new findings.
-- Publish to `the-night-club.lovable.app`.
+- Compare workspace files against the imported base commit and show added, modified, deleted, and renamed files.
+- Provide a reviewable diff, commit message, target branch, and push authorization check.
+- Push through a secure server-side provider integration using the connected user's permissions.
+- Detect remote divergence before push and require refresh/rebase or a new branch instead of overwriting upstream work.
+- Record push status and provider commit URL in room activity; do not create an internal commit-hosting system.
+
+## Phase 5 — Team Workflow
+
+- Add room roles, invitations, focused review comments, mentions, and actionable notifications.
+- Add shareable session summaries and clear ownership/permission controls.
+- Keep community and professional networking features secondary to collaboration.
+
+## Phase 6 — Final Quality
+
+- Accessibility, responsive layouts, keyboard navigation, loading/error/empty states, and contrast review.
+- Performance and reliability testing for Home, Portfolio, Collaborate, and Collaboration Room.
+- Security scan focused on OAuth tokens, repository permissions, workspace RLS, and edge-function authorization.
+- End-to-end verification: connect provider → import link → collaborate → review diff → push upstream.
+
+## Non-Goals
+
+- Repository hosting, discovery, stars, forks, issues, pull requests, releases, package registries, or repository administration.
+- Storing Git credentials in `localStorage`, application tables, client bundles, or logs.
+- Treating the platform database as the canonical Git history.
 
 ## Verification per Phase
 
-- `tsgo` + build clean.
-- Playwright script per phase under `/tmp/browser/phase-<x>/` capturing screenshots of the new/changed flows.
-- Manual signals: console + network snapshot showing zero errors on the touched routes.
-
-## Technical Notes
-
-- New deps: `react-helmet-async`, `qrcode.react`, `react-markdown`, `rehype-highlight`, `remark-gfm`, `yjs`, `y-monaco`.
-- All schema changes via `supabase--migration` with GRANTs, RLS, and `REPLICA IDENTITY FULL` in the same migration.
-- No changes to auth flow, existing RLS helper functions, or the black/white glass aesthetic.
-- Phases ship sequentially; each is independently revertible.
-
-## What Happens Next
-
-On approval I start **Phase B** immediately, verify, and report back. Phases C–F follow in order without re-approval unless a phase requires a scope decision (e.g., Yjs provider choice) — I'll ask then.
+- `tsgo` and focused tests clean.
+- Playwright coverage for every changed critical flow at desktop and mobile widths.
+- Zero relevant console and network errors on touched routes.
+- Every schema change includes grants, RLS, and server-side authorization.

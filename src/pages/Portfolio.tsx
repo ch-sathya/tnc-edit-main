@@ -14,13 +14,7 @@ import { useNavigate } from 'react-router-dom';
 import { ShareModal, buildShareUrl } from '@/components/ShareModal';
 import {
   Github,
-  Linkedin,
-  Twitter,
-  Globe,
-  MapPin,
-  Mail,
   FolderOpen,
-  Star,
   Edit,
   Plus,
   ExternalLink,
@@ -34,11 +28,9 @@ import {
   Clock,
   TrendingUp,
   ArrowRight,
-  Heart,
   UserPlus,
   MessageSquare,
   Share2,
-  Check,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ProfileEditModal } from '@/components/ProfileEditModal';
@@ -60,15 +52,6 @@ interface Project {
   image_url: string;
   status: string;
   visibility?: string;
-}
-
-interface Repository {
-  id: string;
-  name: string;
-  description: string;
-  star_count: number;
-  visibility: string;
-  tags: string[];
 }
 
 interface Connection {
@@ -111,7 +94,6 @@ const Portfolio = () => {
   
   // Data states
   const [projects, setProjects] = useState<Project[]>([]);
-  const [repositories, setRepositories] = useState<Repository[]>([]);
   const [connections, setConnections] = useState<Connection[]>([]);
   const [activities, setActivities] = useState<RecentActivity[]>([]);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
@@ -140,7 +122,6 @@ const Portfolio = () => {
     try {
       const [
         projectsResult, 
-        reposResult, 
         connectionsResult, 
         activitiesResult,
         notificationsResult,
@@ -149,12 +130,6 @@ const Portfolio = () => {
         supabase
           .from('projects')
           .select('id, title, description, technologies, github_url, live_url, image_url, status')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(50),
-        supabase
-          .from('repositories')
-          .select('id, name, description, star_count, visibility, tags')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(50),
@@ -181,7 +156,6 @@ const Portfolio = () => {
       ]);
 
       if (projectsResult.data) setProjects(projectsResult.data as Project[]);
-      if (reposResult.data) setRepositories(reposResult.data as Repository[]);
       if (activitiesResult.data) setActivities(activitiesResult.data as RecentActivity[]);
       setUnreadNotifications(notificationsResult.count || 0);
       setRoomCount(roomsResult.count || 0);
@@ -284,7 +258,6 @@ const Portfolio = () => {
   const getActivityIcon = (action: string) => {
     switch (action) {
       case 'create': return <Plus className="h-4 w-4 text-green-500" />;
-      case 'star': return <Star className="h-4 w-4 text-yellow-500" />;
       case 'join': return <UserPlus className="h-4 w-4 text-blue-500" />;
       default: return <Activity className="h-4 w-4 text-muted-foreground" />;
     }
@@ -322,11 +295,9 @@ const Portfolio = () => {
     );
   }
 
-  const totalStars = repositories.reduce((sum, repo) => sum + (repo.star_count || 0), 0);
-
   const quickActions = [
-    { label: 'New Project', icon: Plus, onClick: handleQuickCreate, primary: true },
-    { label: 'Join Room', icon: Users, onClick: () => navigate('/collaborate') },
+    { label: 'Start Workspace', icon: Code, onClick: () => navigate('/collaborate'), primary: true },
+    { label: 'Add Case Study', icon: Plus, onClick: handleQuickCreate },
     { label: 'Find People', icon: UserPlus, onClick: () => navigate('/community') },
     { label: 'Notifications', icon: Bell, onClick: () => navigate('/notifications'), badge: unreadNotifications },
   ];
@@ -424,11 +395,9 @@ const Portfolio = () => {
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
               {[
                 { label: 'Projects', value: projects.length, icon: FolderOpen },
-                { label: 'Repositories', value: repositories.length, icon: Github },
-                { label: 'Stars', value: totalStars, icon: Star },
                 { label: 'Connections', value: connections.length, icon: Users },
                 { label: 'Rooms', value: roomCount, icon: MessageSquare },
               ].map((stat) => (
@@ -532,15 +501,14 @@ const Portfolio = () => {
 
             {/* Content Tabs */}
             <Tabs defaultValue="projects" className="w-full" data-tour="projects">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="projects">Projects</TabsTrigger>
-                <TabsTrigger value="repositories">Repositories</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="projects">Portfolio Work</TabsTrigger>
                 <TabsTrigger value="connections">Connections</TabsTrigger>
               </TabsList>
 
               <TabsContent value="projects" className="mt-6">
                 <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-semibold">My Projects</h2>
+                  <h2 className="text-xl font-semibold">Portfolio Case Studies</h2>
                   <div className="flex gap-2">
                     <Button onClick={handleQuickCreate} className="gap-2">
                       <Code className="h-4 w-4" />
@@ -563,8 +531,8 @@ const Portfolio = () => {
                     <CardContent className="py-12 text-center">
                       <FolderOpen className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                       <h3 className="text-lg font-semibold mb-2">No projects yet</h3>
-                      <p className="text-muted-foreground mb-4">Start building and showcasing your work!</p>
-                      <Button onClick={handleQuickCreate}>Create Your First Project</Button>
+                      <p className="text-muted-foreground mb-4">Add a case study to present your work and outcomes.</p>
+                      <Button onClick={handleQuickCreate}>Add Your First Case Study</Button>
                     </CardContent>
                   </Card>
                 ) : (
@@ -590,9 +558,6 @@ const Portfolio = () => {
                             </div>
                           )}
                           <div className="flex gap-2 flex-wrap">
-                            <Button variant="default" size="sm" onClick={() => navigate(`/editor/${project.id}`)}>
-                              <Code className="h-4 w-4 mr-2" />Open Editor
-                            </Button>
                             {project.github_url && (
                               <Button variant="outline" size="sm" asChild>
                                 <a href={project.github_url} target="_blank" rel="noopener noreferrer">
@@ -613,52 +578,6 @@ const Portfolio = () => {
                             <Button variant="destructive" size="sm" onClick={() => handleDeleteProject(project.id)}>Delete</Button>
                           </div>
                         </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </TabsContent>
-
-              <TabsContent value="repositories" className="mt-6">
-                {dataLoading ? (
-                  <div className="flex items-center gap-2 text-muted-foreground py-12">
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    <span>Loading repositories…</span>
-                  </div>
-                ) : repositories.length === 0 ? (
-                  <Card>
-                    <CardContent className="py-12 text-center">
-                      <Github className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                      <h3 className="text-lg font-semibold mb-2">No repositories yet</h3>
-                      <p className="text-muted-foreground">Create your first repository to get started!</p>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <div className="space-y-4">
-                    {repositories.map((repo) => (
-                      <Card key={repo.id}>
-                        <CardHeader>
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <CardTitle className="flex items-center gap-2">
-                                {repo.name}
-                                <Badge variant="outline">{repo.visibility}</Badge>
-                              </CardTitle>
-                              <CardDescription>{repo.description}</CardDescription>
-                            </div>
-                            <div className="flex items-center gap-1 text-muted-foreground">
-                              <Star className="h-4 w-4" />
-                              <span>{repo.star_count || 0}</span>
-                            </div>
-                          </div>
-                        </CardHeader>
-                        {repo.tags?.length > 0 && (
-                          <CardContent>
-                            <div className="flex flex-wrap gap-2">
-                              {repo.tags.map((tag, i) => <Badge key={i} variant="secondary">{tag}</Badge>)}
-                            </div>
-                          </CardContent>
-                        )}
                       </Card>
                     ))}
                   </div>

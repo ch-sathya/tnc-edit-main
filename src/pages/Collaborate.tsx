@@ -29,7 +29,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Users, Lock, Globe, Plus, Search, MoreVertical, Trash2, Code, Share2, Copy, Check, KeyRound } from 'lucide-react';
+import { Users, Lock, Globe, Plus, Search, MoreVertical, Trash2, Code, Share2, Copy, Check, KeyRound, GitBranch } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface CollaborationRoom {
@@ -351,9 +351,9 @@ const Collaborate = () => {
           {/* Header */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
             <div>
-              <h1 className="text-4xl font-bold text-foreground mb-2">Collaboration Rooms</h1>
+              <h1 className="text-4xl font-bold text-foreground mb-2">Collaborative Workspaces</h1>
               <p className="text-muted-foreground">
-                Work together in real-time with other developers
+                Import existing code, invite your team, and work together in realtime
               </p>
             </div>
             <div className="flex gap-2">
@@ -365,25 +365,35 @@ const Collaborate = () => {
                 <DialogTrigger asChild>
                   <Button size="lg">
                     <Plus className="h-4 w-4 mr-2" />
-                    Create Room
+                    New Workspace
                   </Button>
                 </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Create Collaboration Room</DialogTitle>
+                  <DialogTitle>Create a Collaborative Workspace</DialogTitle>
                   <DialogDescription>
-                    Set up a new room for real-time collaboration
+                    Start a blank workspace now. Secure repository import and push-back become available after connecting a Git provider.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="name">Room Name</Label>
+                    <Label htmlFor="name">Workspace Name</Label>
                     <Input
                       id="name"
                       placeholder="My Awesome Project"
                       value={newRoom.name}
                       onChange={(e) => setNewRoom({ ...newRoom, name: e.target.value })}
                     />
+                  </div>
+                  <div className="rounded-md border border-border bg-secondary/30 p-4">
+                    <div className="flex items-start gap-3">
+                      <GitBranch className="h-5 w-5 text-ember mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium">Import from a repository</p>
+                        <p className="text-xs text-muted-foreground mt-1">Provider authorization is required so private code and push permissions stay secure.</p>
+                        <Button type="button" variant="outline" size="sm" className="mt-3" disabled>Connect Git provider</Button>
+                      </div>
+                    </div>
                   </div>
                   <div>
                     <Label htmlFor="description">Description</Label>
@@ -419,7 +429,7 @@ const Collaborate = () => {
                   <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>
                     Cancel
                   </Button>
-                  <Button onClick={createRoom}>Create & Enter Room</Button>
+                  <Button onClick={createRoom}>Create Blank Workspace</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
