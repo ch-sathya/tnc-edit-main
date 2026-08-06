@@ -105,6 +105,11 @@ const UserProfile = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routeUserId, routeUsername, user?.id]);
 
+  useEffect(() => {
+    if (!routeUsername || !window.location.search) return;
+    navigate(`/in/${encodeURIComponent(routeUsername)}/`, { replace: true });
+  }, [navigate, routeUsername]);
+
   if (invalidHandle) {
     // Render the same shell the * route would; keep it minimal to avoid a flash
     return (
