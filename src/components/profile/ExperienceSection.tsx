@@ -33,7 +33,7 @@ const kindLabel = { work: 'Experience', education: 'Education', certification: '
 
 const fmt = (d: string | null) => (d ? format(new Date(d), 'MMM yyyy') : '');
 
-export const ExperienceSection: React.FC<{ userId: string; isOwner: boolean }> = ({ userId, isOwner }) => {
+export const ExperienceSection: React.FC<{ userId: string; isOwner: boolean; showHeading?: boolean }> = ({ userId, isOwner, showHeading = true }) => {
   const { toast } = useToast();
   const [items, setItems] = useState<ExperienceItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -118,23 +118,24 @@ export const ExperienceSection: React.FC<{ userId: string; isOwner: boolean }> =
     load();
   };
 
-  if (!isOwner && items.length === 0) return null;
-
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0">
-        <CardTitle>Experience & Education</CardTitle>
+    <Card className="border-0 bg-transparent shadow-none">
+      <CardHeader className={`flex flex-row items-center justify-between space-y-0 px-0 ${showHeading ? '' : 'pt-0'}`}>
+        {showHeading && <CardTitle>Experience & Education</CardTitle>}
         {isOwner && (
           <Button size="sm" variant="outline" onClick={startAdd}>
             <Plus className="h-4 w-4 mr-1" /> Add
           </Button>
         )}
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-0">
         {loading ? (
           <p className="text-sm text-muted-foreground">Loading…</p>
         ) : items.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No experience added yet.</p>
+          <div className="rounded-md border border-dashed border-border/70 px-5 py-10 text-center">
+            <Briefcase className="mx-auto mb-3 h-7 w-7 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">Experience and education will appear here.</p>
+          </div>
         ) : (
           <ul className="space-y-5">
             {items.map((item) => {

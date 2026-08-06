@@ -81,3 +81,9 @@ export function buildShareUrl(path: string): string {
   const origin = isPreview ? 'https://the-night-club.lovable.app' : window.location.origin;
   return `${origin}${path}`;
 }
+
+/** The only public profile URL shape. Returns null until a username exists. */
+export function buildProfilePath(username?: string | null): string | null {
+  const normalized = username?.trim().replace(/^@+/, '').replace(/\/+$/, '');
+  return normalized ? `/in/${encodeURIComponent(normalized)}/` : null;
+}
