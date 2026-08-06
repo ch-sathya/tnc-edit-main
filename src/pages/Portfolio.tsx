@@ -11,7 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
-import { ShareModal, buildShareUrl } from '@/components/ShareModal';
+import { ShareModal, buildProfilePath, buildShareUrl } from '@/components/ShareModal';
 import {
   Github,
   FolderOpen,
@@ -105,9 +105,16 @@ const Portfolio = () => {
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
 
-  const sharePath = profile?.username ? `/in/${profile.username}/` : `/user/${user?.id}/`;
-  const shareUrl = buildShareUrl(sharePath);
-  const handleShareProfile = () => setShareOpen(true);
+  const sharePath = buildProfilePath(profile?.username);
+  const shareUrl = sharePath ? buildShareUrl(sharePath) : '';
+  const handleShareProfile = () => {
+    if (!sharePath) {
+      toast({ title: 'Choose a username first', description: 'Add a username to create your public /in/username/ link.' });
+      setEditProfileOpen(true);
+      return;
+    }
+    setShareOpen(true);
+  };
   const [projectModalOpen, setProjectModalOpen] = useState(false);
   const [quickProjectOpen, setQuickProjectOpen] = useState(false);
   const [chatWithUser, setChatWithUser] = useState<Connection['profile'] | null>(null);
@@ -305,6 +312,15 @@ const Portfolio = () => {
   return (
     <>
       <Navigation />
+      {sharePath && (
+        <ShareModal
+          open={shareOpen}
+          onOpenChange={setShareOpen}
+          url={shareUrl}
+          title="Share your portfolio"
+          description="View my public portfolio"
+        />
+      )}
       <div className="min-h-screen bg-transparent flex flex-col">
         <div className="flex-1">
           <div className="container mx-auto py-8 px-4 max-w-7xl">
