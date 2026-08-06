@@ -1426,57 +1426,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      apply_file_changes: {
-        Args: { change_user_id: string; file_uuid: string; new_content: string }
-        Returns: number
-      }
-      create_system_notification: {
-        Args: {
-          notif_data?: Json
-          notif_message?: string
-          notif_title: string
-          notif_type: string
-          target_user_id: string
-        }
-        Returns: string
-      }
       delete_user_account_data: {
         Args: { target_user_id: string }
         Returns: Json
       }
-      get_file_latest_version: { Args: { file_uuid: string }; Returns: number }
-      get_pending_changes: {
-        Args: { file_uuid: string }
-        Returns: {
-          change_content: string
-          change_id: string
-          change_operation_type: string
-          change_position_end: number
-          change_position_start: number
-          change_timestamp: string
-          change_user_id: string
-          change_version: number
-        }[]
-      }
-      get_user_group_role: {
-        Args: { _group_id: string; _user_id: string }
-        Returns: string
-      }
-      has_group_role: {
-        Args: { _group_id: string; _roles: string[]; _user_id: string }
-        Returns: boolean
-      }
       increment_snippet_view_count: {
         Args: { snippet_code: string }
         Returns: undefined
-      }
-      is_group_member: {
-        Args: { _group_id: string; _user_id: string }
-        Returns: boolean
-      }
-      is_room_participant_safe: {
-        Args: { check_room_id: string; check_user_id: string }
-        Returns: boolean
       }
       join_room_with_invite_code: {
         Args: { invite_code_input: string; joining_user_id: string }
@@ -1485,15 +1441,6 @@ export type Database = {
       transfer_group_ownership_on_leave: {
         Args: { p_current_owner: string; p_group_id: string }
         Returns: string
-      }
-      update_session_activity: {
-        Args: {
-          cursor_pos?: Json
-          file_uuid?: string
-          group_uuid: string
-          session_user_id: string
-        }
-        Returns: undefined
       }
       validate_and_use_invite_code: {
         Args: { invite_code_input: string }

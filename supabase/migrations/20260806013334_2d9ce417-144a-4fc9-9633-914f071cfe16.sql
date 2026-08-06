@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA graphql, graphql_public FROM PUBLIC, anon, authenticated;
