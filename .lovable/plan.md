@@ -1,71 +1,56 @@
-# Product Scope — Collaborative Development Platform
+# High-Impact Improvement Plan
 
-The Night Club is a lightweight collaborative coding and professional portfolio platform. It does **not** host or manage repositories and does not reproduce GitHub features such as repository creation, stars, forks, issues, pull requests, or repository administration.
+## Goal
 
-## Core Workflow
+Make the current product trustworthy, reliable, and internally consistent before expanding it: secure unsafe execution paths, stabilize collaborative editing, align visible promises with working features, and remove navigation/UX regressions.
 
-1. A user securely connects a supported Git provider.
-2. The user imports an existing repository by URL and chooses a branch.
-3. The platform creates a temporary collaborative workspace containing the imported files.
-4. Teammates edit together with realtime text sync, presence, cursors, chat, file awareness, and execution tools.
-5. An authorized user reviews the changed-file summary, writes a commit message, and pushes changes back to the original repository.
-6. The original Git provider remains the source of truth. The platform stores only workspace state and recovery snapshots required for collaboration.
+## Phase 1 — Security and Product Safety
 
-## Phase 1 — Product Simplification & UX Foundation
+- Replace the current unauthenticated `execute-code` path. The Edge Function currently has JWT verification disabled and evaluates submitted JavaScript inside the function process; a Promise timeout cannot stop synchronous infinite loops. Require a valid user, enforce request/body/output limits and rate limits, and route execution through a genuinely isolated runtime—or disable Run until that runtime exists.
+- Re-run the Supabase linter after the previous hardening. It currently still reports GraphQL exposure warnings, long OTP expiry, leaked-password protection disabled, and an available Postgres security upgrade. Verify the effective grants before changing them so public portfolio reads remain available while private tables stay undiscoverable.
+- Add focused authorization tests for room access, invitations, file mutation, profile visibility, and code execution.
 
-- Remove repository-hosting language, metrics, navigation, pinned repositories, and repository-management roadmap items.
-- Reframe Projects as portfolio case studies only; source links remain outbound references.
-- Make Collaboration the primary navigation action and home-page value proposition.
-- Redesign the authenticated portfolio as an editorial profile control center: identity preview, completion, featured work, collaboration activity, network, and clear editing/sharing actions.
-- Apply the selected Charcoal & Ember palette, Space Grotesk/DM Sans typography, and consistent compact glass surfaces across core screens.
-- Fix hero content visibility and reduce ornamental motion that delays or obscures content.
+## Phase 2 — Collaboration Reliability
 
-## Phase 2 — Repository Import
+- Replace the current debounced whole-file last-write-wins updates with a conflict-safe document model (Yjs/CRDT with Monaco awareness), while keeping Supabase for authenticated room access, snapshots, chat, and durable metadata.
+- Unify presence, cursor, active-file, selection, typing, and reconnect state into one awareness channel. Remove or archive the parallel Socket.IO presence implementation that points to a non-persistent localhost server and is separate from the active Supabase room flow.
+- Add explicit sync states: connecting, synced, unsaved, reconnecting, conflicted, and failed. Preserve local edits during disconnects and replay/reconcile them after reconnection.
+- Fix subscription and activity lifecycle details: stable presence keys, named visibility-change cleanup, channel error handling, cursor throttling, stale-awareness cleanup, and per-file typing state.
+- Make room creation/join/delete atomic through database functions or cascade-backed operations instead of multi-request client sequences; enforce capacity, privacy, ownership, and invite consumption server-side.
+- Add two-browser end-to-end tests for concurrent edits, cursor visibility, presence transitions, chat, member joins/leaves, file creation/deletion, reconnect recovery, and permission denial.
 
-- Add secure Git-provider OAuth; never expose or persist provider tokens in browser storage.
-- Accept canonical HTTPS repository links, validate provider/owner/name, and reject malformed or unsupported URLs.
-- Let users select an accessible branch and import the file tree into a collaboration room.
-- Record source provider, owner, repository, branch, and base commit on the room—not as a hosted repository record.
-- Handle private repositories, large files, binary files, rate limits, deleted branches, and permission failures explicitly.
+## Phase 3 — Honest Git Import Workflow
 
-## Phase 3 — Realtime Collaboration Reliability
+- Stop presenting repository import and push-back as available while “Connect Git provider” is disabled and no provider flow exists. Until implementation is complete, label these as upcoming and keep the primary action “Blank workspace.”
+- Implement provider OAuth server-side, canonical repository URL validation, branch selection, import limits, binary/large-file handling, and temporary workspace snapshots without storing provider tokens in the browser or database.
+- Add changed-file review, upstream divergence detection, commit message validation, target-branch confirmation, and authorized push-back through a server-side provider integration.
+- Remove legacy repository-hosting surfaces and internal repository-management concepts from routes, navigation, portfolio metrics, and public profiles. Keep source links as outbound references attached to portfolio case studies.
 
-- Use Yjs CRDT with Monaco for conflict-safe multi-user editing.
-- Broadcast active file, cursor selection, display name, and online/away/offline state through awareness.
-- Keep room messages, members, files, and presence current without refresh.
-- Persist periodic file snapshots for recovery while the imported provider remains the source of truth.
-- Add reconnect state, unsynced-change indicators, collaborator permissions, and session recovery.
+## Phase 4 — Routing and Information Architecture
 
-## Phase 4 — Review & Push Back
+- Make `/portfolio` the authenticated portfolio control center and redirect `/dashboard` to it rather than rendering a duplicate route.
+- Keep `/in/:username/` as the only public profile route. Remove legacy `/@:username`, `/user/:userId`, and broad `/:handle` rendering after adding canonical redirects where needed; ensure mistyped top-level paths go directly to the real 404 page.
+- Consolidate desktop and mobile navigation into one route configuration and clarify labels: “My Portfolio” for the private control center and “Preview Public Profile” as a visible action.
+- Remove dead footer links and generic social-domain links; render only real destinations. Keep the footer restricted to Home as required.
 
-- Compare workspace files against the imported base commit and show added, modified, deleted, and renamed files.
-- Provide a reviewable diff, commit message, target branch, and push authorization check.
-- Push through a secure server-side provider integration using the connected user's permissions.
-- Detect remote divergence before push and require refresh/rebase or a new branch instead of overwriting upstream work.
-- Record push status and provider commit URL in room activity; do not create an internal commit-hosting system.
+## Phase 5 — Core UX and Maintainability
 
-## Phase 5 — Team Workflow
+- Split oversized pages into focused modules, beginning with `CollaborationRoom`, `UserProfile`, `Portfolio`, and `Collaborate`; replace unsafe `any` casts with generated Supabase and domain types.
+- Replace native `confirm()` deletion with the existing confirmation dialog, and add persistent inline error/retry states instead of toast-only failures.
+- Make profile uploads robust: validate type/size/dimensions, clean up replaced images, distinguish upload failure from “remove image,” and reset form state when a different profile or newly refreshed data opens.
+- Use semantic design tokens throughout the IDE/chat instead of hardcoded colors, add labels to icon-only controls, and respect reduced motion in route transitions and cursor animation.
+- Lazy-load route pages and Monaco, avoid N+1 room-list profile/count queries, and add pagination where lists can exceed Supabase’s default row limit.
 
-- Add room roles, invitations, focused review comments, mentions, and actionable notifications.
-- Add shareable session summaries and clear ownership/permission controls.
-- Keep community and professional networking features secondary to collaboration.
+## Phase 6 — Verification and Release Gate
 
-## Phase 6 — Final Quality
+- Add regression tests for canonical profile URLs, public/private profile access, auth redirects, profile editing/uploads, community voting/moderation, and portfolio deletion/retry states.
+- Validate desktop and mobile layouts with Playwright, including keyboard-only navigation and reduced-motion mode.
+- Require clean focused tests, type checks, dependency scan, Supabase linter review, and zero relevant console/network errors on Home, My Portfolio, public profiles, Community, Collaborate, and Collaboration Room.
+- Final end-to-end acceptance path: sign in → create/import workspace → invite teammate → edit concurrently → reconnect → review changes → push upstream; plus signed-out `/in/username/` access.
 
-- Accessibility, responsive layouts, keyboard navigation, loading/error/empty states, and contrast review.
-- Performance and reliability testing for Home, Portfolio, Collaborate, and Collaboration Room.
-- Security scan focused on OAuth tokens, repository permissions, workspace RLS, and edge-function authorization.
-- End-to-end verification: connect provider → import link → collaborate → review diff → push upstream.
+## Technical Notes
 
-## Non-Goals
-
-- Repository hosting, discovery, stars, forks, issues, pull requests, releases, package registries, or repository administration.
-- Storing Git credentials in `localStorage`, application tables, client bundles, or logs.
-- Treating the platform database as the canonical Git history.
-
-## Verification per Phase
-
-- `tsgo` and focused tests clean.
-- Playwright coverage for every changed critical flow at desktop and mobile widths.
-- Zero relevant console and network errors on touched routes.
-- Every schema change includes grants, RLS, and server-side authorization.
+- Database changes will use migrations with explicit grants, RLS, and server-derived ownership.
+- Dashboard-only security settings (OTP expiry, leaked-password protection, Postgres upgrade) will be documented and verified separately from code changes.
+- Public profile availability must be preserved while tightening GraphQL/table grants.
+- No repository hosting, Git credential persistence, or client-side service-role access will be introduced.
