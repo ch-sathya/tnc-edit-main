@@ -668,14 +668,6 @@ const Portfolio = () => {
       <OnboardingTour />
 
       {/* Modals */}
-      <ShareModal
-        open={shareOpen}
-        onOpenChange={setShareOpen}
-        url={shareUrl}
-        title="Share your portfolio"
-        description={profile?.headline || 'Your public developer portfolio'}
-      />
-
       {editProfileOpen && (
         <ProfileEditModal 
           open={editProfileOpen} 

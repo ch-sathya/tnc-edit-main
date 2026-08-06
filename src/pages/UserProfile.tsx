@@ -357,6 +357,7 @@ const UserProfile = () => {
   const sharePath = buildProfilePath(profile.username);
   const shareUrl = sharePath ? buildShareUrl(sharePath) : '';
   const featuredProjects = projects.filter((project) => project.featured);
+  const externalUrl = (value: string) => /^https?:\/\//i.test(value) ? value : `https://${value}`;
   const socialSameAs = [profile.github_url, profile.linkedin_url, profile.twitter_url, profile.website].filter(Boolean);
   const personSchema = {
     '@context': 'https://schema.org',
@@ -376,11 +377,11 @@ const UserProfile = () => {
       <Helmet>
         <title>{shareTitle}</title>
         <meta name="description" content={shareDescription} />
-        <link rel="canonical" href={shareUrl} />
+        {shareUrl && <link rel="canonical" href={shareUrl} />}
         <meta property="og:type" content="profile" />
         <meta property="og:title" content={shareTitle} />
         <meta property="og:description" content={shareDescription} />
-        <meta property="og:url" content={shareUrl} />
+        {shareUrl && <meta property="og:url" content={shareUrl} />}
         {profile.avatar_url && <meta property="og:image" content={profile.avatar_url} />}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={shareTitle} />
@@ -528,28 +529,28 @@ const UserProfile = () => {
               <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground mb-4">Elsewhere</p>
               <div className="flex flex-col gap-2">
                 {profile.github_url && (
-                  <a href={profile.github_url} target="_blank" rel="noopener noreferrer"
+                  <a href={externalUrl(profile.github_url)} target="_blank" rel="noopener noreferrer"
                      className="group flex items-center justify-between py-3 border-b border-border/50 hover:border-ember/70 transition-colors">
                     <span className="inline-flex items-center gap-3 text-sm"><Github className="h-4 w-4" /> GitHub</span>
                     <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-ember transition-colors" />
                   </a>
                 )}
                 {profile.linkedin_url && (
-                  <a href={profile.linkedin_url} target="_blank" rel="noopener noreferrer"
+                  <a href={externalUrl(profile.linkedin_url)} target="_blank" rel="noopener noreferrer"
                      className="group flex items-center justify-between py-3 border-b border-border/50 hover:border-ember/70 transition-colors">
                     <span className="inline-flex items-center gap-3 text-sm"><Linkedin className="h-4 w-4" /> LinkedIn</span>
                     <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-ember transition-colors" />
                   </a>
                 )}
                 {profile.twitter_url && (
-                  <a href={profile.twitter_url} target="_blank" rel="noopener noreferrer"
+                  <a href={externalUrl(profile.twitter_url)} target="_blank" rel="noopener noreferrer"
                      className="group flex items-center justify-between py-3 border-b border-border/50 hover:border-ember/70 transition-colors">
                     <span className="inline-flex items-center gap-3 text-sm"><Twitter className="h-4 w-4" /> Twitter</span>
                     <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-ember transition-colors" />
                   </a>
                 )}
                 {profile.website && (
-                  <a href={profile.website} target="_blank" rel="noopener noreferrer"
+                  <a href={externalUrl(profile.website)} target="_blank" rel="noopener noreferrer"
                      className="group flex items-center justify-between py-3 border-b border-border/50 hover:border-ember/70 transition-colors">
                     <span className="inline-flex items-center gap-3 text-sm"><Globe className="h-4 w-4" /> Website</span>
                     <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-ember transition-colors" />
