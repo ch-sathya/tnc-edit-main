@@ -426,12 +426,18 @@ const CollaborationRoom = () => {
           }]);
         } else if (payload.eventType === 'UPDATE') {
           const f = payload.new as any;
-          if (localSyncedFiles.current.has(f.id)) return;
+          // The open file's text is owned by the CRDT session — never overwrite it here.
+          const isOpenInEditor = activeFileIdRef.current === f.id;
           const update = (file: RoomFile) =>
-            file.id === f.id ? { ...file, content: f.content || '', language: f.language || file.language } : file;
+            file.id === f.id
+              ? {
+                  ...file,
+                  content: isOpenInEditor ? file.content : (f.content || ''),
+                  language: f.language || file.language,
+                }
+              : file;
           setFiles(prev => prev.map(update));
           setOpenFiles(prev => prev.map(update));
-          setActiveFile(prev => prev?.id === f.id ? { ...prev, content: f.content || '' } : prev);
         } else if (payload.eventType === 'DELETE') {
           const id = (payload.old as any).id;
           setFiles(prev => prev.filter(f => f.id !== id));
@@ -506,6 +512,8 @@ const CollaborationRoom = () => {
     }
   }, [activeFile, openFiles]);
 
+  // Monaco changes are produced by the CRDT binding; persistence is handled by
+  // useYjsCollaboration. Here we only mirror text locally and signal typing.
   const handleCodeChange = useCallback((value: string | undefined) => {
     if (!activeFile || value === undefined) return;
 
@@ -519,21 +527,8 @@ const CollaborationRoom = () => {
     resetIdleTimers();
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(async () => {
-      if (!roomId || !user) return;
-      const fileId = activeFile.id;
-      localSyncedFiles.current.add(fileId);
-      try {
-        await supabase.from('collaboration_files')
-          .update({ content: value, updated_at: new Date().toISOString() })
-          .eq('id', fileId);
-      } catch (err) {
-        console.error('Sync error:', err);
-      }
-      setTimeout(() => localSyncedFiles.current.delete(fileId), 1500);
-      broadcastTyping(false);
-    }, 400);
-  }, [activeFile, roomId, user, broadcastTyping, resetIdleTimers]);
+    debounceRef.current = setTimeout(() => broadcastTyping(false), 1200);
+  }, [activeFile, broadcastTyping, resetIdleTimers]);
 
   const handleSaveFile = useCallback(async () => {
     if (!activeFile || !roomId) return;
