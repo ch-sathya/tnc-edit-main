@@ -117,6 +117,7 @@ const Portfolio = () => {
   };
   const [projectModalOpen, setProjectModalOpen] = useState(false);
   const [quickProjectOpen, setQuickProjectOpen] = useState(false);
+  const [projectPendingDelete, setProjectPendingDelete] = useState<string | null>(null);
   const [chatWithUser, setChatWithUser] = useState<Connection['profile'] | null>(null);
   const [editingProject, setEditingProject] = useState<Project | undefined>(undefined);
 
@@ -246,9 +247,12 @@ const Portfolio = () => {
     setEditingProject(project);
     setProjectModalOpen(true);
   };
-  const handleDeleteProject = async (projectId: string) => {
-    if (!confirm('Are you sure you want to delete this project?')) return;
+  const handleDeleteProject = (projectId: string) => setProjectPendingDelete(projectId);
 
+  const confirmDeleteProject = async () => {
+    const projectId = projectPendingDelete;
+    if (!projectId) return;
+    setProjectPendingDelete(null);
     try {
       const { error } = await supabase.from('projects').delete().eq('id', projectId);
       if (error) throw error;
