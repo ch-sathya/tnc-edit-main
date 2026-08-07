@@ -250,31 +250,16 @@ const CollaborationRoom = () => {
   }, [resetIdleTimers, broadcastPresenceStatus]);
 
   // ─── Editor Mount ───────────────────────────────────
+  // Remote cursors/selections are rendered by the Yjs Monaco binding (awareness).
   const handleEditorMount: OnMount = useCallback((editor, monaco) => {
     editorRef.current = editor;
     monacoRef.current = monaco;
+    setEditorInstance(editor);
 
     editor.onDidChangeCursorPosition((e) => {
       setEditorCursorInfo({ line: e.position.lineNumber, col: e.position.column });
-      const selection = editor.getSelection();
-      broadcastCursor(
-        { lineNumber: e.position.lineNumber, column: e.position.column },
-        selection && !selection.isEmpty() ? {
-          startLineNumber: selection.startLineNumber,
-          startColumn: selection.startColumn,
-          endLineNumber: selection.endLineNumber,
-          endColumn: selection.endColumn,
-        } : undefined
-      );
     });
-  }, [broadcastCursor]);
-
-  // Render collaborator cursors
-  useEffect(() => {
-    if (editorRef.current && monacoRef.current) {
-      renderCursors(editorRef.current, monacoRef.current);
-    }
-  }, [collaborators, renderCursors]);
+  }, []);
 
   // ─── Fetch Room ─────────────────────────────────────
   useEffect(() => {
