@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { useRealtimeCursors } from '@/hooks/useRealtimeCursors';
+import { useYjsCollaboration } from '@/hooks/useYjsCollaboration';
 import { executeCode } from '@/lib/codeExecution';
 import { RoomChat } from '@/components/RoomChat';
 import { Button } from '@/components/ui/button';
@@ -170,7 +170,7 @@ const CollaborationRoom = () => {
   // Refs
   const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<typeof Monaco | null>(null);
-  const localSyncedFiles = useRef<Set<string>>(new Set());
+  const [editorInstance, setEditorInstance] = useState<Monaco.editor.IStandaloneCodeEditor | null>(null);
   const presenceChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -179,10 +179,15 @@ const CollaborationRoom = () => {
 
   const userName = user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'Anonymous';
 
-  // Cursors
-  const { collaborators, broadcastCursor, renderCursors } = useRealtimeCursors(
-    roomId, user?.id, userName, activeFile?.id
-  );
+  // Conflict-free collaborative editing + live cursors for the active file
+  const { status: syncStatus, peers: collaborators } = useYjsCollaboration({
+    roomId,
+    fileId: activeFile?.id,
+    initialContent: activeFile?.content ?? '',
+    editor: editorInstance,
+    userId: user?.id,
+    userName,
+  });
 
   // ─── Presence Management ────────────────────────────
   const broadcastPresenceStatus = useCallback(async (status: string) => {
