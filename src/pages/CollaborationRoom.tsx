@@ -538,7 +538,7 @@ const CollaborationRoom = () => {
     setIsSaving(true);
     try {
       await supabase.from('collaboration_files')
-        .update({ content: activeFile.content, updated_at: new Date().toISOString() })
+        .update({ content: editorRef.current?.getValue() ?? activeFile.content, updated_at: new Date().toISOString() })
         .eq('id', activeFile.id);
       const clear = (f: RoomFile) => f.id === activeFile.id ? { ...f, isDirty: false } : f;
       setFiles(prev => prev.map(clear));
@@ -1131,8 +1131,17 @@ const CollaborationRoom = () => {
       <div className="h-[22px] bg-[#007acc] flex items-center justify-between px-3 text-[11px] text-white/90 flex-shrink-0 select-none">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1">
-            <Wifi className="h-3 w-3" />
-            <span>Connected</span>
+            {syncStatus === 'offline' || syncStatus === 'error'
+              ? <WifiOff className="h-3 w-3" />
+              : <Wifi className="h-3 w-3" />}
+            <span>
+              {syncStatus === 'connecting' && 'Connecting…'}
+              {syncStatus === 'synced' && 'Live'}
+              {syncStatus === 'saving' && 'Saving…'}
+              {syncStatus === 'saved' && 'All changes saved'}
+              {syncStatus === 'offline' && 'Reconnecting…'}
+              {syncStatus === 'error' && 'Save failed'}
+            </span>
           </div>
           <span>{activeFile?.language || 'No file'}</span>
           {activeFile && <span>Ln {editorCursorInfo.line}, Col {editorCursorInfo.col}</span>}
