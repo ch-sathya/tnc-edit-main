@@ -1,12 +1,12 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Home, FolderOpen, User, Users, MessageSquare, Newspaper, Sparkles } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { MobileNav } from '@/components/MobileNav';
 import { NotificationBell } from '@/components/NotificationBell';
 import { GlobalSearch } from '@/components/GlobalSearch';
 import ProfileDropdown from '@/components/ProfileDropdown';
 import { useAuth } from '@/hooks/useAuth';
+import { getNavItems } from '@/config/navigation';
 import { motion } from 'framer-motion';
 
 const Navigation: React.FC = () => {
@@ -14,15 +14,7 @@ const Navigation: React.FC = () => {
   const location = useLocation();
   const { user } = useAuth();
 
-  const navItems = [
-    { path: '/', label: 'Home', icon: Home },
-    { path: '/collaborate', label: 'Collaborate', icon: Users },
-    { path: '/portfolio', label: 'Portfolio', icon: User },
-    { path: '/projects', label: 'Showcase', icon: FolderOpen },
-    { path: '/community', label: 'Community', icon: MessageSquare },
-    { path: '/news', label: 'News', icon: Newspaper },
-    { path: '/vibe-code', label: 'Vibe Code', icon: Sparkles },
-  ];
+  const navItems = getNavItems(!!user);
 
   return (
     <motion.nav
