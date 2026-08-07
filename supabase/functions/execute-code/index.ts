@@ -693,22 +693,59 @@ function executeCompiledLanguage(code: string, language: string): ExecuteRespons
   }
 }
 
+const MAX_CODE_LENGTH = 100_000;
+const MAX_INPUT_LENGTH = 10_000;
+const MAX_OUTPUT_LENGTH = 50_000;
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
-  try {
-    const { code, language, input }: ExecuteRequest = await req.json();
+  const json = (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
 
-    if (!code) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'No code provided', output: '', executionTime: 0 }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+  try {
+    // Execution is an authenticated-only capability.
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return json({ success: false, error: 'Unauthorized', output: '', executionTime: 0 }, 401);
+    }
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(
+      authHeader.replace('Bearer ', ''),
+    );
+    if (claimsError || !claimsData?.claims) {
+      return json({ success: false, error: 'Unauthorized', output: '', executionTime: 0 }, 401);
+    }
+
+    const body = await req.json().catch(() => null) as ExecuteRequest | null;
+    const code = typeof body?.code === 'string' ? body.code : '';
+    const language = typeof body?.language === 'string' ? body.language : '';
+    const input = typeof body?.input === 'string' ? body.input : undefined;
+
+    if (!code.trim()) {
+      return json({ success: false, error: 'No code provided', output: '', executionTime: 0 }, 400);
+    }
+    if (code.length > MAX_CODE_LENGTH) {
+      return json({ success: false, error: 'Code exceeds 100,000 characters', output: '', executionTime: 0 }, 400);
+    }
+    if (!language.trim()) {
+      return json({ success: false, error: 'No language provided', output: '', executionTime: 0 }, 400);
+    }
+    if (input && input.length > MAX_INPUT_LENGTH) {
+      return json({ success: false, error: 'Input exceeds 10,000 characters', output: '', executionTime: 0 }, 400);
     }
 
     console.log(`Executing ${language} code (${code.length} chars)`);
+
 
     let result: ExecuteResponse;
 
