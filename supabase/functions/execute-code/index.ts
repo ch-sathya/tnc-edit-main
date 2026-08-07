@@ -798,20 +798,21 @@ serve(async (req) => {
 
     console.log(`Execution completed: ${result.success ? 'success' : 'failed'} in ${result.executionTime}ms`);
 
-    return new Response(
-      JSON.stringify(result),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    if (result.output.length > MAX_OUTPUT_LENGTH) {
+      result.output = result.output.slice(0, MAX_OUTPUT_LENGTH) + '\n… output truncated';
+    }
+
+    return json(result);
   } catch (error) {
     console.error('Execute code error:', error);
-    return new Response(
-      JSON.stringify({
+    return json(
+      {
         success: false,
         output: '',
         error: error instanceof Error ? error.message : 'Server error',
         executionTime: 0,
-      }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      },
+      500,
     );
   }
 });
