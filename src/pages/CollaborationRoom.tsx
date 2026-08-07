@@ -1009,8 +1009,9 @@ const CollaborationRoom = () => {
                     {activeFile ? (
                       <Editor
                         height="100%"
+                        path={activeFile.path || activeFile.name}
                         language={activeFile.language}
-                        value={activeFile.content}
+                        defaultValue=""
                         onChange={handleCodeChange}
                         onMount={handleEditorMount}
                         theme="vs-dark"
