@@ -37,6 +37,7 @@ import { ProfileEditModal } from '@/components/ProfileEditModal';
 import { ProfileCompleteness } from '@/components/profile/ProfileCompleteness';
 import { QuickProjectModal } from '@/components/QuickProjectModal';
 import { DirectMessageModal } from '@/components/DirectMessageModal';
+import ConfirmationDialog from '@/components/ConfirmationDialog';
 import { ProjectFavorites } from '@/components/ProjectFavorites';
 import { FollowingFeed } from '@/components/FollowingFeed';
 import { OnboardingTour } from '@/components/OnboardingTour';
