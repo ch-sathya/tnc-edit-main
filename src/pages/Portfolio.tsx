@@ -718,7 +718,7 @@ const Portfolio = () => {
         variant="destructive"
         onConfirm={confirmDeleteProject}
       />
-    </>x
+    </>
   );
 };
 
