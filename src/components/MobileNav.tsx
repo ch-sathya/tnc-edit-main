@@ -2,23 +2,18 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { 
-  Home, 
-  FolderOpen, 
-  User, 
-  Users, 
-  LogOut, 
-  MessageSquare, 
-  Newspaper, 
-  Menu, 
-  Settings, 
+import {
+  User,
+  LogOut,
+  Menu,
+  Settings,
   Bell,
   Search,
-  Sparkles
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useToast } from '@/hooks/use-toast';
+import { getNavItems } from '@/config/navigation';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 interface MobileNavProps {
@@ -43,15 +38,9 @@ export const MobileNav: React.FC<MobileNavProps> = ({ unreadNotifications = 0 })
   };
 
   const navItems = [
-    { path: '/', label: 'Home', icon: Home },
-    { path: '/collaborate', label: 'Collaborate', icon: Users },
-    { path: '/portfolio', label: 'Portfolio', icon: User },
-    { path: '/projects', label: 'Showcase', icon: FolderOpen },
-    { path: '/community', label: 'Community', icon: MessageSquare },
-    { path: '/news', label: 'News', icon: Newspaper },
-    { path: '/vibe-code', label: 'Vibe Code', icon: Sparkles },
+    ...getNavItems(!!user),
     ...(user ? [{ path: '/notifications', label: 'Notifications', icon: Bell }] : []),
-    { path: '/settings', label: 'Settings', icon: Settings },
+    ...(user ? [{ path: '/settings', label: 'Settings', icon: Settings }] : []),
   ];
 
   const handleNavigate = (path: string) => {

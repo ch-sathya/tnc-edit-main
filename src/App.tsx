@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { useEffect, Suspense } from "react";
 import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -73,7 +73,7 @@ const AnimatedRoutes = () => {
             <Route path="/" element={<Index />} />
             <Route path="/home" element={<Home />} />
             <Route path="/portfolio" element={<Portfolio />} />
-            <Route path="/dashboard" element={<Portfolio />} />
+            <Route path="/dashboard" element={<Navigate to="/portfolio" replace />} />
             <Route path="/in/:username" element={<UserProfile />} />
             <Route path="/@:username" element={<UserProfile />} />
             <Route path="/projects" element={<Projects />} />

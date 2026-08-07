@@ -11,6 +11,7 @@ import { EditorToolbar } from '@/components/editor/EditorToolbar';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { executeCode } from '@/lib/codeExecution';
+import ConfirmationDialog from '@/components/ConfirmationDialog';
 
 export interface ProjectFile {
   id: string;
@@ -48,6 +49,7 @@ const Editor = () => {
   // UI state
   const [showTerminal, setShowTerminal] = useState(false);
   const [terminalOutput, setTerminalOutput] = useState<string[]>(['Welcome to the terminal. Type "help" for commands.']);
+  const [filePendingDelete, setFilePendingDelete] = useState<{ id: string; name: string } | null>(null);
   const [sidebarWidth, setSidebarWidth] = useState(250);
   const [isExecuting, setIsExecuting] = useState(false);
   
@@ -262,11 +264,16 @@ const Editor = () => {
     setActiveFile(newFile);
   }, []);
 
+  const requestDeleteFile = useCallback((fileId: string) => {
+    const file = files.find(f => f.id === fileId);
+    if (file) setFilePendingDelete({ id: file.id, name: file.name });
+  }, [files]);
+
   const handleDeleteFile = useCallback(async (fileId: string) => {
     const file = files.find(f => f.id === fileId);
     if (!file) return;
+    setFilePendingDelete(null);
 
-    if (!confirm(`Delete "${file.name}"? This action cannot be undone.`)) return;
 
     try {
       if (!file.isNew && !fileId.startsWith('temp-')) {
@@ -489,7 +496,7 @@ const Editor = () => {
           activeFile={activeFile}
           onOpenFile={handleOpenFile}
           onCreateFile={handleCreateFile}
-          onDeleteFile={handleDeleteFile}
+          onDeleteFile={requestDeleteFile}
           onRenameFile={handleRenameFile}
           width={sidebarWidth}
           onWidthChange={setSidebarWidth}
@@ -523,6 +530,16 @@ const Editor = () => {
           )}
         </div>
       </div>
+
+      <ConfirmationDialog
+        open={!!filePendingDelete}
+        onOpenChange={(o) => !o && setFilePendingDelete(null)}
+        title="Delete file"
+        description={`Delete "${filePendingDelete?.name ?? ''}"? This action cannot be undone.`}
+        confirmText="Delete"
+        variant="destructive"
+        onConfirm={() => filePendingDelete && handleDeleteFile(filePendingDelete.id)}
+      />
     </div>
   );
 };

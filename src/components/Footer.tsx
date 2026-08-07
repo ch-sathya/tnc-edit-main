@@ -1,16 +1,13 @@
 import React from 'react';
-import { Github, Twitter, Linkedin, Mail } from 'lucide-react';
+import { Mail } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { ScrollReveal } from '@/components/animations/ScrollReveal';
 import { motion } from 'framer-motion';
 
 const Footer: React.FC = () => {
-  const currentYear = 2025;
+  const currentYear = new Date().getFullYear();
 
   const socialLinks = [
-    { href: "https://github.com", icon: Github, label: "GitHub" },
-    { href: "https://twitter.com", icon: Twitter, label: "Twitter" },
-    { href: "https://linkedin.com", icon: Linkedin, label: "LinkedIn" },
     { href: "mailto:contact@thenightclub.dev", icon: Mail, label: "Email" },
   ];
 
@@ -30,22 +27,20 @@ const Footer: React.FC = () => {
             </div>
 
             {[
-              { title: "Product", links: [
-                { label: "Pricing", href: "/pricing" },
-                { label: "Collaboration", href: "/collaborate" },
-                { label: "Community", href: "/community" },
+              { title: "Platform", links: [
+                { label: "Collaborate", href: "/collaborate" },
+                { label: "Vibe Code", href: "/vibe-code" },
+                { label: "Showcase", href: "/projects" },
+              ]},
+              { title: "Community", links: [
+                { label: "Groups", href: "/community" },
+                { label: "Connections", href: "/connections" },
                 { label: "News", href: "/news" },
               ]},
-              { title: "Company", links: [
-                { label: "About Us", href: "#" },
-                { label: "Blog", href: "#" },
-                { label: "Careers", href: "#" },
-                { label: "Contact", href: "#" },
-              ]},
-              { title: "Legal", links: [
-                { label: "Privacy Policy", href: "#" },
-                { label: "Terms of Service", href: "#" },
-                { label: "Cookie Policy", href: "#" },
+              { title: "Account", links: [
+                { label: "Pricing", href: "/pricing" },
+                { label: "Sign in", href: "/auth" },
+                { label: "Settings", href: "/settings" },
               ]},
             ].map((section) => (
               <div key={section.title}>

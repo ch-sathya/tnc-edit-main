@@ -37,6 +37,7 @@ import { ProfileEditModal } from '@/components/ProfileEditModal';
 import { ProfileCompleteness } from '@/components/profile/ProfileCompleteness';
 import { QuickProjectModal } from '@/components/QuickProjectModal';
 import { DirectMessageModal } from '@/components/DirectMessageModal';
+import ConfirmationDialog from '@/components/ConfirmationDialog';
 import { ProjectFavorites } from '@/components/ProjectFavorites';
 import { FollowingFeed } from '@/components/FollowingFeed';
 import { OnboardingTour } from '@/components/OnboardingTour';
@@ -117,6 +118,7 @@ const Portfolio = () => {
   };
   const [projectModalOpen, setProjectModalOpen] = useState(false);
   const [quickProjectOpen, setQuickProjectOpen] = useState(false);
+  const [projectPendingDelete, setProjectPendingDelete] = useState<string | null>(null);
   const [chatWithUser, setChatWithUser] = useState<Connection['profile'] | null>(null);
   const [editingProject, setEditingProject] = useState<Project | undefined>(undefined);
 
@@ -246,9 +248,12 @@ const Portfolio = () => {
     setEditingProject(project);
     setProjectModalOpen(true);
   };
-  const handleDeleteProject = async (projectId: string) => {
-    if (!confirm('Are you sure you want to delete this project?')) return;
+  const handleDeleteProject = (projectId: string) => setProjectPendingDelete(projectId);
 
+  const confirmDeleteProject = async () => {
+    const projectId = projectPendingDelete;
+    if (!projectId) return;
+    setProjectPendingDelete(null);
     try {
       const { error } = await supabase.from('projects').delete().eq('id', projectId);
       if (error) throw error;
@@ -704,6 +709,16 @@ const Portfolio = () => {
           otherUser={chatWithUser}
         />
       )}
+
+      <ConfirmationDialog
+        open={!!projectPendingDelete}
+        onOpenChange={(open) => !open && setProjectPendingDelete(null)}
+        title="Delete project"
+        description="This permanently deletes the project and its details. This action cannot be undone."
+        confirmText="Delete"
+        variant="destructive"
+        onConfirm={confirmDeleteProject}
+      />
     </>
   );
 };

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { useRealtimeCursors } from '@/hooks/useRealtimeCursors';
+import { useYjsCollaboration } from '@/hooks/useYjsCollaboration';
 import { executeCode } from '@/lib/codeExecution';
 import { RoomChat } from '@/components/RoomChat';
 import { Button } from '@/components/ui/button';
@@ -170,7 +170,7 @@ const CollaborationRoom = () => {
   // Refs
   const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<typeof Monaco | null>(null);
-  const localSyncedFiles = useRef<Set<string>>(new Set());
+  const [editorInstance, setEditorInstance] = useState<Monaco.editor.IStandaloneCodeEditor | null>(null);
   const presenceChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -179,10 +179,18 @@ const CollaborationRoom = () => {
 
   const userName = user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'Anonymous';
 
-  // Cursors
-  const { collaborators, broadcastCursor, renderCursors } = useRealtimeCursors(
-    roomId, user?.id, userName, activeFile?.id
-  );
+  // Conflict-free collaborative editing + live cursors for the active file
+  const { status: syncStatus, peers: collaborators } = useYjsCollaboration({
+    roomId,
+    fileId: activeFile?.id,
+    initialContent: activeFile?.content ?? '',
+    editor: editorInstance,
+    userId: user?.id,
+    userName,
+  });
+
+  const activeFileIdRef = useRef<string | undefined>(undefined);
+  useEffect(() => { activeFileIdRef.current = activeFile?.id; }, [activeFile?.id]);
 
   // ─── Presence Management ────────────────────────────
   const broadcastPresenceStatus = useCallback(async (status: string) => {
@@ -245,31 +253,16 @@ const CollaborationRoom = () => {
   }, [resetIdleTimers, broadcastPresenceStatus]);
 
   // ─── Editor Mount ───────────────────────────────────
+  // Remote cursors/selections are rendered by the Yjs Monaco binding (awareness).
   const handleEditorMount: OnMount = useCallback((editor, monaco) => {
     editorRef.current = editor;
     monacoRef.current = monaco;
+    setEditorInstance(editor);
 
     editor.onDidChangeCursorPosition((e) => {
       setEditorCursorInfo({ line: e.position.lineNumber, col: e.position.column });
-      const selection = editor.getSelection();
-      broadcastCursor(
-        { lineNumber: e.position.lineNumber, column: e.position.column },
-        selection && !selection.isEmpty() ? {
-          startLineNumber: selection.startLineNumber,
-          startColumn: selection.startColumn,
-          endLineNumber: selection.endLineNumber,
-          endColumn: selection.endColumn,
-        } : undefined
-      );
     });
-  }, [broadcastCursor]);
-
-  // Render collaborator cursors
-  useEffect(() => {
-    if (editorRef.current && monacoRef.current) {
-      renderCursors(editorRef.current, monacoRef.current);
-    }
-  }, [collaborators, renderCursors]);
+  }, []);
 
   // ─── Fetch Room ─────────────────────────────────────
   useEffect(() => {
@@ -436,12 +429,18 @@ const CollaborationRoom = () => {
           }]);
         } else if (payload.eventType === 'UPDATE') {
           const f = payload.new as any;
-          if (localSyncedFiles.current.has(f.id)) return;
+          // The open file's text is owned by the CRDT session — never overwrite it here.
+          const isOpenInEditor = activeFileIdRef.current === f.id;
           const update = (file: RoomFile) =>
-            file.id === f.id ? { ...file, content: f.content || '', language: f.language || file.language } : file;
+            file.id === f.id
+              ? {
+                  ...file,
+                  content: isOpenInEditor ? file.content : (f.content || ''),
+                  language: f.language || file.language,
+                }
+              : file;
           setFiles(prev => prev.map(update));
           setOpenFiles(prev => prev.map(update));
-          setActiveFile(prev => prev?.id === f.id ? { ...prev, content: f.content || '' } : prev);
         } else if (payload.eventType === 'DELETE') {
           const id = (payload.old as any).id;
           setFiles(prev => prev.filter(f => f.id !== id));
@@ -516,6 +515,8 @@ const CollaborationRoom = () => {
     }
   }, [activeFile, openFiles]);
 
+  // Monaco changes are produced by the CRDT binding; persistence is handled by
+  // useYjsCollaboration. Here we only mirror text locally and signal typing.
   const handleCodeChange = useCallback((value: string | undefined) => {
     if (!activeFile || value === undefined) return;
 
@@ -529,28 +530,15 @@ const CollaborationRoom = () => {
     resetIdleTimers();
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(async () => {
-      if (!roomId || !user) return;
-      const fileId = activeFile.id;
-      localSyncedFiles.current.add(fileId);
-      try {
-        await supabase.from('collaboration_files')
-          .update({ content: value, updated_at: new Date().toISOString() })
-          .eq('id', fileId);
-      } catch (err) {
-        console.error('Sync error:', err);
-      }
-      setTimeout(() => localSyncedFiles.current.delete(fileId), 1500);
-      broadcastTyping(false);
-    }, 400);
-  }, [activeFile, roomId, user, broadcastTyping, resetIdleTimers]);
+    debounceRef.current = setTimeout(() => broadcastTyping(false), 1200);
+  }, [activeFile, broadcastTyping, resetIdleTimers]);
 
   const handleSaveFile = useCallback(async () => {
     if (!activeFile || !roomId) return;
     setIsSaving(true);
     try {
       await supabase.from('collaboration_files')
-        .update({ content: activeFile.content, updated_at: new Date().toISOString() })
+        .update({ content: editorRef.current?.getValue() ?? activeFile.content, updated_at: new Date().toISOString() })
         .eq('id', activeFile.id);
       const clear = (f: RoomFile) => f.id === activeFile.id ? { ...f, isDirty: false } : f;
       setFiles(prev => prev.map(clear));
@@ -1021,8 +1009,9 @@ const CollaborationRoom = () => {
                     {activeFile ? (
                       <Editor
                         height="100%"
+                        path={activeFile.path || activeFile.name}
                         language={activeFile.language}
-                        value={activeFile.content}
+                        defaultValue=""
                         onChange={handleCodeChange}
                         onMount={handleEditorMount}
                         theme="vs-dark"
@@ -1142,8 +1131,17 @@ const CollaborationRoom = () => {
       <div className="h-[22px] bg-[#007acc] flex items-center justify-between px-3 text-[11px] text-white/90 flex-shrink-0 select-none">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1">
-            <Wifi className="h-3 w-3" />
-            <span>Connected</span>
+            {syncStatus === 'offline' || syncStatus === 'error'
+              ? <WifiOff className="h-3 w-3" />
+              : <Wifi className="h-3 w-3" />}
+            <span>
+              {syncStatus === 'connecting' && 'Connecting…'}
+              {syncStatus === 'synced' && 'Live'}
+              {syncStatus === 'saving' && 'Saving…'}
+              {syncStatus === 'saved' && 'All changes saved'}
+              {syncStatus === 'offline' && 'Reconnecting…'}
+              {syncStatus === 'error' && 'Save failed'}
+            </span>
           </div>
           <span>{activeFile?.language || 'No file'}</span>
           {activeFile && <span>Ln {editorCursorInfo.line}, Col {editorCursorInfo.col}</span>}
