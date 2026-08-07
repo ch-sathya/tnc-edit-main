@@ -530,6 +530,16 @@ const Editor = () => {
           )}
         </div>
       </div>
+
+      <ConfirmationDialog
+        open={!!filePendingDelete}
+        onOpenChange={(o) => !o && setFilePendingDelete(null)}
+        title="Delete file"
+        description={`Delete "${filePendingDelete?.name ?? ''}"? This action cannot be undone.`}
+        confirmText="Delete"
+        variant="destructive"
+        onConfirm={() => filePendingDelete && handleDeleteFile(filePendingDelete.id)}
+      />
     </div>
   );
 };
