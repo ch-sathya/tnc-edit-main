@@ -708,7 +708,17 @@ const Portfolio = () => {
           otherUser={chatWithUser}
         />
       )}
-    </>
+
+      <ConfirmationDialog
+        open={!!projectPendingDelete}
+        onOpenChange={(open) => !open && setProjectPendingDelete(null)}
+        title="Delete project"
+        description="This permanently deletes the project and its details. This action cannot be undone."
+        confirmText="Delete"
+        variant="destructive"
+        onConfirm={confirmDeleteProject}
+      />
+    </>x
   );
 };
 
