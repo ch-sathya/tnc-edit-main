@@ -189,6 +189,9 @@ const CollaborationRoom = () => {
     userName,
   });
 
+  const activeFileIdRef = useRef<string | undefined>(undefined);
+  useEffect(() => { activeFileIdRef.current = activeFile?.id; }, [activeFile?.id]);
+
   // ─── Presence Management ────────────────────────────
   const broadcastPresenceStatus = useCallback(async (status: string) => {
     if (!presenceChannelRef.current || !user) return;
