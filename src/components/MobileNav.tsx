@@ -2,23 +2,18 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { 
-  Home, 
-  FolderOpen, 
-  User, 
-  Users, 
-  LogOut, 
-  MessageSquare, 
-  Newspaper, 
-  Menu, 
-  Settings, 
+import {
+  User,
+  LogOut,
+  Menu,
+  Settings,
   Bell,
   Search,
-  Sparkles
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useToast } from '@/hooks/use-toast';
+import { getNavItems } from '@/config/navigation';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 interface MobileNavProps {
