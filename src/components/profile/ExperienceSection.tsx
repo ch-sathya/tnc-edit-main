@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import ConfirmationDialog from '@/components/ConfirmationDialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -168,7 +169,7 @@ export const ExperienceSection: React.FC<{ userId: string; isOwner: boolean; sho
                           <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => startEdit(item)}>
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
-                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => remove(item.id)}>
+                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setPendingDelete(item.id)}>
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
@@ -268,6 +269,16 @@ export const ExperienceSection: React.FC<{ userId: string; isOwner: boolean; sho
           )}
         </DialogContent>
       </Dialog>
+
+      <ConfirmationDialog
+        open={!!pendingDelete}
+        onOpenChange={(o) => !o && setPendingDelete(null)}
+        title="Delete entry"
+        description="This removes the experience entry from your profile. This action cannot be undone."
+        confirmText="Delete"
+        variant="destructive"
+        onConfirm={() => pendingDelete && remove(pendingDelete)}
+      />
     </Card>
   );
 };
