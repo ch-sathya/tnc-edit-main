@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { runInBrowserSandbox, stripTypeScript } from '@/lib/browserSandbox';
 
 interface ExecuteResult {
   success: boolean;
@@ -7,13 +8,24 @@ interface ExecuteResult {
   executionTime: number;
 }
 
+const BROWSER_SANDBOXED = new Set(['javascript', 'jsx', 'typescript', 'tsx']);
+
 export const executeCode = async (
   code: string,
   language: string,
   input?: string
 ): Promise<ExecuteResult> => {
+  const lang = language.toLowerCase();
+
+  // JS/TS run locally in a sandboxed iframe (opaque origin, no session access),
+  // which keeps untrusted code away from any server privileges.
+  if (BROWSER_SANDBOXED.has(lang)) {
+    const source = lang.startsWith('t') ? stripTypeScript(code) : code;
+    return runInBrowserSandbox(source, input);
+  }
+
   try {
-    // Execution runs in a sandboxed server runtime and requires a signed-in user.
+    // Server-side execution requires a signed-in user.
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       return {
