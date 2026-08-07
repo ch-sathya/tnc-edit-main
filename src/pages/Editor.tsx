@@ -11,6 +11,7 @@ import { EditorToolbar } from '@/components/editor/EditorToolbar';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { executeCode } from '@/lib/codeExecution';
+import ConfirmationDialog from '@/components/ConfirmationDialog';
 
 export interface ProjectFile {
   id: string;
@@ -495,7 +496,7 @@ const Editor = () => {
           activeFile={activeFile}
           onOpenFile={handleOpenFile}
           onCreateFile={handleCreateFile}
-          onDeleteFile={handleDeleteFile}
+          onDeleteFile={requestDeleteFile}
           onRenameFile={handleRenameFile}
           width={sidebarWidth}
           onWidthChange={setSidebarWidth}
