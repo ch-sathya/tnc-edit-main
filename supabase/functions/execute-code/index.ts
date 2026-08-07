@@ -18,70 +18,110 @@ interface ExecuteResponse {
   executionTime: number;
 }
 
-// Sandboxed JavaScript execution
+const JS_TIMEOUT_MS = 5000;
+
+/**
+ * Source executed inside an isolated Web Worker.
+ *
+ * The worker is created with `permissions: "none"`, so user code has no access
+ * to the network, environment variables, or the file system, and it runs in a
+ * separate isolate that we can hard-terminate on timeout.
+ */
+const WORKER_SOURCE = `
+const outputs = [];
+const format = (v) => {
+  if (v === null) return 'null';
+  if (v === undefined) return 'undefined';
+  if (v instanceof Error) return v.name + ': ' + v.message;
+  if (typeof v === 'object') { try { return JSON.stringify(v, null, 2); } catch { return String(v); } }
+  return String(v);
+};
+const push = (prefix, args) => {
+  if (outputs.length < 1000) outputs.push(prefix + args.map(format).join(' '));
+};
+const sandboxConsole = {
+  log: (...a) => push('', a),
+  error: (...a) => push('ERROR: ', a),
+  warn: (...a) => push('WARN: ', a),
+  info: (...a) => push('INFO: ', a),
+  table: (d) => push('', [d]),
+};
+
+self.onmessage = (event) => {
+  const { code, input } = event.data;
+  try {
+    const fn = new Function('console', 'input', '"use strict";' + code);
+    const result = fn(sandboxConsole, input || '');
+    Promise.resolve(result)
+      .then(() => self.postMessage({ success: true, outputs }))
+      .catch((err) => self.postMessage({ success: false, outputs, error: String(err && err.message || err) }));
+  } catch (err) {
+    self.postMessage({ success: false, outputs, error: String(err && err.message || err) });
+  }
+};
+`;
+
+// Sandboxed JavaScript execution (isolated worker, no permissions, hard timeout)
 async function executeJavaScript(code: string, input?: string): Promise<ExecuteResponse> {
   const startTime = Date.now();
-  const outputs: string[] = [];
-  
+  let worker: Worker | undefined;
+  let blobUrl: string | undefined;
+
   try {
-    const sandbox = {
-      console: {
-        log: (...args: unknown[]) => outputs.push(args.map(a => formatOutput(a)).join(' ')),
-        error: (...args: unknown[]) => outputs.push('ERROR: ' + args.map(a => formatOutput(a)).join(' ')),
-        warn: (...args: unknown[]) => outputs.push('WARN: ' + args.map(a => formatOutput(a)).join(' ')),
-        info: (...args: unknown[]) => outputs.push('INFO: ' + args.map(a => formatOutput(a)).join(' ')),
-        table: (data: unknown) => outputs.push(JSON.stringify(data, null, 2)),
-      },
-      input: input || '',
-      Math,
-      Date,
-      JSON,
-      Array,
-      Object,
-      String,
-      Number,
-      Boolean,
-      parseInt,
-      parseFloat,
-      isNaN,
-      isFinite,
-    };
-
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('Execution timeout (5 seconds)')), 5000);
+    blobUrl = URL.createObjectURL(new Blob([WORKER_SOURCE], { type: 'application/javascript' }));
+    worker = new Worker(blobUrl, {
+      type: 'module',
+      // @ts-expect-error Deno-specific worker options
+      deno: { permissions: 'none' },
     });
-
-    const executePromise = new Promise<void>((resolve, reject) => {
-      try {
-        const func = new Function(
-          'console', 'input', 'Math', 'Date', 'JSON', 'Array', 'Object', 
-          'String', 'Number', 'Boolean', 'parseInt', 'parseFloat', 'isNaN', 'isFinite',
-          code
-        );
-        func(
-          sandbox.console, sandbox.input, Math, Date, JSON, Array, Object,
-          String, Number, Boolean, parseInt, parseFloat, isNaN, isFinite
-        );
-        resolve();
-      } catch (err) {
-        reject(err);
-      }
-    });
-
-    await Promise.race([executePromise, timeoutPromise]);
-
+  } catch (_err) {
+    // Fail closed: never fall back to running untrusted code in this isolate.
     return {
-      success: true,
-      output: outputs.join('\n') || '(No output)',
+      success: false,
+      output: '',
+      error: 'Sandboxed execution is unavailable on this runtime.',
+      executionTime: Date.now() - startTime,
+    };
+  }
+
+  const activeWorker = worker;
+
+  try {
+    const result = await new Promise<{ success: boolean; outputs: string[]; error?: string }>(
+      (resolve, reject) => {
+        const timer = setTimeout(
+          () => reject(new Error(`Execution timeout (${JS_TIMEOUT_MS / 1000} seconds)`)),
+          JS_TIMEOUT_MS,
+        );
+        activeWorker.onmessage = (event: MessageEvent) => {
+          clearTimeout(timer);
+          resolve(event.data);
+        };
+        activeWorker.onerror = (event: ErrorEvent) => {
+          clearTimeout(timer);
+          reject(new Error(event.message || 'Worker error'));
+        };
+        activeWorker.postMessage({ code, input: input || '' });
+      },
+    );
+
+    const output = result.outputs.join('\n');
+    return {
+      success: result.success,
+      output: result.success ? (output || '(No output)') : output,
+      error: result.error,
       executionTime: Date.now() - startTime,
     };
   } catch (error) {
     return {
       success: false,
-      output: outputs.join('\n'),
+      output: '',
       error: error instanceof Error ? error.message : 'Unknown error',
       executionTime: Date.now() - startTime,
     };
+  } finally {
+    activeWorker.terminate();
+    if (blobUrl) URL.revokeObjectURL(blobUrl);
   }
 }
 
