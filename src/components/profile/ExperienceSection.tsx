@@ -39,6 +39,7 @@ export const ExperienceSection: React.FC<{ userId: string; isOwner: boolean; sho
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<ExperienceItem | null>(null);
   const [open, setOpen] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -109,7 +110,7 @@ export const ExperienceSection: React.FC<{ userId: string; isOwner: boolean; sho
   };
 
   const remove = async (id: string) => {
-    if (!confirm('Delete this entry?')) return;
+    setPendingDelete(null);
     const { error } = await supabase.from('user_experience' as any).delete().eq('id', id);
     if (error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
