@@ -27,22 +27,20 @@ const Footer: React.FC = () => {
             </div>
 
             {[
-              { title: "Product", links: [
-                { label: "Pricing", href: "/pricing" },
-                { label: "Collaboration", href: "/collaborate" },
-                { label: "Community", href: "/community" },
+              { title: "Platform", links: [
+                { label: "Collaborate", href: "/collaborate" },
+                { label: "Vibe Code", href: "/vibe-code" },
+                { label: "Showcase", href: "/projects" },
+              ]},
+              { title: "Community", links: [
+                { label: "Groups", href: "/community" },
+                { label: "Connections", href: "/connections" },
                 { label: "News", href: "/news" },
               ]},
-              { title: "Company", links: [
-                { label: "About Us", href: "#" },
-                { label: "Blog", href: "#" },
-                { label: "Careers", href: "#" },
-                { label: "Contact", href: "#" },
-              ]},
-              { title: "Legal", links: [
-                { label: "Privacy Policy", href: "#" },
-                { label: "Terms of Service", href: "#" },
-                { label: "Cookie Policy", href: "#" },
+              { title: "Account", links: [
+                { label: "Pricing", href: "/pricing" },
+                { label: "Sign in", href: "/auth" },
+                { label: "Settings", href: "/settings" },
               ]},
             ].map((section) => (
               <div key={section.title}>
