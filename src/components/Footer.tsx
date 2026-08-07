@@ -1,16 +1,13 @@
 import React from 'react';
-import { Github, Twitter, Linkedin, Mail } from 'lucide-react';
+import { Mail } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { ScrollReveal } from '@/components/animations/ScrollReveal';
 import { motion } from 'framer-motion';
 
 const Footer: React.FC = () => {
-  const currentYear = 2025;
+  const currentYear = new Date().getFullYear();
 
   const socialLinks = [
-    { href: "https://github.com", icon: Github, label: "GitHub" },
-    { href: "https://twitter.com", icon: Twitter, label: "Twitter" },
-    { href: "https://linkedin.com", icon: Linkedin, label: "LinkedIn" },
     { href: "mailto:contact@thenightclub.dev", icon: Mail, label: "Email" },
   ];
 
