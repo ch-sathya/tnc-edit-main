@@ -85,7 +85,7 @@ const Home: React.FC = () => {
             <h1 className="text-5xl md:text-7xl lg:text-[5.5rem] font-bold text-foreground mb-8 tracking-tighter leading-[0.95]">
               <span>Build Together.</span>
               <br />
-              <span className="gradient-text inline-block">Ship to the Source.</span>
+              <span className="gradient-text inline-block">Code in Realtime.</span>
             </h1>
 
             <ScrollReveal delay={0.6}>
