@@ -47,10 +47,11 @@ const Home: React.FC = () => {
   }, []);
 
   const features = [
-    { icon: <User className="h-6 w-6" />, title: "Developer Portfolios", description: "Create beautiful portfolio pages to showcase your projects and skills to the world." },
-    { icon: <UploadCloud className="h-6 w-6" />, title: "Import Existing Code", description: "Bring in a source repository by link and keep the original provider as the source of truth." },
-    { icon: <Users className="h-6 w-6" />, title: "Live Workspaces", description: "Code together with shared files, live cursors, presence, chat, and instant synchronization." },
-    { icon: <GitBranch className="h-6 w-6" />, title: "Push Changes Back", description: "Review team changes and send approved work back to the original repository." }
+    { icon: <User className="h-6 w-6" />, title: "Developer Portfolios", description: "Create beautiful portfolio pages to showcase your projects and skills to the world.", status: "available" as const },
+    { icon: <Users className="h-6 w-6" />, title: "Live Workspaces", description: "Code together with shared files, live cursors, presence, chat, and instant synchronization.", status: "available" as const },
+    { icon: <Code className="h-6 w-6" />, title: "Run Code In-Browser", description: "Execute JavaScript and TypeScript in a sandboxed runtime without leaving the workspace.", status: "available" as const },
+    { icon: <UploadCloud className="h-6 w-6" />, title: "Repository Import", description: "Importing code from a repository link requires connecting a Git provider — not yet available.", status: "planned" as const },
+    { icon: <GitBranch className="h-6 w-6" />, title: "Push Changes Back", description: "Pushing reviewed work back to the original repository is planned and needs provider authorization.", status: "planned" as const }
   ];
 
   const displayStats = [
@@ -60,10 +61,10 @@ const Home: React.FC = () => {
   ];
 
   const howItWorks = [
-    { step: "01", title: "Import a Repository", description: "Start a workspace from an existing source repository link." },
-    { step: "02", title: "Invite Your Team", description: "Share a private room code and work in the same file tree." },
-    { step: "03", title: "Build Together", description: "Edit with realtime cursors, presence, chat, and conflict-safe sync." },
-    { step: "04", title: "Review & Push", description: "Review changed files and push approved work back upstream." }
+    { step: "01", title: "Create a Workspace", description: "Start a blank collaborative room and add the files you need.", status: "available" as const },
+    { step: "02", title: "Invite Your Team", description: "Share a private room code and work in the same file tree.", status: "available" as const },
+    { step: "03", title: "Build Together", description: "Edit with realtime cursors, presence, chat, and conflict-safe sync.", status: "available" as const },
+    { step: "04", title: "Review & Push", description: "Reviewing and pushing work upstream arrives with Git provider support.", status: "planned" as const }
   ];
 
   return (
