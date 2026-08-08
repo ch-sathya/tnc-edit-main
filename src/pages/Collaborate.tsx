@@ -353,7 +353,7 @@ const Collaborate = () => {
             <div>
               <h1 className="text-4xl font-bold text-foreground mb-2">Collaborative Workspaces</h1>
               <p className="text-muted-foreground">
-                Import existing code, invite your team, and work together in realtime
+                Create a workspace, invite your team, and work together in realtime
               </p>
             </div>
             <div className="flex gap-2">
