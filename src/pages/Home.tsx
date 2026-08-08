@@ -90,7 +90,7 @@ const Home: React.FC = () => {
 
             <ScrollReveal delay={0.6}>
               <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-12 leading-relaxed">
-                Import existing code, collaborate in realtime, and push reviewed changes back to the original repository.
+                Create a shared workspace, collaborate in realtime, and run code together. Git import and push-back are coming soon.
               </p>
             </ScrollReveal>
 
