@@ -12,6 +12,7 @@ import { useProfile } from '@/hooks/useProfile';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { ShareModal, buildProfilePath, buildShareUrl } from '@/components/ShareModal';
+import { ensureUsername } from '@/lib/ensureUsername';
 import {
   Github,
   FolderOpen,
@@ -106,14 +107,33 @@ const Portfolio = () => {
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
 
-  const sharePath = buildProfilePath(profile?.username);
+  const [generatedUsername, setGeneratedUsername] = useState<string | null>(null);
+  const [sharePreparing, setSharePreparing] = useState(false);
+  const sharePath = buildProfilePath(profile?.username || generatedUsername);
   const shareUrl = sharePath ? buildShareUrl(sharePath) : '';
-  const handleShareProfile = () => {
-    if (!sharePath) {
-      toast({ title: 'Choose a username first', description: 'Add a username to create your public /in/username/ link.' });
-      setEditProfileOpen(true);
+  const handleShareProfile = async () => {
+    if (sharePath) {
+      setShareOpen(true);
       return;
     }
+    if (!user?.id) return;
+    setSharePreparing(true);
+    const username = await ensureUsername(user.id, [
+      profile?.display_name,
+      user.user_metadata?.full_name as string | undefined,
+      user.email,
+    ]);
+    setSharePreparing(false);
+    if (!username) {
+      toast({
+        title: "Couldn't create your link",
+        description: 'Please try again in a moment.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setGeneratedUsername(username);
+    refreshProfile?.();
     setShareOpen(true);
   };
   const [projectModalOpen, setProjectModalOpen] = useState(false);
@@ -372,6 +392,7 @@ const Portfolio = () => {
                   <div className="flex gap-2 md:self-end">
                     <Button
                       onClick={handleShareProfile}
+                      disabled={sharePreparing}
                       variant="outline"
                       className="gap-2 backdrop-blur-md bg-background/60"
                     >
