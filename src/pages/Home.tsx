@@ -47,10 +47,11 @@ const Home: React.FC = () => {
   }, []);
 
   const features = [
-    { icon: <User className="h-6 w-6" />, title: "Developer Portfolios", description: "Create beautiful portfolio pages to showcase your projects and skills to the world." },
-    { icon: <UploadCloud className="h-6 w-6" />, title: "Import Existing Code", description: "Bring in a source repository by link and keep the original provider as the source of truth." },
-    { icon: <Users className="h-6 w-6" />, title: "Live Workspaces", description: "Code together with shared files, live cursors, presence, chat, and instant synchronization." },
-    { icon: <GitBranch className="h-6 w-6" />, title: "Push Changes Back", description: "Review team changes and send approved work back to the original repository." }
+    { icon: <User className="h-6 w-6" />, title: "Developer Portfolios", description: "Create beautiful portfolio pages to showcase your projects and skills to the world.", status: "available" as const },
+    { icon: <Users className="h-6 w-6" />, title: "Live Workspaces", description: "Code together with shared files, live cursors, presence, chat, and instant synchronization.", status: "available" as const },
+    { icon: <Code className="h-6 w-6" />, title: "Run Code In-Browser", description: "Execute JavaScript and TypeScript in a sandboxed runtime without leaving the workspace.", status: "available" as const },
+    { icon: <UploadCloud className="h-6 w-6" />, title: "Repository Import", description: "Importing code from a repository link requires connecting a Git provider — not yet available.", status: "planned" as const },
+    { icon: <GitBranch className="h-6 w-6" />, title: "Push Changes Back", description: "Pushing reviewed work back to the original repository is planned and needs provider authorization.", status: "planned" as const }
   ];
 
   const displayStats = [
@@ -60,10 +61,10 @@ const Home: React.FC = () => {
   ];
 
   const howItWorks = [
-    { step: "01", title: "Import a Repository", description: "Start a workspace from an existing source repository link." },
-    { step: "02", title: "Invite Your Team", description: "Share a private room code and work in the same file tree." },
-    { step: "03", title: "Build Together", description: "Edit with realtime cursors, presence, chat, and conflict-safe sync." },
-    { step: "04", title: "Review & Push", description: "Review changed files and push approved work back upstream." }
+    { step: "01", title: "Create a Workspace", description: "Start a blank collaborative room and add the files you need.", status: "available" as const },
+    { step: "02", title: "Invite Your Team", description: "Share a private room code and work in the same file tree.", status: "available" as const },
+    { step: "03", title: "Build Together", description: "Edit with realtime cursors, presence, chat, and conflict-safe sync.", status: "available" as const },
+    { step: "04", title: "Review & Push", description: "Reviewing and pushing work upstream arrives with Git provider support.", status: "planned" as const }
   ];
 
   return (
@@ -84,12 +85,12 @@ const Home: React.FC = () => {
             <h1 className="text-5xl md:text-7xl lg:text-[5.5rem] font-bold text-foreground mb-8 tracking-tighter leading-[0.95]">
               <span>Build Together.</span>
               <br />
-              <span className="gradient-text inline-block">Ship to the Source.</span>
+              <span className="gradient-text inline-block">Code in Realtime.</span>
             </h1>
 
             <ScrollReveal delay={0.6}>
               <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-12 leading-relaxed">
-                Import existing code, collaborate in realtime, and push reviewed changes back to the original repository.
+                Create a shared workspace, collaborate in realtime, and run code together. Git import and push-back are coming soon.
               </p>
             </ScrollReveal>
 
@@ -182,7 +183,7 @@ const Home: React.FC = () => {
               </p>
             </ScrollReveal>
 
-            <StaggerContainer className="grid md:grid-cols-2 lg:grid-cols-4 gap-6" staggerDelay={0.1}>
+            <StaggerContainer className="grid md:grid-cols-2 lg:grid-cols-3 gap-6" staggerDelay={0.1}>
               {features.map((feature, index) => (
                 <StaggerItem key={index}>
                   <motion.div whileHover={{ y: -6, transition: { duration: 0.3 } }}>
@@ -190,7 +191,12 @@ const Home: React.FC = () => {
                       <div className="h-14 w-14 bg-secondary text-foreground rounded-xl flex items-center justify-center mb-5 group-hover:bg-foreground group-hover:text-background transition-colors duration-300">
                         {feature.icon}
                       </div>
-                      <h3 className="text-lg font-semibold text-foreground mb-2">{feature.title}</h3>
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
+                        <h3 className="text-lg font-semibold text-foreground">{feature.title}</h3>
+                        {feature.status === 'planned' && (
+                          <Badge variant="outline" className="text-[10px] uppercase tracking-wide">Coming soon</Badge>
+                        )}
+                      </div>
                       <p className="text-muted-foreground text-sm leading-relaxed">{feature.description}</p>
                     </GlassPanel>
                   </motion.div>
@@ -210,7 +216,7 @@ const Home: React.FC = () => {
                 Get started in minutes
               </h2>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Four simple steps to launch your professional developer presence.
+                Three steps to start collaborating today — plus what's next on the roadmap.
               </p>
             </ScrollReveal>
 
@@ -225,7 +231,12 @@ const Home: React.FC = () => {
                     >
                       {item.step}
                     </motion.div>
-                    <h3 className="text-xl font-semibold text-foreground mb-3">{item.title}</h3>
+                    <div className="flex items-center gap-2 mb-3 flex-wrap">
+                      <h3 className="text-xl font-semibold text-foreground">{item.title}</h3>
+                      {item.status === 'planned' && (
+                        <Badge variant="outline" className="text-[10px] uppercase tracking-wide">Coming soon</Badge>
+                      )}
+                    </div>
                     <p className="text-muted-foreground text-sm leading-relaxed">{item.description}</p>
                     {index < howItWorks.length - 1 && (
                       <ChevronRight className="hidden lg:block absolute top-8 -right-4 h-8 w-8 text-border" />

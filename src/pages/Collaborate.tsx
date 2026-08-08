@@ -353,7 +353,7 @@ const Collaborate = () => {
             <div>
               <h1 className="text-4xl font-bold text-foreground mb-2">Collaborative Workspaces</h1>
               <p className="text-muted-foreground">
-                Import existing code, invite your team, and work together in realtime
+                Create a workspace, invite your team, and work together in realtime
               </p>
             </div>
             <div className="flex gap-2">
@@ -389,11 +389,15 @@ const Collaborate = () => {
                     <div className="flex items-start gap-3">
                       <GitBranch className="h-5 w-5 text-ember mt-0.5" />
                       <div>
-                        <p className="text-sm font-medium">Import from a repository</p>
-                        <p className="text-xs text-muted-foreground mt-1">Provider authorization is required so private code and push permissions stay secure.</p>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-sm font-medium">Import from a repository</p>
+                          <Badge variant="outline" className="text-[10px] uppercase tracking-wide">Coming soon</Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">Repository import and push-back aren't available yet. Files you create here stay in this workspace — nothing is pushed to an external repository.</p>
                         <Button type="button" variant="outline" size="sm" className="mt-3" disabled>Connect Git provider</Button>
                       </div>
                     </div>
+
                   </div>
                   <div>
                     <Label htmlFor="description">Description</Label>
