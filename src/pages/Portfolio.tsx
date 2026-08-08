@@ -392,6 +392,7 @@ const Portfolio = () => {
                   <div className="flex gap-2 md:self-end">
                     <Button
                       onClick={handleShareProfile}
+                      disabled={sharePreparing}
                       variant="outline"
                       className="gap-2 backdrop-blur-md bg-background/60"
                     >
