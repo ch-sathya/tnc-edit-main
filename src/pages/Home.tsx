@@ -216,7 +216,7 @@ const Home: React.FC = () => {
                 Get started in minutes
               </h2>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Four simple steps to launch your professional developer presence.
+                Three steps to start collaborating today — plus what's next on the roadmap.
               </p>
             </ScrollReveal>
 
@@ -231,7 +231,12 @@ const Home: React.FC = () => {
                     >
                       {item.step}
                     </motion.div>
-                    <h3 className="text-xl font-semibold text-foreground mb-3">{item.title}</h3>
+                    <div className="flex items-center gap-2 mb-3 flex-wrap">
+                      <h3 className="text-xl font-semibold text-foreground">{item.title}</h3>
+                      {item.status === 'planned' && (
+                        <Badge variant="outline" className="text-[10px] uppercase tracking-wide">Coming soon</Badge>
+                      )}
+                    </div>
                     <p className="text-muted-foreground text-sm leading-relaxed">{item.description}</p>
                     {index < howItWorks.length - 1 && (
                       <ChevronRight className="hidden lg:block absolute top-8 -right-4 h-8 w-8 text-border" />
