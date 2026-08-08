@@ -183,7 +183,7 @@ const Home: React.FC = () => {
               </p>
             </ScrollReveal>
 
-            <StaggerContainer className="grid md:grid-cols-2 lg:grid-cols-4 gap-6" staggerDelay={0.1}>
+            <StaggerContainer className="grid md:grid-cols-2 lg:grid-cols-3 gap-6" staggerDelay={0.1}>
               {features.map((feature, index) => (
                 <StaggerItem key={index}>
                   <motion.div whileHover={{ y: -6, transition: { duration: 0.3 } }}>
@@ -191,7 +191,12 @@ const Home: React.FC = () => {
                       <div className="h-14 w-14 bg-secondary text-foreground rounded-xl flex items-center justify-center mb-5 group-hover:bg-foreground group-hover:text-background transition-colors duration-300">
                         {feature.icon}
                       </div>
-                      <h3 className="text-lg font-semibold text-foreground mb-2">{feature.title}</h3>
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
+                        <h3 className="text-lg font-semibold text-foreground">{feature.title}</h3>
+                        {feature.status === 'planned' && (
+                          <Badge variant="outline" className="text-[10px] uppercase tracking-wide">Coming soon</Badge>
+                        )}
+                      </div>
                       <p className="text-muted-foreground text-sm leading-relaxed">{feature.description}</p>
                     </GlassPanel>
                   </motion.div>
