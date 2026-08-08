@@ -12,6 +12,7 @@ import { useProfile } from '@/hooks/useProfile';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { ShareModal, buildProfilePath, buildShareUrl } from '@/components/ShareModal';
+import { ensureUsername } from '@/lib/ensureUsername';
 import {
   Github,
   FolderOpen,
