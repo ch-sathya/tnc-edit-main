@@ -799,6 +799,7 @@ export type Database = {
           is_username_set: boolean | null
           linkedin_url: string | null
           location: string | null
+          onboarding_completed: boolean
           skills: string[] | null
           twitter_url: string | null
           updated_at: string
@@ -821,6 +822,7 @@ export type Database = {
           is_username_set?: boolean | null
           linkedin_url?: string | null
           location?: string | null
+          onboarding_completed?: boolean
           skills?: string[] | null
           twitter_url?: string | null
           updated_at?: string
@@ -843,6 +845,7 @@ export type Database = {
           is_username_set?: boolean | null
           linkedin_url?: string | null
           location?: string | null
+          onboarding_completed?: boolean
           skills?: string[] | null
           twitter_url?: string | null
           updated_at?: string
