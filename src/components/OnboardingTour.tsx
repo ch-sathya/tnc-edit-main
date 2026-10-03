@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { X, ChevronRight, ChevronLeft, Check, Sparkles } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 interface TourStep {
   target: string;
@@ -58,14 +59,21 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({ onComplete }) =>
 
   useEffect(() => {
     if (!user) return;
-    
-    // Check if user has completed the tour
-    const tourCompleted = localStorage.getItem(`onboarding_tour_${user.id}`);
-    if (!tourCompleted) {
-      // Delay start to let page render
-      const timer = setTimeout(() => setIsActive(true), 1000);
-      return () => clearTimeout(timer);
-    }
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    supabase
+      .from('profiles')
+      .select('onboarding_completed')
+      .eq('user_id', user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data && !data.onboarding_completed) {
+          timer = setTimeout(() => {
+            // Only start with steps whose targets exist on the page
+            if (document.querySelector(tourSteps[0].target)) setIsActive(true);
+          }, 1200);
+        }
+      });
+    return () => { if (timer) clearTimeout(timer); };
   }, [user]);
 
   useEffect(() => {
@@ -115,11 +123,10 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({ onComplete }) =>
   }, [isActive, currentStep]);
 
   const handleNext = () => {
-    if (currentStep < tourSteps.length - 1) {
-      setCurrentStep(currentStep + 1);
-    } else {
-      completeTour();
-    }
+    let next = currentStep + 1;
+    while (next < tourSteps.length && !document.querySelector(tourSteps[next].target)) next++;
+    if (next < tourSteps.length) setCurrentStep(next);
+    else completeTour();
   };
 
   const handlePrev = () => {
@@ -130,7 +137,7 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({ onComplete }) =>
 
   const completeTour = () => {
     if (user) {
-      localStorage.setItem(`onboarding_tour_${user.id}`, 'completed');
+      supabase.from('profiles').update({ onboarding_completed: true }).eq('user_id', user.id).then();
     }
     setIsActive(false);
     onComplete?.();
@@ -235,21 +242,15 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({ onComplete }) =>
   );
 };
 
-// Hook to manually trigger the tour
+// Hook to manually restart the tour
 export const useOnboardingTour = () => {
   const { user } = useAuth();
 
-  const resetTour = () => {
-    if (user) {
-      localStorage.removeItem(`onboarding_tour_${user.id}`);
-      window.location.reload();
-    }
+  const resetTour = async () => {
+    if (!user) return;
+    await supabase.from('profiles').update({ onboarding_completed: false }).eq('user_id', user.id);
+    window.location.href = '/portfolio';
   };
 
-  const isTourCompleted = () => {
-    if (!user) return false;
-    return localStorage.getItem(`onboarding_tour_${user.id}`) === 'completed';
-  };
-
-  return { resetTour, isTourCompleted };
+  return { resetTour };
 };
