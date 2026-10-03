@@ -24,10 +24,12 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Bell, Shield, Palette, Loader2, AlertTriangle } from 'lucide-react';
 import { PhotoUpload } from '@/components/PhotoUpload';
+import { useOnboardingTour } from '@/components/OnboardingTour';
 
 const Settings = () => {
   const { user } = useAuth();
   const { profile } = useProfile();
+  const { resetTour } = useOnboardingTour();
   const { toast } = useToast();
   const navigate = useNavigate();
   
@@ -379,6 +381,17 @@ const Settings = () => {
                     </div>
                     <Switch defaultChecked />
                   </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Quick guide</CardTitle>
+                  <CardDescription>Replay the short walkthrough of your portfolio.</CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-wrap gap-3">
+                  <Button variant="outline" onClick={resetTour}>Restart guide</Button>
+                  <Button variant="ghost" onClick={() => navigate('/privacy')}>Privacy Policy</Button>
+                  <Button variant="ghost" onClick={() => navigate('/terms')}>Terms & Conditions</Button>
                 </CardContent>
               </Card>
             </TabsContent>

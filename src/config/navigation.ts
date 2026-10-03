@@ -1,4 +1,4 @@
-import { Home, FolderOpen, User, Users, MessageSquare, Newspaper, Sparkles, type LucideIcon } from 'lucide-react';
+import { Home, FolderOpen, User, Users, MessageSquare, Newspaper, type LucideIcon } from 'lucide-react';
 
 export interface NavItem {
   path: string;
@@ -12,7 +12,6 @@ export interface NavItem {
 export const primaryNavItems: NavItem[] = [
   { path: '/', label: 'Home', icon: Home },
   { path: '/collaborate', label: 'Collaborate', icon: Users },
-  { path: '/vibe-code', label: 'Vibe Code', icon: Sparkles },
   { path: '/projects', label: 'Showcase', icon: FolderOpen },
   { path: '/community', label: 'Community', icon: MessageSquare },
   { path: '/news', label: 'News', icon: Newspaper },

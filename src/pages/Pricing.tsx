@@ -170,7 +170,7 @@ const Pricing = () => {
             <h2 className="text-3xl font-bold text-center mb-8">Frequently Asked Questions</h2>
             <div className="space-y-6">
               {[
-                { q: 'What are AI credits?', a: 'Each AI credit allows you to send one message to the Vibe Code AI assistant. Credits reset monthly based on your plan.' },
+                { q: 'What are credits?', a: 'Credits are a monthly allowance reserved for premium features. They reset monthly based on your plan.' },
                 { q: 'Can I switch plans later?', a: 'Yes! You can upgrade or downgrade your plan at any time. Changes will be reflected in your next billing cycle.' },
                 { q: 'What about private repositories?', a: 'Free plans have public repositories only. Pro gets 10 private repos, and Team gets unlimited.' },
               ].map((faq, i) => (
