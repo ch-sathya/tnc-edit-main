@@ -27,7 +27,8 @@ import Settings from "./pages/Settings";
 import ResetPassword from "./pages/ResetPassword";
 import JoinRoom from "./pages/JoinRoom";
 import Pricing from "./pages/Pricing";
-import VibeCode from "./pages/VibeCode";
+import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
 import NotFound from "./pages/NotFound";
 import UserProfile from "./pages/UserProfile";
 import SharedSnippet from "./pages/SharedSnippet";
@@ -93,7 +94,9 @@ const AnimatedRoutes = () => {
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/pricing" element={<Pricing />} />
-            <Route path="/vibe-code" element={<VibeCode />} />
+            <Route path="/vibe-code" element={<Navigate to="/collaborate" replace />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/terms" element={<Terms />} />
             <Route path="/snippet/:shortCode" element={<SharedSnippet />} />
             {/* Fallback: catches /@username style URLs since React Router v6 requires
                 dynamic params to occupy a whole segment. */}

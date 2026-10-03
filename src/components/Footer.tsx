@@ -8,38 +8,35 @@ const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
 
   const socialLinks = [
-    { href: "mailto:contact@thenightclub.dev", icon: Mail, label: "Email" },
+    { href: "mailto:cheela.sathya@gmail.com", icon: Mail, label: "Email" },
   ];
 
   return (
-    <footer className="relative border-t border-border/30 mt-auto" style={{
-      background: 'rgba(0, 0, 0, 0.3)',
-      backdropFilter: 'blur(10px)',
-    }}>
+    <footer className="relative border-t border-border/30 mt-auto bg-background/30 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <ScrollReveal>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-10">
             <div className="col-span-1">
               <h3 className="text-xl font-bold text-foreground mb-4 tracking-tight">The Night Club</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Professional development tools for modern developers
+                Code together in real time and show your work.
               </p>
             </div>
 
             {[
               { title: "Platform", links: [
                 { label: "Collaborate", href: "/collaborate" },
-                { label: "Vibe Code", href: "/vibe-code" },
                 { label: "Showcase", href: "/projects" },
+                { label: "Pricing", href: "/pricing" },
               ]},
               { title: "Community", links: [
                 { label: "Groups", href: "/community" },
                 { label: "Connections", href: "/connections" },
                 { label: "News", href: "/news" },
               ]},
-              { title: "Account", links: [
-                { label: "Pricing", href: "/pricing" },
-                { label: "Sign in", href: "/auth" },
+              { title: "Legal", links: [
+                { label: "Privacy Policy", href: "/privacy" },
+                { label: "Terms & Conditions", href: "/terms" },
                 { label: "Settings", href: "/settings" },
               ]},
             ].map((section) => (

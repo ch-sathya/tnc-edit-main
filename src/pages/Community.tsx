@@ -20,6 +20,8 @@ import { useCommunityPosts, CommunityPost } from '@/hooks/useCommunityPosts';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { CommunityGroup } from '@/types/community';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 const Community = () => {
   const navigate = useNavigate();
@@ -55,7 +57,21 @@ const Community = () => {
 
   const selectedPost = posts?.find(p => p.id === selectedPostId);
 
-  const isMod = selectedGroup?.is_owner || false;
+  const { data: myRole } = useQuery({
+    queryKey: ['my-group-role', selectedGroupId, user?.id],
+    enabled: !!selectedGroupId && !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('group_memberships')
+        .select('role')
+        .eq('group_id', selectedGroupId!)
+        .eq('user_id', user!.id)
+        .maybeSingle();
+      return data?.role ?? null;
+    },
+  });
+
+  const isMod = !!selectedGroup?.is_owner || ['owner', 'admin', 'moderator'].includes(myRole ?? '');
 
   // Group view with Reddit-style posts
   if (selectedGroupId && selectedGroup) {
