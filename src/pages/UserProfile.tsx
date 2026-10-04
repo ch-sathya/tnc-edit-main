@@ -602,7 +602,16 @@ const UserProfile = () => {
               <span className="text-xs uppercase tracking-[0.25em] text-ember">03</span>
               <h2 className="font-display text-2xl md:text-3xl font-semibold">Experience</h2>
             </div>
-            <ExperienceSection userId={profile.user_id} isOwner={isOwnProfile} showHeading={false} />
+            <ExperienceSection userId={profile.user_id} isOwner={isOwnProfile} showHeading={false} kinds={['work', 'certification']} />
+          </section>
+
+          {/* Education */}
+          <section className="scroll-mt-24" id="education">
+            <div className="flex items-baseline gap-3 mb-6">
+              <span className="text-xs uppercase tracking-[0.25em] text-ember">03b</span>
+              <h2 className="font-display text-2xl md:text-3xl font-semibold">Education</h2>
+            </div>
+            <ExperienceSection userId={profile.user_id} isOwner={isOwnProfile} showHeading={false} kinds={['education']} />
           </section>
 
           {/* Projects */}
