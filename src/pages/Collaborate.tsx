@@ -69,8 +69,9 @@ const Collaborate = () => {
   });
 
   useEffect(() => {
-    fetchRooms();
-  }, []);
+    if (user) fetchRooms();
+    else setLoading(false);
+  }, [user]);
 
   const fetchRooms = async () => {
     try {
