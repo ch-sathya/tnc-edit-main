@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Navigation from '@/components/Navigation';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Home, Users, Plus, Flame, Clock, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Home, Users, Plus, Flame, Clock, TrendingUp, Settings as SettingsIcon, LogOut, UserPlus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator, BreadcrumbPage } from '@/components/ui/breadcrumb';
 import CommunityGroupList from '@/components/CommunityGroupList';
@@ -135,6 +135,28 @@ const Community = () => {
                       Chat
                     </Button>
                   )}
+                  {/* Mobile group controls (sidebar is hidden on small screens) */}
+                  <div className="ml-auto flex gap-1 lg:hidden">
+                    <Button variant="ghost" size="sm" aria-label="Members" onClick={() => setShowMembersModal(true)}>
+                      <Users className="h-4 w-4" />
+                    </Button>
+                    {isMod && (
+                      <Button variant="ghost" size="sm" aria-label="Group settings" onClick={() => setShowSettingsModal(true)}>
+                        <SettingsIcon className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {selectedGroup.is_member ? (
+                      !selectedGroup.is_owner && (
+                        <Button variant="outline" size="sm" aria-label="Leave group" onClick={() => leaveMutation.mutate(selectedGroupId)}>
+                          <LogOut className="h-4 w-4" />
+                        </Button>
+                      )
+                    ) : (
+                      <Button size="sm" onClick={() => joinMutation.mutate(selectedGroupId)}>
+                        <UserPlus className="h-4 w-4 mr-1" />Join
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
