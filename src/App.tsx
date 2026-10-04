@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { useEffect, Suspense } from "react";
 import { Loader2 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, MotionConfig } from "framer-motion";
 import { TopLoadingBar } from "@/components/TopLoadingBar";
 import { NoiseOverlay, SmoothCursor } from "@/components/animations/FluidBackground";
 import { AmbientBackground } from "@/components/animations/AmbientBackground";
@@ -115,6 +115,7 @@ const App = () => {
   }, []);
 
   return (
+    <MotionConfig reducedMotion="user">
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
@@ -127,6 +128,7 @@ const App = () => {
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
+    </MotionConfig>
   );
 };
 

@@ -34,7 +34,7 @@ const kindLabel = { work: 'Experience', education: 'Education', certification: '
 
 const fmt = (d: string | null) => (d ? format(new Date(d), 'MMM yyyy') : '');
 
-export const ExperienceSection: React.FC<{ userId: string; isOwner: boolean; showHeading?: boolean }> = ({ userId, isOwner, showHeading = true }) => {
+export const ExperienceSection: React.FC<{ userId: string; isOwner: boolean; showHeading?: boolean; kinds?: Kind[] }> = ({ userId, isOwner, showHeading = true, kinds }) => {
   const { toast } = useToast();
   const [items, setItems] = useState<ExperienceItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,7 +50,8 @@ export const ExperienceSection: React.FC<{ userId: string; isOwner: boolean; sho
       .eq('user_id', userId)
       .order('is_current', { ascending: false })
       .order('start_date', { ascending: false, nullsFirst: false });
-    setItems((data as any) || []);
+    const all = ((data as any) || []) as ExperienceItem[];
+    setItems(kinds ? all.filter((i) => kinds.includes(i.kind)) : all);
     setLoading(false);
   };
 
@@ -62,7 +63,7 @@ export const ExperienceSection: React.FC<{ userId: string; isOwner: boolean; sho
     setEditing({
       id: '',
       user_id: userId,
-      kind: 'work',
+      kind: kinds?.[0] ?? 'work',
       title: '',
       organization: '',
       location: '',
