@@ -238,9 +238,7 @@ export const fetchNews = async (options: NewsQueryOptions = {}): Promise<NewsRes
  */
 export const fetchNewsArticle = async (articleId: string): Promise<NewsArticle | null> => {
   try {
-    // In a real implementation, this would fetch from an API
-    // For now, we'll get it from our mock data
-    const allNews = await fetchNews({ limit: 100 }); // Get all articles
+    const allNews = await fetchNews({ limit: 200 });
     const article = allNews.articles.find(a => a.id === articleId);
     
     if (!article) {
