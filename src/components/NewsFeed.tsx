@@ -1,6 +1,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNewsStatus, useRefreshNews } from '@/hooks/useNews';
+import { supabase } from '@/integrations/supabase/client';
+import { clearNewsCache } from '@/lib/news';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -40,6 +42,16 @@ export const NewsFeed: React.FC<NewsFeedProps> = ({
     // Articles are sorted by publication date (newest first) by the API
   });
   const refreshNews = useRefreshNews();
+  React.useEffect(() => {
+    const channel = supabase
+      .channel('news-live')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'news' }, () => {
+        clearNewsCache();
+        refetch();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [refetch]);
   const errorHandler = useErrorHandler({
     showToast: true,
     retryable: true,
