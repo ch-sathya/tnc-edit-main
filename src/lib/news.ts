@@ -1,3 +1,4 @@
+import { supabase } from '@/integrations/supabase/client';
 import type { 
   NewsArticle, 
   NewsResponse,
@@ -181,13 +182,40 @@ export const fetchNews = async (options: NewsQueryOptions = {}): Promise<NewsRes
       return cached.data;
     }
 
-    // For now, use mock data. In production, this would call a real news API
-    // Example: const response = await fetch(`${NEWS_API_URL}/articles?${queryParams}`);
-    
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, Math.random() * 500 + 200));
-
-    const newsData = generateMockNews(options);
+    const limit = options.limit ?? 12;
+    const offset = options.offset ?? (options.cursor ? parseInt(options.cursor, 10) || 0 : 0);
+    let q = (supabase as any)
+      .from('news')
+      .select('id,title,content,excerpt,category,tags,image_url,source_url,source,featured,created_at', { count: 'exact' })
+      .eq('published', true)
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+    if (options.category && options.category !== 'all') q = q.eq('category', options.category);
+    if (options.featured) q = q.eq('featured', true);
+    if (options.search) q = q.ilike('title', `%${options.search.replace(/[%_]/g, '')}%`);
+    const { data, error, count } = await q;
+    if (error) throw error;
+    const articles: NewsArticle[] = (data ?? []).map((r: any) => ({
+      id: r.id,
+      title: r.title,
+      summary: r.excerpt || r.content?.slice(0, 200) || '',
+      content: r.content || '',
+      author: r.source || 'The Night Club',
+      published_at: r.created_at,
+      source_url: r.source_url || '',
+      category: r.category || 'tech',
+      tags: r.tags || [],
+      image_url: r.image_url || undefined,
+      read_time: Math.max(1, Math.round((r.content || '').split(/\s+/).length / 200)),
+    }));
+    const total = count ?? articles.length;
+    const newsData: NewsResponse = {
+      articles,
+      total,
+      hasMore: offset + articles.length < total,
+      nextCursor: String(offset + articles.length),
+    };
+    void generateMockNews;
 
     // Cache the result
     newsCache.set(cacheKey, {
