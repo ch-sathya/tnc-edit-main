@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
@@ -64,9 +65,29 @@ export interface GroupRule {
   description: string | null;
 }
 
+// Live-invalidate queries when rows change
+const useLiveInvalidate = (key: string, table: string, filter: string | null, invalidate: unknown[][]) => {
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    if (!filter) return;
+    const channel = supabase
+      .channel(`${key}-${filter}`)
+      .on('postgres_changes' as any, { event: '*', schema: 'public', table, filter }, () => {
+        invalidate.forEach((k) => queryClient.invalidateQueries({ queryKey: k }));
+      })
+      .on('postgres_changes' as any, { event: '*', schema: 'public', table: 'post_votes' }, () => {
+        invalidate.forEach((k) => queryClient.invalidateQueries({ queryKey: k }));
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, table, filter]);
+};
+
 // Fetch posts for a group
 export const useCommunityPosts = (groupId: string, sortBy: 'hot' | 'new' | 'top' = 'hot') => {
   const { user } = useAuth();
+  useLiveInvalidate('posts', 'community_posts', groupId ? `group_id=eq.${groupId}` : null, [['community-posts', groupId]]);
   
   return useQuery({
     queryKey: ['community-posts', groupId, sortBy],
@@ -134,6 +155,7 @@ export const useCommunityPosts = (groupId: string, sortBy: 'hot' | 'new' | 'top'
 // Fetch comments for a post
 export const usePostComments = (postId: string) => {
   const { user } = useAuth();
+  useLiveInvalidate('comments', 'post_comments', postId ? `post_id=eq.${postId}` : null, [['post-comments', postId]]);
 
   return useQuery({
     queryKey: ['post-comments', postId],

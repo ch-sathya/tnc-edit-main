@@ -30,7 +30,9 @@ const Home: React.FC = () => {
         const [profileCount, projectCount, roomCount] = await Promise.all([
           supabase.from('profiles').select('*', { count: 'exact', head: true }),
           supabase.from('projects' as any).select('*', { count: 'exact', head: true }).eq('status', 'published'),
-          supabase.from('collaboration_rooms').select('*', { count: 'exact', head: true })
+          user
+            ? supabase.from('collaboration_rooms').select('*', { count: 'exact', head: true })
+            : Promise.resolve({ count: 0 } as { count: number })
         ]);
         setStats({
           portfolios: profileCount.count || 0,
