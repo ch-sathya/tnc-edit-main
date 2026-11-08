@@ -36,6 +36,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { ProfileEditModal } from '@/components/ProfileEditModal';
 import { ProfileCompleteness } from '@/components/profile/ProfileCompleteness';
+import { ExperienceSection } from '@/components/profile/ExperienceSection';
 import { QuickProjectModal } from '@/components/QuickProjectModal';
 import { DirectMessageModal } from '@/components/DirectMessageModal';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
@@ -540,6 +541,29 @@ const Portfolio = () => {
               <FollowingFeed />
               <ProjectFavorites />
             </div>
+
+            <section className="mb-8" aria-label="Work history and education">
+              <div className="grid lg:grid-cols-2 gap-8">
+                <div>
+                  <h2 className="text-xl font-semibold mb-3">Work History</h2>
+                  <ExperienceSection
+                    userId={user.id}
+                    isOwner
+                    showHeading={false}
+                    kinds={['work', 'certification']}
+                  />
+                </div>
+                <div>
+                  <h2 className="text-xl font-semibold mb-3">Education</h2>
+                  <ExperienceSection
+                    userId={user.id}
+                    isOwner
+                    showHeading={false}
+                    kinds={['education']}
+                  />
+                </div>
+              </div>
+            </section>
 
             {/* Content Tabs */}
             <Tabs defaultValue="projects" className="w-full" data-tour="projects">
