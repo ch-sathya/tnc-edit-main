@@ -166,11 +166,11 @@ export const ExperienceSection: React.FC<{ userId: string; isOwner: boolean; sho
                         )}
                       </div>
                       {isOwner && (
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition">
-                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => startEdit(item)}>
+                        <div className="flex gap-1 opacity-100 transition md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100">
+                          <Button size="icon" variant="ghost" className="h-7 w-7" aria-label={`Edit ${item.title}`} title="Edit entry" onClick={() => startEdit(item)}>
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
-                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setPendingDelete(item.id)}>
+                          <Button size="icon" variant="ghost" className="h-7 w-7" aria-label={`Delete ${item.title}`} title="Delete entry" onClick={() => setPendingDelete(item.id)}>
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
