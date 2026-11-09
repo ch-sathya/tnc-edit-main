@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +13,8 @@ import GroupSettingsModal from './GroupSettingsModal';
 import { CommunityGroupListSkeleton } from '@/components/LoadingSkeletons';
 import RetryHandler from '@/components/RetryHandler';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 interface CommunityGroupListProps {
   onCreateGroup?: () => void;
   onGroupSelect?: (groupId: string) => void;
@@ -56,6 +58,9 @@ const CommunityGroupList: React.FC<CommunityGroupListProps> = ({
     maxRetries: 3
   });
   const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
+  const [search, setSearch] = useState('');
+  const [scope, setScope] = useState<'all' | 'joined'>('all');
+  const [sort, setSort] = useState<'popular' | 'newest'>('popular');
   const [confirmation, setConfirmation] = useState<ConfirmationState>({
     open: false,
     type: null,
@@ -185,22 +190,56 @@ const CommunityGroupList: React.FC<CommunityGroupListProps> = ({
         </div>
       </RetryHandler>;
   }
+  const visibleGroups = useMemo(() => {
+    const query = search.trim().toLocaleLowerCase();
+    return [...(groups ?? [])]
+      .filter(group => scope === 'all' || group.is_member || group.is_owner)
+      .filter(group => !query || `${group.name} ${group.description ?? ''}`.toLocaleLowerCase().includes(query))
+      .sort((a, b) => sort === 'popular'
+        ? (b.member_count ?? 0) - (a.member_count ?? 0)
+        : new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime());
+  }, [groups, search, scope, sort]);
   const isEmpty = !groups || groups.length === 0;
   return <section className="space-y-6" aria-labelledby="community-groups-heading">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+      <div className="flex flex-col gap-4">
         <div>
-          
+          <h2 id="community-groups-heading" className="text-2xl font-bold">Discover communities</h2>
           <p className="text-muted-foreground text-sm mt-1">
-            {isEmpty ? 'No groups available' : `${groups?.length || 0} groups available`}
+            {isEmpty ? 'No groups available' : `${visibleGroups.length} of ${groups?.length ?? 0} communities`}
           </p>
         </div>
-        <Button onClick={onCreateGroup} className="min-h-[44px] w-full sm:w-auto" // Full width on mobile, auto on desktop
+        <Button onClick={onCreateGroup} className="min-h-[44px] w-full sm:w-auto self-start sm:self-end" // Full width on mobile, auto on desktop
       aria-label="Create a new community group">
           <Plus className="h-4 w-4 mr-2" />
           <span className="sm:hidden">Create Group</span>
           <span className="hidden sm:inline">Create Group</span>
         </Button>
       </div>
+
+      {!isEmpty && (
+        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px_180px]">
+          <Input
+            value={search}
+            onChange={event => setSearch(event.target.value)}
+            placeholder="Search communities"
+            aria-label="Search communities"
+          />
+          <Select value={scope} onValueChange={(value: 'all' | 'joined') => setScope(value)}>
+            <SelectTrigger aria-label="Community membership filter"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All communities</SelectItem>
+              <SelectItem value="joined">My communities</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={sort} onValueChange={(value: 'popular' | 'newest') => setSort(value)}>
+            <SelectTrigger aria-label="Sort communities"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="popular">Most members</SelectItem>
+              <SelectItem value="newest">Recently created</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {isEmpty ? <Card role="region" aria-labelledby="empty-state-heading">
           <CardContent className="pt-6 text-center">
@@ -216,8 +255,13 @@ const CommunityGroupList: React.FC<CommunityGroupListProps> = ({
               Create Your First Group
             </Button>
           </CardContent>
-        </Card> : <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" role="grid" aria-label="Community groups list">
-          {groups.map(group => <GroupCard key={group.id} group={group} isLoading={loadingStates[group.id] || false} onJoin={() => handleJoinGroup(group.id)} onLeave={() => handleLeaveGroup(group.id, group.name, group.is_owner || false, group.member_count || 0)} onDelete={() => handleDeleteGroup(group.id, group.name)} onSelect={() => onGroupSelect?.(group.id)} onMembers={() => setModals(prev => ({
+        </Card> : visibleGroups.length === 0 ? (
+          <Card role="status"><CardContent className="py-10 text-center">
+            <p className="font-medium">No communities match those filters</p>
+            <p className="text-sm text-muted-foreground mt-1">Try another search or show all communities.</p>
+          </CardContent></Card>
+        ) : <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" aria-label="Community groups list">
+          {visibleGroups.map(group => <GroupCard key={group.id} group={group} isLoading={loadingStates[group.id] || false} onJoin={() => handleJoinGroup(group.id)} onLeave={() => handleLeaveGroup(group.id, group.name, group.is_owner || false, group.member_count || 0)} onDelete={() => handleDeleteGroup(group.id, group.name)} onSelect={() => onGroupSelect?.(group.id)} onMembers={() => setModals(prev => ({
         ...prev,
         membersModal: {
           open: true,

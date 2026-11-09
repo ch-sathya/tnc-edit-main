@@ -1,4 +1,6 @@
 # Roadmap — Production readiness
+- [ ] Community: Reddit-style discovery with search, joined groups, sorting, shareable group links, and mobile context
+- [ ] News: broaden free tech and AI sources, add clear category filters
 - [x] Phase 3: Real news (hourly fetch from Hacker News + DEV, live updates on News page)
 - [ ] Phase 1: Signed-in end-to-end check of every flow
 - [x] Phase 2: Live updates for communities, messages, notifications, profiles
