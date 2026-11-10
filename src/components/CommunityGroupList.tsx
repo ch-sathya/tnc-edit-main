@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useCommunityGroups, useJoinCommunityGroup, useLeaveCommunityGroup, useDeleteCommunityGroup } from '@/hooks/useCommunityGroups';
 import { useAuth } from '@/hooks/useAuth';
-import { Users, Crown, Plus, Trash2, UserMinus, UserPlus, AlertTriangle, MessageCircle, Settings } from 'lucide-react';
+import { Users, Crown, Plus, Trash2, UserMinus, UserPlus, AlertTriangle, MessageCircle, Settings, Search } from 'lucide-react';
 import { CommunityGroup } from '@/types/community';
 import { toast } from 'sonner';
 import ConfirmationDialog from './ConfirmationDialog';
@@ -224,6 +224,7 @@ const CommunityGroupList: React.FC<CommunityGroupListProps> = ({
             onChange={event => setSearch(event.target.value)}
             placeholder="Search communities"
             aria-label="Search communities"
+            className="pl-10"
           />
           <Select value={scope} onValueChange={(value: 'all' | 'joined') => setScope(value)}>
             <SelectTrigger aria-label="Community membership filter"><SelectValue /></SelectTrigger>

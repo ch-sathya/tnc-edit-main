@@ -53,8 +53,8 @@ describe('News Page', () => {
   it('renders news page with header and navigation', () => {
     render(<News />, { wrapper: createWrapper() });
 
-    expect(screen.getByText('News')).toBeInTheDocument();
-    expect(screen.getByText('Stay updated with the latest in technology and software development')).toBeInTheDocument();
+    expect(screen.getByText('Technology & AI News')).toBeInTheDocument();
+    expect(screen.getByText('Latest stories from technology, software, and AI sources.')).toBeInTheDocument();
     expect(screen.getByTestId('news-feed')).toBeInTheDocument();
   });
 
@@ -81,6 +81,7 @@ describe('News Page', () => {
 
     expect(screen.getByTestId('news-limit')).toHaveTextContent('Limit: 12');
     expect(screen.getByTestId('refresh-button-visible')).toHaveTextContent('true');
+    expect(screen.getByText('AI industry')).toBeInTheDocument();
   });
 
   it('has proper accessibility attributes', () => {

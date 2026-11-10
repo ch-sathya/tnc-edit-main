@@ -79,7 +79,7 @@ export interface NewsArticle {
   author: string;
   published_at: string;
   source_url: string;
-  category: 'tech' | 'software' | 'development' | 'industry';
+  category: 'ai' | 'tech' | 'software' | 'development' | 'industry';
   tags?: string[];
   image_url?: string;
   read_time?: number;

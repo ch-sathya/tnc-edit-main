@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import Navigation from '@/components/Navigation';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Home, Users, Plus, Flame, Clock, TrendingUp, Settings as SettingsIcon, LogOut, UserPlus } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, Home, Users, Plus, Flame, Clock, TrendingUp, Settings as SettingsIcon, LogOut, UserPlus, Share2 } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator, BreadcrumbPage } from '@/components/ui/breadcrumb';
 import CommunityGroupList from '@/components/CommunityGroupList';
 import CreateGroupModal from '@/components/CreateGroupModal';
@@ -25,9 +25,10 @@ import { supabase } from '@/integrations/supabase/client';
 
 const Community = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(() => searchParams.get('group'));
   const [activeView, setActiveView] = useState<'posts' | 'chat'>('posts');
   const [showCreatePostModal, setShowCreatePostModal] = useState(false);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
@@ -35,23 +36,21 @@ const Community = () => {
   const [showMembersModal, setShowMembersModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
 
-  const { data: selectedGroup } = useCommunityGroup(selectedGroupId || '');
+  const { data: selectedGroup, isLoading: groupLoading, error: groupError } = useCommunityGroup(selectedGroupId || '');
   const { data: posts, isLoading: postsLoading } = useCommunityPosts(selectedGroupId || '', sortBy);
   const joinMutation = useJoinCommunityGroup();
   const leaveMutation = useLeaveCommunityGroup();
 
   const handleGroupSelect = (groupId: string) => {
-    if (!user) {
-      toast.error('You must be logged in to access groups');
-      return;
-    }
     setSelectedGroupId(groupId);
+    setSearchParams({ group: groupId });
     setSelectedPostId(null);
     setActiveView('posts');
   };
 
   const handleBackToGroups = () => {
     setSelectedGroupId(null);
+    setSearchParams({}, { replace: true });
     setSelectedPostId(null);
   };
 
@@ -72,6 +71,30 @@ const Community = () => {
   });
 
   const isMod = !!selectedGroup?.is_owner || ['owner', 'admin', 'moderator'].includes(myRole ?? '');
+
+  const handleShareGroup = async () => {
+    if (!selectedGroupId) return;
+    const url = new URL('/community', window.location.origin);
+    url.searchParams.set('group', selectedGroupId);
+    try {
+      await navigator.clipboard.writeText(url.toString());
+      toast.success('Community link copied');
+    } catch {
+      toast.error('Could not copy the community link');
+    }
+  };
+
+  if (selectedGroupId && groupLoading) {
+    return <><Navigation /><main className="container mx-auto max-w-6xl px-4 py-12 text-center text-muted-foreground" role="status">Loading community…</main></>;
+  }
+
+  if (selectedGroupId && (groupError || !selectedGroup)) {
+    return <><Navigation /><main className="container mx-auto max-w-6xl px-4 py-12 text-center">
+      <h1 className="text-xl font-semibold">Community unavailable</h1>
+      <p className="mt-2 text-muted-foreground">This community may have been removed or is not accessible.</p>
+      <Button className="mt-4" onClick={handleBackToGroups}>Browse communities</Button>
+    </main></>;
+  }
 
   // Group view with Reddit-style posts
   if (selectedGroupId && selectedGroup) {
@@ -111,6 +134,9 @@ const Community = () => {
                     </p>
                   </div>
                   <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={handleShareGroup} aria-label="Copy community link">
+                      <Share2 className="h-4 w-4 sm:mr-2" /><span className="hidden sm:inline">Share</span>
+                    </Button>
                     <Button variant="outline" size="sm" onClick={handleBackToGroups}>
                       <ArrowLeft className="h-4 w-4 mr-2" />Back
                     </Button>
@@ -178,11 +204,12 @@ const Community = () => {
                         {/* Sort bar + create post */}
                         <div className="flex items-center justify-between gap-2 flex-wrap">
                           <div className="flex items-center bg-card border rounded-lg p-1 gap-0.5">
-                            <Button
+                    <Button
                               variant={sortBy === 'hot' ? 'secondary' : 'ghost'}
                               size="sm"
                               className="h-7 px-3 text-xs gap-1.5"
                               onClick={() => setSortBy('hot')}
+                      aria-pressed={sortBy === 'hot'}
                             >
                               <Flame className="h-3.5 w-3.5" />Hot
                             </Button>
@@ -191,6 +218,7 @@ const Community = () => {
                               size="sm"
                               className="h-7 px-3 text-xs gap-1.5"
                               onClick={() => setSortBy('new')}
+                              aria-pressed={sortBy === 'new'}
                             >
                               <Clock className="h-3.5 w-3.5" />New
                             </Button>
@@ -199,6 +227,7 @@ const Community = () => {
                               size="sm"
                               className="h-7 px-3 text-xs gap-1.5"
                               onClick={() => setSortBy('top')}
+                              aria-pressed={sortBy === 'top'}
                             >
                               <TrendingUp className="h-3.5 w-3.5" />Top
                             </Button>
@@ -253,6 +282,22 @@ const Community = () => {
                   </div>
                 </div>
               )}
+              {activeView === 'posts' && (
+                <details className="mt-4 rounded-lg border bg-card p-4 lg:hidden">
+                  <summary className="cursor-pointer font-medium">About {selectedGroup.name}</summary>
+                  <div className="mt-4">
+                    <GroupSidebar
+                      group={selectedGroup}
+                      canModerate={isMod}
+                      onJoin={() => joinMutation.mutate(selectedGroupId)}
+                      onLeave={() => leaveMutation.mutate(selectedGroupId)}
+                      onSettings={() => setShowSettingsModal(true)}
+                      onMembers={() => setShowMembersModal(true)}
+                      onChat={() => setActiveView('chat')}
+                    />
+                  </div>
+                </details>
+              )}
             </div>
           </div>
 
@@ -290,7 +335,7 @@ const Community = () => {
             <header className="mb-6">
               <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Community</h1>
               <p className="text-muted-foreground mt-2 text-sm sm:text-base">
-                Join communities, share posts, and discuss with other developers
+                Discover developer communities, share posts, and join live discussions
               </p>
             </header>
 

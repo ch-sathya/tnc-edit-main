@@ -68,15 +68,6 @@ export const NewsFeed: React.FC<NewsFeedProps> = ({
       navigate(`/news/${article.id}`);
     }
   };
-  const getCategoryColor = (category: string) => {
-    const colors = {
-      tech: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-      software: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-      development: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
-      industry: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
-    };
-    return colors[category as keyof typeof colors] || 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
-  };
   const formatPublishedDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -140,7 +131,7 @@ export const NewsFeed: React.FC<NewsFeedProps> = ({
               <CardHeader className="pb-3">
                 {/* Category badge and read time */}
                 <div className="flex justify-between items-start mb-3 gap-2">
-                  <Badge className={getCategoryColor(article.category)}>
+                  <Badge variant={article.category === 'ai' ? 'default' : 'secondary'}>
                     {article.category}
                   </Badge>
                   {article.read_time && <div className="flex items-center text-xs text-muted-foreground flex-shrink-0">
