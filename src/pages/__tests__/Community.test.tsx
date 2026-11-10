@@ -120,7 +120,7 @@ describe('Community Page', () => {
     render(<Community />, { wrapper: createWrapper() });
 
     expect(screen.getByRole('heading', { name: 'Community' })).toBeInTheDocument();
-    expect(screen.getByText('Connect with other developers and join discussions')).toBeInTheDocument();
+    expect(screen.getByText('Discover developer communities, share posts, and join live discussions')).toBeInTheDocument();
     expect(screen.getByText('Home')).toBeInTheDocument();
     expect(screen.getByTestId('community-group-list')).toBeInTheDocument();
   });

@@ -15,9 +15,10 @@ interface GroupSidebarProps {
   onSettings?: () => void;
   onMembers?: () => void;
   onChat?: () => void;
+  canModerate?: boolean;
 }
 
-const GroupSidebar: React.FC<GroupSidebarProps> = ({ group, onJoin, onLeave, onSettings, onMembers, onChat }) => {
+const GroupSidebar: React.FC<GroupSidebarProps> = ({ group, onJoin, onLeave, onSettings, onMembers, onChat, canModerate }) => {
   const { data: rules } = useGroupRules(group.id);
 
   return (
@@ -62,7 +63,7 @@ const GroupSidebar: React.FC<GroupSidebarProps> = ({ group, onJoin, onLeave, onS
                 Members
               </Button>
             )}
-            {group.is_owner && onSettings && (
+            {(canModerate ?? group.is_owner) && onSettings && (
               <Button onClick={onSettings} variant="outline" className="w-full" size="sm">
                 <Settings className="h-4 w-4 mr-2" />
                 Mod Settings

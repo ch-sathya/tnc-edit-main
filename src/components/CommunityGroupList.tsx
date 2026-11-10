@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useCommunityGroups, useJoinCommunityGroup, useLeaveCommunityGroup, useDeleteCommunityGroup } from '@/hooks/useCommunityGroups';
 import { useAuth } from '@/hooks/useAuth';
-import { Users, Crown, Plus, Trash2, UserMinus, UserPlus, AlertTriangle, MessageCircle, Settings } from 'lucide-react';
+import { Users, Crown, Plus, Trash2, UserMinus, UserPlus, AlertTriangle, MessageCircle, Settings, Search } from 'lucide-react';
 import { CommunityGroup } from '@/types/community';
 import { toast } from 'sonner';
 import ConfirmationDialog from './ConfirmationDialog';
@@ -78,6 +78,17 @@ const CommunityGroupList: React.FC<CommunityGroupListProps> = ({
       group: null
     }
   });
+  const visibleGroups = useMemo(() => {
+    const query = search.trim().toLocaleLowerCase();
+    return [...(groups ?? [])]
+      .filter(group => scope === 'all' || group.is_member || group.is_owner)
+      .filter(group => !query || `${group.name} ${group.description ?? ''}`.toLocaleLowerCase().includes(query))
+      .sort((a, b) => sort === 'popular'
+        ? (b.member_count ?? 0) - (a.member_count ?? 0)
+        : new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime());
+  }, [groups, search, scope, sort]);
+  const isEmpty = !groups || groups.length === 0;
+
   const handleJoinGroup = async (groupId: string) => {
     if (!user) {
       toast.error('You must be logged in to join a group');
@@ -190,16 +201,6 @@ const CommunityGroupList: React.FC<CommunityGroupListProps> = ({
         </div>
       </RetryHandler>;
   }
-  const visibleGroups = useMemo(() => {
-    const query = search.trim().toLocaleLowerCase();
-    return [...(groups ?? [])]
-      .filter(group => scope === 'all' || group.is_member || group.is_owner)
-      .filter(group => !query || `${group.name} ${group.description ?? ''}`.toLocaleLowerCase().includes(query))
-      .sort((a, b) => sort === 'popular'
-        ? (b.member_count ?? 0) - (a.member_count ?? 0)
-        : new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime());
-  }, [groups, search, scope, sort]);
-  const isEmpty = !groups || groups.length === 0;
   return <section className="space-y-6" aria-labelledby="community-groups-heading">
       <div className="flex flex-col gap-4">
         <div>
@@ -223,6 +224,7 @@ const CommunityGroupList: React.FC<CommunityGroupListProps> = ({
             onChange={event => setSearch(event.target.value)}
             placeholder="Search communities"
             aria-label="Search communities"
+            className="pl-10"
           />
           <Select value={scope} onValueChange={(value: 'all' | 'joined') => setScope(value)}>
             <SelectTrigger aria-label="Community membership filter"><SelectValue /></SelectTrigger>
