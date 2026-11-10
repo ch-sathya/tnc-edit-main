@@ -78,6 +78,17 @@ const CommunityGroupList: React.FC<CommunityGroupListProps> = ({
       group: null
     }
   });
+  const visibleGroups = useMemo(() => {
+    const query = search.trim().toLocaleLowerCase();
+    return [...(groups ?? [])]
+      .filter(group => scope === 'all' || group.is_member || group.is_owner)
+      .filter(group => !query || `${group.name} ${group.description ?? ''}`.toLocaleLowerCase().includes(query))
+      .sort((a, b) => sort === 'popular'
+        ? (b.member_count ?? 0) - (a.member_count ?? 0)
+        : new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime());
+  }, [groups, search, scope, sort]);
+  const isEmpty = !groups || groups.length === 0;
+
   const handleJoinGroup = async (groupId: string) => {
     if (!user) {
       toast.error('You must be logged in to join a group');
@@ -190,16 +201,6 @@ const CommunityGroupList: React.FC<CommunityGroupListProps> = ({
         </div>
       </RetryHandler>;
   }
-  const visibleGroups = useMemo(() => {
-    const query = search.trim().toLocaleLowerCase();
-    return [...(groups ?? [])]
-      .filter(group => scope === 'all' || group.is_member || group.is_owner)
-      .filter(group => !query || `${group.name} ${group.description ?? ''}`.toLocaleLowerCase().includes(query))
-      .sort((a, b) => sort === 'popular'
-        ? (b.member_count ?? 0) - (a.member_count ?? 0)
-        : new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime());
-  }, [groups, search, scope, sort]);
-  const isEmpty = !groups || groups.length === 0;
   return <section className="space-y-6" aria-labelledby="community-groups-heading">
       <div className="flex flex-col gap-4">
         <div>
