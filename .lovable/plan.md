@@ -13,6 +13,7 @@ Turn The Night Club into a dependable developer community where people can prese
 ### 0. Establish an honest baseline
 - Inventory every route and visible tab, then check signed-out, signed-in, loading, empty, error, mobile, and permission-denied states.
 - Cover Home, Auth/username setup, Portfolio, public profiles, Showcase/project details, Collaborate/join/room/editor, Community/group/posts/chat/settings, Connections/direct messages, Notifications, News/article, Settings, Pricing, and legal pages.
+- Prioritize confirmed source-level defects: News article route reads a different parameter name than its route supplies; login does not preserve requested return paths; username availability checks can race; room save/chat can report success or clear text despite returned database errors; DM history can overwrite a message received during initial load; project-detail failures can render blank; settings notification switches are not persisted; and paid pricing actions are explicitly “coming soon.”
 - Run current tests and lint/build checks; reproduce existing failures before changing behavior. Create an end-to-end flow matrix and record which checks need a safe signed-in test account.
 - **Gate:** no route is marked “working” solely because it renders; every main action has a result and error/retry path.
 
@@ -21,12 +22,14 @@ Turn The Night Club into a dependable developer community where people can prese
 - Make AI usage charging atomic and error-checked; validate request size, conversation length, permitted models, concurrency, and spend limits. Preserve auth checks and never expose provider secrets in the browser.
 - Bound every code-execution path, including Python work/output; authorize every socket action against server-side room membership, not just the initial join.
 - Review Realtime authorization, private-message/group membership boundaries, public-profile visibility, uploads, admin/moderator permissions, and rate limits. Keep admin roles separate from editable profile metadata.
+- Inspect effective deployed grants, RLS, function versions and runtime limits before treating repository findings as confirmed production exposure; run negative tests for self-granted credits/plans and cross-room event access.
 - **Gate:** unauthorized users cannot read or change private data, grant themselves entitlements, overload execution, or inject events into rooms; negative tests prove each boundary.
 
 ### 2. Make the core user journeys reliable
-- Test signup/sign-in/sign-out/password recovery and username routing; verify profile edits, banner/avatar, work history, education, public sharing, and privacy settings persist and display correctly.
-- Test project create/edit/delete and link-only GitHub behavior; group discovery/join/leave, posts, votes, comments, chat, member roles and moderation; connection requests, acceptance/removal, direct-message routing, notifications and unread state.
-- Test room creation/invites, files, editor changes, save/reopen, code execution, chat and settings. Repair broken loading, empty, retry, navigation and mobile states found by the matrix.
+- Test signup/sign-in/sign-out/password recovery and username routing; preserve intended return paths, make username checks race-safe, and verify profile edits, banner/avatar, work history, education, public sharing, and privacy settings persist and display correctly.
+- Test project create/edit/delete and link-only GitHub behavior; ensure project-detail errors have a usable recovery state. Test group discovery/join/leave, posts, vote-based “Hot” sorting, comments, chat, member roles and moderation; connection requests, acceptance/removal, direct-message routing/races, actionable notifications and unread state.
+- Test room creation/invites, files, editor changes, save/reopen, code execution, chat and settings; never clear drafts or announce success on failed writes. Verify notification preferences persist or clearly mark them as unavailable until implemented.
+- Repair broken loading, empty, error/retry, navigation, mobile, and browser-history states found by the matrix.
 - **Gate:** browser end-to-end tests exercise create → persist → reload/read-back and permission-denied paths with two safe test accounts where collaboration requires two people.
 
 ### 3. Prove realtime collaboration and recovery
@@ -38,7 +41,7 @@ Turn The Night Club into a dependable developer community where people can prese
 ### 4. Make News dependable and fresh
 - Keep the current public Hacker News, DEV and RSS ingestion in the existing `fetch-news` Edge Function; validate source feeds and provide source-level health, last-success time and clear partial-failure reporting.
 - Verify the actual production scheduler before claiming hourly freshness—the checked-in migrations currently do not show a schedule. Add a protected, monitored scheduled refresh with deduplication and safe retries; keep the public refresh button for reloading stored stories, not exposing a privileged ingestion trigger.
-- Ensure new stories appear through Realtime, categories and article links remain correct, older articles can be opened, and source updates/deletions are handled deliberately. Start at a measured cadence (hourly is the current roadmap target); public feeds do not provide guaranteed instant push delivery.
+- Fix the article detail route parameter mismatch and load articles by identifier rather than only searching the newest 200 rows. Ensure new stories appear through Realtime, categories and article links remain correct, older articles can be opened, and source updates/deletions are handled deliberately. Start at a measured cadence (hourly is the current roadmap target); public feeds do not provide guaranteed instant push delivery.
 - **Gate:** observe a scheduled successful run, a partial source outage, duplicate feed items, and a new story arriving in the UI; verify the deployed schedule and function logs.
 
 ### 5. Refine the story, visuals and motion
@@ -65,6 +68,7 @@ Turn The Night Club into a dependable developer community where people can prese
 - `fetch-news` is configured without JWT verification and writes with the service role; production invocation protection and cadence must be verified before launch.
 - Pricing loads database tiers, but paid-plan selection currently reports that Stripe is coming soon.
 - Existing collaboration uses Yjs/Monaco and Supabase Realtime; reliable behavior still needs two-session authorization, concurrency and recovery tests.
+- Static route/flow review identified the News detail param mismatch, unpreserved auth return destinations, username-check races, DM initial-load race, unchecked room save/chat errors, blank project-detail error state, and non-persistent settings notification toggles; reproduce and fix these in the relevant journey phase.
 - Current automated tests are concentrated in Community, News and collaboration helpers; several important page flows have no dedicated tests, and prior News checks reported incomplete Supabase mocks.
 
 ## Verification standard
